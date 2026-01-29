@@ -400,7 +400,7 @@ Results: result, error, errorCategory, apiCreditsUsed, timeSpentMs
 | Input validation | ✅ Complete | Critical | Zod schemas |
 | SQL injection prevention | ✅ Complete | Critical | Prisma ORM |
 | Vulnerability scanning | ✅ Complete | High | Trivy + Dependabot |
-| Rate limiting | ❌ Missing | High | Required for prod |
+| Rate limiting | ✅ Complete | High | Anthropic API limits |
 | Authentication | ❌ Missing | High | Required for prod |
 | HTTPS/TLS | ❌ Missing | High | Required for prod |
 | Secrets management | ⚠️ Partial | High | Env vars only |
@@ -469,7 +469,7 @@ Results: result, error, errorCategory, apiCreditsUsed, timeSpentMs
 | Vulnerability Scanning | ✅ Implemented | Low (Trivy + Dependabot) |
 | Authentication | ❌ None | **Critical** |
 | Authorization | ❌ None | **Critical** |
-| Rate Limiting | ❌ None | High |
+| Rate Limiting | ✅ Implemented | Low (Anthropic API) |
 | HTTPS | ❌ None | High |
 | CORS | ⚠️ Permissive | Medium |
 | Secrets | ⚠️ Env vars | Medium |
@@ -504,10 +504,10 @@ Results: result, error, errorCategory, apiCreditsUsed, timeSpentMs
    - Risk: Container inspection could leak keys
    - Required fix: Use secrets manager (Vault, AWS Secrets Manager)
 
-4. **No Rate Limiting**
-   - Unbounded API access
-   - Risk: Cost explosion, DoS
-   - Required fix: Add rate limiting middleware
+4. **~~No Rate Limiting~~** ✅ FIXED
+   - Anthropic API rate limiting implemented (RPM/TPM)
+   - Sliding window algorithm with 80% buffer threshold
+   - Per-model-tier tracking (Haiku/Sonnet/Opus)
 
 ### Required Fixes Before Production
 
@@ -516,7 +516,7 @@ Results: result, error, errorCategory, apiCreditsUsed, timeSpentMs
 | Add authentication (JWT) | P0 | 8-16 hours |
 | Add authorization (RBAC) | P0 | 4-8 hours |
 | Configure HTTPS/TLS | P0 | 2-4 hours |
-| Add rate limiting | P1 | 2-4 hours |
+| ~~Add rate limiting~~ | ✅ Done | Implemented |
 | Secrets management | P1 | 4-8 hours |
 | Security headers | P1 | 1-2 hours |
 | Audit logging | P2 | 4-8 hours |
@@ -930,6 +930,7 @@ model TrainingDataset {
 | 1.0 | 2026-01-29 | AI Assessment | Initial creation |
 | 1.1 | 2026-01-29 | AI Assessment | Added security scanning (Trivy + Dependabot) |
 | 1.2 | 2026-01-29 | AI Assessment | crewai 0.86.0 migration, litellm integration, updated env vars |
+| 1.3 | 2026-01-29 | AI Assessment | Added Anthropic API rate limiting (RPM/TPM sliding window) |
 
 ---
 

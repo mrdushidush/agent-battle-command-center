@@ -6,6 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { rateLimiter } from './rateLimiter.js';
 
 const HAIKU_MODEL = 'claude-3-haiku-20240307';
 
@@ -65,11 +66,24 @@ Respond with ONLY a JSON object in this exact format:
 }`;
 
   try {
+    // Estimate input tokens (~4 chars per token)
+    const estimatedInputTokens = Math.ceil(prompt.length / 4);
+
+    // Wait for rate limit capacity
+    await rateLimiter.waitForCapacity('haiku', estimatedInputTokens, 300);
+
     const response = await client.messages.create({
       model: HAIKU_MODEL,
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
+
+    // Record actual usage
+    rateLimiter.recordUsage(
+      'haiku',
+      response.usage.input_tokens,
+      response.usage.output_tokens
+    );
 
     const content = response.content[0];
     if (content.type !== 'text') {

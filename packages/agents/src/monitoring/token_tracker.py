@@ -6,18 +6,21 @@ from typing import Any, Dict, List, Optional
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import LLMResult
 
+from .rate_limiter import rate_limiter
+
 
 class TokenTracker(BaseCallbackHandler):
     """
     Callback handler that tracks token usage from LLM calls.
     """
 
-    def __init__(self):
+    def __init__(self, model_tier: str = "sonnet"):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         self.last_input_tokens = 0
         self.last_output_tokens = 0
         self.call_count = 0
+        self.model_tier = model_tier
 
     def on_llm_start(
         self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
@@ -50,6 +53,9 @@ class TokenTracker(BaseCallbackHandler):
             self.last_output_tokens = output_tokens
             self.total_input_tokens += input_tokens
             self.total_output_tokens += output_tokens
+
+            # Record usage with rate limiter
+            rate_limiter.record_usage(self.model_tier, input_tokens, output_tokens)
 
     def get_last_call_tokens(self) -> tuple[int, int]:
         """Get tokens from the last LLM call (input, output)."""

@@ -27,6 +27,23 @@ The agents service uses **crewai 0.86.0** which internally uses **litellm** for 
 - `OLLAMA_API_BASE` environment variable required for litellm to connect to Ollama in Docker
 - No longer uses langchain LLM objects directly
 
+### Rate Limiting
+
+Anthropic API rate limiting is implemented to prevent hitting API limits:
+
+| Model | RPM | Input TPM | Output TPM |
+|-------|-----|-----------|------------|
+| **Opus** | 50 | 30,000 | 8,000 |
+| **Sonnet** | 50 | 30,000 | 8,000 |
+| **Haiku** | 50 | 50,000 | 10,000 |
+
+**Implementation:**
+- **Node.js API**: `packages/api/src/services/rateLimiter.ts` - rate limits Haiku complexity assessments
+- **Python Agents**: `packages/agents/src/monitoring/rate_limiter.py` - rate limits task execution
+- Uses sliding window algorithm with 80% buffer threshold
+- Tracks requests and tokens per minute per model tier
+- Automatically waits before API calls when approaching limits
+
 ## Storage Configuration
 
 **Docker Desktop** is configured to store all data on D drive to avoid C drive bottlenecks:
@@ -295,6 +312,9 @@ pnpm run security:audit       # Fail build if HIGH/CRITICAL vulns found
 | `OLLAMA_API_BASE` | Yes** | - | litellm requires this for Ollama in Docker |
 | `OLLAMA_MODEL` | No | qwen2.5-coder:7b | Default local model |
 | `DEFAULT_MODEL` | No | anthropic/claude-sonnet-4-20250514 | Default Claude model |
+| `RATE_LIMIT_BUFFER` | No | 0.8 | Trigger rate limiting at this % of limit |
+| `MIN_API_DELAY` | No | 0.5 | Minimum delay (seconds) between API calls |
+| `RATE_LIMIT_DEBUG` | No | false | Enable rate limiter debug logging |
 
 *Required if using Claude models
 **Required in Docker environment - set to same value as OLLAMA_URL

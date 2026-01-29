@@ -17,5 +17,9 @@ class Settings:
     ANTHROPIC_TIMEOUT: int = int(os.getenv("ANTHROPIC_TIMEOUT", "120"))  # seconds
     ANTHROPIC_MAX_RETRIES: int = int(os.getenv("ANTHROPIC_MAX_RETRIES", "3"))
 
+    # Rate limit settings (for litellm)
+    LITELLM_NUM_RETRIES: int = int(os.getenv("LITELLM_NUM_RETRIES", "5"))
+    LITELLM_REQUEST_TIMEOUT: int = int(os.getenv("LITELLM_REQUEST_TIMEOUT", "120"))
+
 
 settings = Settings()

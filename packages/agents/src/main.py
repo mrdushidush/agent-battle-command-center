@@ -2,19 +2,54 @@ import uuid
 import time
 import sys
 import io
+import os
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from crewai import Crew, Task
+import litellm
 
 from src.config import settings
+
+# Configure litellm for rate limit handling with exponential backoff
+# These settings apply to all litellm calls made by CrewAI
+litellm.num_retries = int(os.environ.get("LITELLM_NUM_RETRIES", "5"))
+litellm.request_timeout = int(os.environ.get("LITELLM_REQUEST_TIMEOUT", "120"))
+
+# Set up custom retry policy for rate limits
+# litellm will wait: base_delay * (2 ** retry_attempt) seconds between retries
+os.environ.setdefault("LITELLM_RETRY_DELAY_INITIAL", "5")  # Start with 5 second wait
+os.environ.setdefault("LITELLM_RETRY_DELAY_MAX", "60")  # Max 60 seconds between retries
+
+# Enable verbose logging for rate limit debugging
+if os.environ.get("RATE_LIMIT_DEBUG", "false").lower() == "true":
+    litellm.set_verbose = True
+    print("[LiteLLM] Rate limit handling configured: num_retries=5, exponential backoff enabled")
+
+
+# Track rate limit events for logging
+_rate_limit_count = 0
+
+
+def handle_litellm_failure(kwargs, completion_response, start_time, end_time):
+    """Callback for litellm failures - tracks rate limit events."""
+    global _rate_limit_count
+    if kwargs.get("exception"):
+        exception_str = str(kwargs["exception"]).lower()
+        if "rate_limit" in exception_str or "rate limit" in exception_str:
+            _rate_limit_count += 1
+            print(f"⚠️  [RateLimiter] Rate limit hit (count: {_rate_limit_count}). LiteLLM will retry with backoff.")
+
+
+# Register the failure callback
+litellm.failure_callback = [handle_litellm_failure]
 from src.agents import create_coder_agent, create_qa_agent, create_cto_agent
 from src.models import get_claude_llm, get_ollama_llm, check_ollama_available
 from src.chat import ChatRequest, ChatResponse, chat_stream, chat_sync
 from src.schemas.output import AgentOutput, parse_agent_output
-from src.monitoring import ActionHistory, ExecutionLogger, create_tool_wrapper, TokenTracker
+from src.monitoring import ActionHistory, ExecutionLogger, create_tool_wrapper, TokenTracker, rate_limiter
 
 
 app = FastAPI(
@@ -118,6 +153,22 @@ def get_agent(agent_type: str, llm):
         raise ValueError(f"Unknown agent type: {agent_type}")
 
 
+def get_model_tier(model: str) -> str:
+    """Get the model tier from a model name for rate limiting."""
+    if not model:
+        return "sonnet"  # Default tier
+    model_lower = model.lower()
+    if "haiku" in model_lower:
+        return "haiku"
+    if "sonnet" in model_lower:
+        return "sonnet"
+    if "opus" in model_lower:
+        return "opus"
+    if "ollama" in model_lower:
+        return "ollama"  # Not rate limited
+    return "sonnet"  # Default to sonnet tier
+
+
 @app.post("/execute", response_model=ExecuteResponse)
 async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
     """Execute a task with the specified agent."""
@@ -202,8 +253,9 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
             # Instead, we rely on agent backstory instructions to output JSON
         )
 
-        # Create token tracker for LLM calls
-        token_tracker = TokenTracker()
+        # Create token tracker for LLM calls (with model tier for rate limiting)
+        llm_model_tier = get_model_tier(str(llm) if llm else "")
+        token_tracker = TokenTracker(model_tier=llm_model_tier)
 
         # Create and run crew with memory reset and token tracking
         crew = Crew(
@@ -216,6 +268,15 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         print(f"{'='*60}")
         print("🎬 Starting crew execution...")
         print(f"{'='*60}\n")
+
+        # Rate limiting for Anthropic models
+        model_tier = get_model_tier(str(llm) if llm else "")
+        if model_tier != "ollama":
+            # Estimate tokens from task description (~4 chars per token)
+            estimated_tokens = len(description) // 4
+            wait_time = rate_limiter.wait_for_capacity(model_tier, estimated_tokens)
+            if wait_time > 0:
+                print(f"⏱️  Rate limited: waited {wait_time:.1f}s before execution")
 
         # Capture full execution log (all tool calls and observations)
         captured_output = io.StringIO()

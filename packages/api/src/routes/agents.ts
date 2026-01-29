@@ -235,17 +235,25 @@ agentsRouter.post('/reset-all', asyncHandler(async (req, res) => {
 
   agents.forEach(agent => {
     io.emit('agent_status_changed', {
-      agentId: agent.id,
-      status: 'idle',
-      currentTaskId: null,
+      type: 'agent_status_changed',
+      payload: agent,
+      timestamp: new Date(),
     });
   });
 
   // Emit task status changes for failed tasks
   stuckTasks.forEach(task => {
-    io.emit('task_updated', {
-      taskId: task.id,
+    // Update task object to reflect the changes made by updateMany
+    const updatedTask = {
+      ...task,
       status: 'failed',
+      error: 'Task was stuck and reset by user',
+      completedAt: new Date(),
+    };
+    io.emit('task_updated', {
+      type: 'task_updated',
+      payload: updatedTask,
+      timestamp: new Date(),
     });
   });
 

@@ -35,6 +35,7 @@ const MAX_WAIT_MINUTES = 15; // Abort if task takes longer than 15 minutes
 const COMPLETION_DELAY_MS = 2000; // Wait 2 seconds after completion before checking agent
 const EXECUTE_TIMEOUT_MS = 180000; // 3 minutes timeout for task execution (allows for retries)
 const API_TIMEOUT_MS = 30000; // 30 seconds timeout for regular API calls
+const CLAUDE_INTER_TASK_DELAY_MS = 60000; // Wait 60 seconds between Claude tasks to avoid rate limits
 
 async function waitForAgentIdle(agentId, maxWaitSeconds = 60) {
   const startTime = Date.now();
@@ -346,6 +347,12 @@ async function executeTasks() {
         filesCreated: resultOutput.files_created?.length || 0,
         confidence: resultOutput.confidence || 0
       });
+
+      // Add delay between Claude tasks to avoid rate limits
+      if (useClaude && i < taskIds.length - 1) {
+        console.log(`\n⏸️  Waiting ${CLAUDE_INTER_TASK_DELAY_MS / 1000}s between Claude tasks to avoid rate limits...`);
+        await new Promise(resolve => setTimeout(resolve, CLAUDE_INTER_TASK_DELAY_MS));
+      }
 
     } catch (error) {
       console.error(`❌ Error executing task: ${error.message}`);
