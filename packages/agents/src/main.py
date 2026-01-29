@@ -14,7 +14,7 @@ from src.agents import create_coder_agent, create_qa_agent, create_cto_agent
 from src.models import get_claude_llm, get_ollama_llm, check_ollama_available
 from src.chat import ChatRequest, ChatResponse, chat_stream, chat_sync
 from src.schemas.output import AgentOutput, parse_agent_output
-from src.monitoring import ActionHistory, ExecutionLogger, create_tool_wrapper
+from src.monitoring import ActionHistory, ExecutionLogger, create_tool_wrapper, TokenTracker
 
 
 app = FastAPI(
@@ -85,16 +85,23 @@ class AbortRequest(BaseModel):
 
 
 def get_llm(use_claude: bool, model: str | None, allow_fallback: bool):
-    """Get the appropriate LLM based on configuration."""
+    """Get the appropriate LLM based on configuration.
+
+    For crewai 0.86.0+, returns model string for litellm instead of langchain LLM.
+    """
     if use_claude and settings.ANTHROPIC_API_KEY:
-        try:
-            return get_claude_llm(model)
-        except Exception as e:
-            if allow_fallback and check_ollama_available():
-                return get_ollama_llm()
-            raise e
+        # Return model string for litellm (crewai 0.86.0+)
+        model_name = model or settings.DEFAULT_MODEL
+        # Ensure anthropic/ prefix for litellm
+        if not model_name.startswith("anthropic/"):
+            model_name = f"anthropic/{model_name}"
+        return model_name
     elif check_ollama_available():
-        return get_ollama_llm()
+        # Return model string for litellm with ollama prefix
+        model_name = settings.OLLAMA_MODEL
+        if not model_name.startswith("ollama/"):
+            model_name = f"ollama/{model_name}"
+        return model_name
     else:
         raise ValueError("No LLM available. Set ANTHROPIC_API_KEY or ensure Ollama is running.")
 
@@ -137,12 +144,23 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         # Create execution logger
         # Node API is on port 3001, not the agents service port (8000)
         api_url = "http://api:3001"
+
+        # Extract model name from LLM instance
+        model_name = None
+        if hasattr(llm, 'model'):
+            model_name = llm.model
+        elif hasattr(llm, 'model_name'):
+            model_name = llm.model_name
+        elif 'ollama' in llm.__class__.__name__.lower():
+            model_name = 'ollama'
+
         execution_logger = ExecutionLogger(
             task_id=request.task_id,
             agent_id=request.agent_id,
             api_url=api_url,
+            model_name=model_name,
         )
-        print(f"📊 Execution logger initialized (API: {api_url})")
+        print(f"📊 Execution logger initialized (API: {api_url}, Model: {model_name})")
 
         # Determine agent type from agent_id
         if "coder" in request.agent_id.lower():
@@ -184,7 +202,10 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
             # Instead, we rely on agent backstory instructions to output JSON
         )
 
-        # Create and run crew with memory reset
+        # Create token tracker for LLM calls
+        token_tracker = TokenTracker()
+
+        # Create and run crew with memory reset and token tracking
         crew = Crew(
             agents=[agent],
             tasks=[crew_task],
@@ -205,6 +226,12 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
             sys.stdout = captured_output
 
             # Execute with timeout to prevent infinite loops
+            # Pass token tracker as callback to LLM
+            if hasattr(llm, 'callbacks'):
+                if llm.callbacks is None:
+                    llm.callbacks = []
+                llm.callbacks.append(token_tracker)
+
             result = crew.kickoff()
 
         finally:
@@ -221,6 +248,20 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         # Parse verbose output and capture any steps we might have missed
         # (e.g., if tool wrappers failed or thoughts without actions)
         execution_logger.parse_and_log_output(full_execution_log)
+
+        # Log total token usage from LLM calls
+        total_input, total_output = token_tracker.get_total_tokens()
+        if total_input > 0 or total_output > 0:
+            print(f"📊 Total tokens - Input: {total_input}, Output: {total_output}")
+
+            # Create a summary log entry for LLM token usage
+            execution_logger.log_step(
+                action="llm_token_summary",
+                action_input={"llm_calls": token_tracker.call_count},
+                observation=f"Total LLM tokens tracked across {token_tracker.call_count} calls",
+                input_tokens=total_input,
+                output_tokens=total_output,
+            )
 
         # Flush any buffered logs
         execution_logger.flush_buffer()
