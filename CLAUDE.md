@@ -18,6 +18,27 @@ UI (React:5173) → API (Express:3001) → Agents (FastAPI:8000) → Ollama/Clau
                    PostgreSQL:5432
 ```
 
+## Storage Configuration
+
+**Docker Desktop** is configured to store all data on D drive to avoid C drive bottlenecks:
+- **Disk image location**: `D:\DockerWSL` (configured via Docker Desktop Settings → Resources → Advanced)
+- **Ollama models**: ~9.6GB stored in Docker volume on D drive
+- **PostgreSQL data**: Docker volume on D drive
+
+**TODO (after Feb 5, 2026)**: Delete migration backup folder `D:\docker-migration-backup-20260129-040622` (~8.8GB) once Docker stability is confirmed.
+
+**Backup System** runs every 30 minutes:
+- **Primary**: Docker volume `agent-battle-command-center_backup_data`
+- **Secondary mirror**: `C:\dev\abcc-backups\daily\` (local filesystem backup)
+- **Retention**: 60 days
+- **Contents**: PostgreSQL dump, workspace files, Ollama models list, encrypted .env (if key set)
+
+To check backup status:
+```bash
+docker logs abcc-backup --tail 20
+ls C:\dev\abcc-backups\daily\latest\
+```
+
 ## Cost-Optimized Task Flow
 
 ```
@@ -27,9 +48,10 @@ Task Arrives → calculateComplexity()
        │   ├─ <8  → Sonnet (~$0.005)
        │   └─ ≥8  → Opus (~$0.04)
        │
-       ├─ EXECUTION
+       ├─ EXECUTION (dual complexity assessment)
        │   ├─ <4  → Ollama (free)
-       │   └─ ≥4  → Haiku (~$0.001)
+       │   ├─ 4-7 → Haiku (~$0.001)
+       │   └─ ≥8  → Sonnet (~$0.005)
        │
        ├─ CODE REVIEW (batch, all tasks)
        │   └─ Opus (~$0.02/task)
@@ -49,10 +71,22 @@ CTO agent breaks complex tasks into atomic subtasks:
 - Each has a validation command (e.g., `python -c "from tasks.calc import add; print(add(2,3))"`)
 
 ### Complexity Routing (taskRouter.ts)
-Tasks are scored 1-10 and routed:
+Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
+- Router calculates rule-based score from description keywords, steps, etc.
+- Haiku AI provides independent assessment with reasoning
+- Final score = average of both (saved to task for fine-tuning)
+
+**Routing tiers:**
 - Simple (< 4) → Coder (Ollama) - free, fast
-- Medium+ (≥ 4) → QA (Haiku) - quality, ~$0.001
+- Medium (4-7) → QA (Haiku) - quality, ~$0.001
+- Complex (≥ 8) → QA (Sonnet) - high quality, ~$0.005
 - Failed tasks use fix cycle (Haiku → Sonnet → Human)
+
+**Task fields for complexity tracking:**
+- `routerComplexity` - Rule-based score
+- `haikuComplexity` - AI assessment
+- `haikuReasoning` - AI explanation
+- `finalComplexity` - Averaged score used for routing
 
 ### Code Review System
 New `CodeReview` model tracks Opus reviews:
@@ -69,6 +103,19 @@ Every tool call is captured to database with:
 - Token usage (input/output)
 - Model used
 - Loop detection flag
+
+**Note:** When tasks are deleted from the UI, their execution logs and training data remain in the database for future model training. Task deletion only removes the task record, not the associated logs.
+
+### Audio System (C&C Red Alert Style)
+Voice feedback for agent events via `packages/ui/src/audio/`:
+- **Task assigned** → "Conscript reporting!", "Aye commander!", etc.
+- **Task in progress** → "Operation underway!", "Analyzing schematics!"
+- **Milestone** (every 2 iterations) → "Got the plans right here!"
+- **Task completed** → "Shake it baby!", "Commander"
+- **Task failed/stuck** → "Give me a job"
+- **Loop detected** → Warning + pulse animation
+
+Audio controls in TopBar (mute toggle). Files in `packages/ui/public/audio/`.
 
 ## Package Structure
 
@@ -97,14 +144,30 @@ packages/
 │   └── monitoring/
 │       ├── action_history.py   # Loop detection
 │       └── execution_logger.py # Tool call logging
-├── ui/src/components/
-│   ├── layout/CommandCenter.tsx  # Main layout
-│   ├── main-view/
-│   │   ├── TaskQueue.tsx      # Large task card grid (UPDATED)
-│   │   ├── ActiveMissions.tsx # Compact running tasks strip (UPDATED)
-│   │   └── TaskDetail.tsx     # Task detail + code review display (UPDATED)
-│   └── micromanager/
-│       └── MicromanagerView.tsx  # Real-time execution logs (UPDATED)
+├── ui/src/
+│   ├── audio/
+│   │   ├── audioManager.ts    # Audio playback singleton with queue
+│   │   └── voicePacks.ts      # C&C Red Alert voice event mappings
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── CommandCenter.tsx  # Main layout with ToolLog panel
+│   │   │   └── TopBar.tsx         # Audio controls, real metrics
+│   │   ├── main-view/
+│   │   │   ├── TaskQueue.tsx      # Large task card grid
+│   │   │   ├── ActiveMissions.tsx # Real-time agent health strip
+│   │   │   ├── TaskDetail.tsx     # Task detail + code review
+│   │   │   └── ToolLog.tsx        # Terminal-style action feed
+│   │   ├── dashboard/
+│   │   │   ├── Dashboard.tsx      # Main dashboard view
+│   │   │   ├── AgentComparison.tsx    # Agent performance cards
+│   │   │   ├── CostDashboard.tsx      # Cost tracking & breakdown
+│   │   │   └── SuccessRateChart.tsx   # Success rate timeline
+│   │   └── micromanager/
+│   │       └── MicromanagerView.tsx   # Step-by-step execution view
+│   ├── hooks/
+│   │   └── useSocket.ts       # WebSocket with audio events
+│   └── store/
+│       └── uiState.ts         # Zustand store (audio, agent health)
 └── workspace/
     ├── tasks/           # Active task workspace
     ├── tests/           # Active tests
@@ -145,9 +208,9 @@ model CodeReview {
 
 ## Current Priorities
 
-1. **Fix SOFT_FAILURE Issue** - Agents report failure but code is correct
-2. **Implement Opus Code Review** - Batch review after task completion
-3. **Training Data Collection** - Use archives for model improvement
+1. **Training Data Collection** - Use archives for model improvement
+2. **Cost Budget Alerts** - Warnings when approaching token/cost limits
+3. **Agent Performance History** - Time-series charts for trends
 
 ## Patterns to Follow
 
@@ -200,6 +263,12 @@ curl http://localhost:3001/api/code-reviews/task/TASK_ID
 
 # Get review stats
 curl http://localhost:3001/api/code-reviews/stats
+
+# Check backup status
+docker logs abcc-backup --tail 20
+
+# View latest backup
+ls C:\dev\abcc-backups\daily\latest\
 ```
 
 ## Archive Structure
@@ -216,6 +285,16 @@ scripts/
 workspace/
 ├── tasks_archive/    # Old task Python files
 └── tests_archive/    # Old test files
+
+C:\dev\abcc-backups\daily\
+├── YYYYMMDD_HHMMSS/  # Timestamped backups (every 30 min)
+│   ├── postgres.sql.gz      # Database dump
+│   ├── workspace.tar.gz     # Task/test files
+│   ├── ollama-models.txt    # Model inventory
+│   ├── manifest.json        # Backup metadata
+│   ├── checksums.sha256     # Integrity checks
+│   └── backup.log           # Operation log
+└── latest -> YYYYMMDD_HHMMSS  # Symlink to most recent
 ```
 
 ## Documentation
@@ -223,3 +302,6 @@ workspace/
 - [API Reference](docs/API.md) - All endpoints
 - [Development Guide](docs/DEVELOPMENT.md) - Testing, debugging
 - [Changelog](CHANGELOG.md) - Version history
+- [UI Enhancements](UI_ENHANCEMENTS_SUMMARY.md) - Audio system & real-time monitoring
+- [Audio Event Mapping](AUDIO_EVENT_MAPPING.md) - When each sound plays
+- [Audio Testing Guide](AUDIO_TESTING_GUIDE.md) - How to test the audio system
