@@ -3,11 +3,14 @@ import { CommandCenter } from './components/layout/CommandCenter';
 import { useSocket } from './hooks/useSocket';
 import { useAgents } from './hooks/useAgents';
 import { useTasks } from './hooks/useTasks';
+import { useUIStore } from './store/uiState';
+import { audioManager } from './audio/audioManager';
 
 function App() {
   const { connect, disconnect, isConnected } = useSocket();
   const { fetchAgents } = useAgents();
   const { fetchTasks } = useTasks();
+  const { audioSettings } = useUIStore();
 
   useEffect(() => {
     connect();
@@ -17,7 +20,14 @@ function App() {
     return () => {
       disconnect();
     };
-  }, [connect, disconnect, fetchAgents, fetchTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
+  // Sync audio settings with audio manager
+  useEffect(() => {
+    audioManager.setMuted(audioSettings.muted);
+    audioManager.setVolume(audioSettings.volume);
+  }, [audioSettings.muted, audioSettings.volume]);
 
   return (
     <div className="h-screen w-screen overflow-hidden">

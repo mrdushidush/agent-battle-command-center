@@ -3,13 +3,15 @@ import { Sidebar } from './Sidebar';
 import { Minimap } from '../minimap/Minimap';
 import { TaskQueue } from '../main-view/TaskQueue';
 import { ActiveMissions } from '../main-view/ActiveMissions';
+import { ToolLog } from '../main-view/ToolLog';
 import { AlertPanel } from '../resources/AlertPanel';
 import { ChatPanel } from '../chat/ChatPanel';
 import { MicromanagerView } from '../micromanager/MicromanagerView';
+import { Dashboard } from '../dashboard/Dashboard';
 import { useUIStore } from '../../store/uiState';
 
 export function CommandCenter() {
-  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, toggleChatPanel, agents } = useUIStore();
+  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, toolLogOpen, toggleChatPanel, agents } = useUIStore();
 
   return (
     <div className="h-full flex flex-col bg-command-bg">
@@ -48,9 +50,18 @@ export function CommandCenter() {
               <div className="h-[140px] min-h-[140px] overflow-hidden">
                 <ActiveMissions />
               </div>
+
+              {/* Tool Log Panel - Optional bottom panel */}
+              {toolLogOpen && (
+                <div className="h-64 border-t border-command-border overflow-hidden">
+                  <ToolLog />
+                </div>
+              )}
             </>
-          ) : (
+          ) : mode === 'micromanager' ? (
             <MicromanagerView />
+          ) : (
+            <Dashboard />
           )}
         </div>
 

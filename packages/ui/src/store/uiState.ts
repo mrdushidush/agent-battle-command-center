@@ -19,6 +19,8 @@ interface UIState {
   toggleAlertsPanel: () => void;
   chatPanelOpen: boolean;
   toggleChatPanel: () => void;
+  toolLogOpen: boolean;
+  toggleToolLog: () => void;
 
   // Chat state
   activeChatAgentId: string | null;
@@ -48,6 +50,50 @@ interface UIState {
     totalIterations: number;
   };
   setMetrics: (metrics: Partial<UIState['metrics']>) => void;
+
+  // Cost metrics
+  costMetrics: {
+    totalCost: number;
+    byModelTier: {
+      free: number;
+      haiku: number;
+      sonnet: number;
+      opus: number;
+    };
+    totalTokens: {
+      input: number;
+      output: number;
+      total: number;
+    };
+    lastUpdated: Date | null;
+  };
+  updateCostMetrics: (metrics: Partial<UIState['costMetrics']>) => void;
+
+  // Audio settings
+  audioSettings: {
+    muted: boolean;
+    volume: number;
+  };
+  setMuted: (muted: boolean) => void;
+  setVolume: (volume: number) => void;
+
+  // Agent health tracking
+  agentHealth: {
+    [agentId: string]: {
+      tokenBudget: {
+        input: number;
+        output: number;
+        maxInput: number;
+        maxOutput: number;
+      };
+      loopDetected: boolean;
+      lastActionTime: number | null;
+      averageResponseTime: number;
+      actionCount: number;
+    };
+  };
+  updateAgentHealth: (agentId: string, health: Partial<UIState['agentHealth'][string]>) => void;
+  resetAgentHealth: (agentId: string) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -68,6 +114,8 @@ export const useUIStore = create<UIState>((set) => ({
   toggleAlertsPanel: () => set((state) => ({ alertsPanelOpen: !state.alertsPanelOpen })),
   chatPanelOpen: false,
   toggleChatPanel: () => set((state) => ({ chatPanelOpen: !state.chatPanelOpen })),
+  toolLogOpen: false,
+  toggleToolLog: () => set((state) => ({ toolLogOpen: !state.toolLogOpen })),
 
   // Chat state
   activeChatAgentId: null,
@@ -121,4 +169,68 @@ export const useUIStore = create<UIState>((set) => ({
     set((state) => ({
       metrics: { ...state.metrics, ...metrics },
     })),
+
+  // Cost metrics
+  costMetrics: {
+    totalCost: 0,
+    byModelTier: {
+      free: 0,
+      haiku: 0,
+      sonnet: 0,
+      opus: 0,
+    },
+    totalTokens: {
+      input: 0,
+      output: 0,
+      total: 0,
+    },
+    lastUpdated: null,
+  },
+  updateCostMetrics: (metrics) =>
+    set((state) => ({
+      costMetrics: {
+        ...state.costMetrics,
+        ...metrics,
+        lastUpdated: new Date(),
+      },
+    })),
+
+  // Audio settings
+  audioSettings: {
+    muted: false,
+    volume: 0.7,
+  },
+  setMuted: (muted) =>
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, muted },
+    })),
+  setVolume: (volume) =>
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, volume },
+    })),
+
+  // Agent health tracking
+  agentHealth: {},
+  updateAgentHealth: (agentId, health) =>
+    set((state) => ({
+      agentHealth: {
+        ...state.agentHealth,
+        [agentId]: {
+          ...(state.agentHealth[agentId] || {
+            tokenBudget: { input: 0, output: 0, maxInput: 100000, maxOutput: 100000 },
+            loopDetected: false,
+            lastActionTime: null,
+            averageResponseTime: 0,
+            actionCount: 0,
+          }),
+          ...health,
+        },
+      },
+    })),
+  resetAgentHealth: (agentId) =>
+    set((state) => {
+      const newHealth = { ...state.agentHealth };
+      delete newHealth[agentId];
+      return { agentHealth: newHealth };
+    }),
 }));

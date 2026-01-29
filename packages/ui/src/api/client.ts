@@ -397,3 +397,93 @@ export interface CodeReviewStats {
   avgQualityScore: string;
   totalCost: string;
 }
+
+// Cost Metrics API
+export const costMetricsApi = {
+  summary: () =>
+    request<CostMetricsSummary>('/cost-metrics/summary'),
+
+  byAgent: () =>
+    request<CostByAgentResponse>('/cost-metrics/by-agent'),
+
+  byTaskType: () =>
+    request<CostByTaskTypeResponse>('/cost-metrics/by-task-type'),
+
+  timeline: (hours = 24) =>
+    request<CostTimelineResponse>(`/cost-metrics/timeline?hours=${hours}`),
+};
+
+export interface CostMetricsSummary {
+  totalCost: number;
+  totalCostFormatted: string;
+  byModelTier: {
+    free: number;
+    haiku: number;
+    sonnet: number;
+    opus: number;
+  };
+  byModel: Record<string, {
+    inputTokens: number;
+    outputTokens: number;
+    cost: number;
+    count: number;
+  }>;
+  totalTokens: {
+    input: number;
+    output: number;
+    total: number;
+  };
+  logCount: number;
+}
+
+export interface AgentCostMetrics {
+  agentId: string;
+  agentName: string;
+  agentType: string;
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  logCount: number;
+}
+
+export interface CostByAgentResponse {
+  agents: AgentCostMetrics[];
+  totalAgents: number;
+}
+
+export interface TaskTypeCostMetrics {
+  taskType: string;
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  taskCount: number;
+  logCount: number;
+}
+
+export interface CostByTaskTypeResponse {
+  taskTypes: TaskTypeCostMetrics[];
+  totalTypes: number;
+}
+
+export interface HourlyCostData {
+  hour: string;
+  timestamp: Date;
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  logCount: number;
+  byModelTier: {
+    free: number;
+    haiku: number;
+    sonnet: number;
+    opus: number;
+  };
+}
+
+export interface CostTimelineResponse {
+  timeline: HourlyCostData[];
+  hours: number;
+  startTime: Date;
+  endTime: Date;
+  totalCost: number;
+}
