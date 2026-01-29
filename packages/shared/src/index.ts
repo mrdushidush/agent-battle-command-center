@@ -266,7 +266,7 @@ export interface TimelineDataPoint {
 }
 
 // UI State Types
-export type UIMode = 'overseer' | 'micromanager';
+export type UIMode = 'overseer' | 'micromanager' | 'dashboard';
 
 export interface UIState {
   mode: UIMode;

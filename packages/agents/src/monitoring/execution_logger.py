@@ -26,13 +26,14 @@ class ExecutionLogger:
     - Loop detection flags
     """
 
-    def __init__(self, task_id: str, agent_id: str, api_url: str):
+    def __init__(self, task_id: str, agent_id: str, api_url: str, model_name: Optional[str] = None):
         self.task_id = task_id
         self.agent_id = agent_id
         self.api_url = api_url
         self.step_counter = 0
         self.current_step_start = None
         self.logs_buffer = []
+        self.model_name = model_name
 
     def parse_and_log_output(self, output: str, is_loop: bool = False) -> None:
         """
@@ -106,6 +107,9 @@ class ExecutionLogger:
         duration_ms: Optional[int] = None,
         is_loop: bool = False,
         error_trace: Optional[str] = None,
+        input_tokens: Optional[int] = None,
+        output_tokens: Optional[int] = None,
+        model_used: Optional[str] = None,
     ) -> None:
         """
         Manually log a single execution step.
@@ -125,6 +129,9 @@ class ExecutionLogger:
             "durationMs": duration_ms,
             "isLoop": is_loop,
             "errorTrace": error_trace,
+            "inputTokens": input_tokens,
+            "outputTokens": output_tokens,
+            "modelUsed": model_used or self.model_name,
         }
 
         self._send_log(log_entry)
@@ -184,12 +191,22 @@ class ExecutionLogger:
         else:
             print(f"✅ All buffered logs sent successfully")
 
+    @staticmethod
+    def estimate_tokens(text: str) -> int:
+        """
+        Estimate token count from text length.
+        Rough approximation: ~4 characters per token for English text.
+        """
+        if not text:
+            return 0
+        return max(1, len(text) // 4)
+
 
 def create_tool_wrapper(tool, logger: ExecutionLogger):
     """
     Wrap a tool to log its execution automatically.
 
-    This wrapper intercepts tool calls and logs them with timing information.
+    This wrapper intercepts tool calls and logs them with timing and token information.
     """
     original_run = tool._run
 
@@ -205,13 +222,23 @@ def create_tool_wrapper(tool, logger: ExecutionLogger):
             result = original_run(*args, **kwargs)
             duration_ms = int((time.time() - start_time) * 1000)
 
+            # Estimate token usage from input/output sizes
+            # Most tool calls don't use LLM tokens, so these will be 0 or small estimates
+            input_str = json.dumps(action_input) if isinstance(action_input, dict) else str(action_input)
+            output_str = str(result)[:1000]
+
+            estimated_input_tokens = ExecutionLogger.estimate_tokens(input_str)
+            estimated_output_tokens = ExecutionLogger.estimate_tokens(output_str)
+
             # Log the execution
             logger.log_step(
                 action=tool.name,
                 action_input=action_input,
-                observation=str(result)[:1000],  # Truncate long results
+                observation=output_str,  # Truncate long results
                 duration_ms=duration_ms,
                 is_loop=False,
+                input_tokens=estimated_input_tokens,
+                output_tokens=estimated_output_tokens,
             )
 
             return result
@@ -219,14 +246,18 @@ def create_tool_wrapper(tool, logger: ExecutionLogger):
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
 
+            error_msg = f"Error: {str(e)}"
+            estimated_output_tokens = ExecutionLogger.estimate_tokens(error_msg)
+
             # Log the error
             logger.log_step(
                 action=tool.name,
                 action_input=action_input,
-                observation=f"Error: {str(e)}",
+                observation=error_msg,
                 duration_ms=duration_ms,
                 is_loop=False,
                 error_trace=str(e),
+                output_tokens=estimated_output_tokens,
             )
 
             raise

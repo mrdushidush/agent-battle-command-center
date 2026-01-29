@@ -180,22 +180,31 @@ def _parse_from_execution_logs(logs: List[dict], raw_output: str) -> AgentOutput
         what_was_attempted.append(f"{action}: {path_or_cmd}")
 
         # Check if action succeeded or failed
-        success_indicators = ['successfully', 'success', 'created', 'wrote', 'ok', 'passed']
-        fail_indicators = ['error', 'failed', 'exception', 'traceback', 'not found']
+        # Strip [stderr] prefix before checking - stderr is just a stream name, not an error
+        observation_for_check = observation.lower()
+        if observation_for_check.startswith('[stderr]'):
+            observation_for_check = observation_for_check[8:].strip()
 
-        observation_lower = observation.lower()
-        has_success = any(ind in observation_lower for ind in success_indicators)
-        has_failure = any(ind in observation_lower for ind in fail_indicators) or error_trace
+        success_indicators = ['successfully', 'success', 'created', 'wrote', 'passed', ' ok', '\nok']
+        # Use more specific fail indicators to avoid false positives
+        # 'error:' and ' error' avoid matching 'stderr', 'error' in variable names, etc.
+        fail_indicators = ['error:', ' error', 'failed', 'failure', 'exception', 'traceback', 'not found', 'no such file']
+
+        has_success = any(ind in observation_for_check for ind in success_indicators)
+        has_failure = any(ind in observation_for_check for ind in fail_indicators) or error_trace
 
         if has_success and not has_failure:
             what_succeeded.append(f"{action}: {path_or_cmd}")
-        elif has_failure:
+        elif has_failure and not has_success:
+            # Only mark as failed if there's no success indicator
             what_failed.append(f"{action}: {observation[:100]}")
 
         # Extract based on action type
         if action == 'file_write':
             path = action_input.get('path', '')
-            if path and has_success:
+            # Check for successful write - look for 'successfully wrote' or similar
+            write_success = 'successfully' in observation.lower() or 'wrote' in observation.lower()
+            if path and (write_success or (has_success and not has_failure)):
                 files_created.append(path)
 
         elif action == 'file_edit':
@@ -393,19 +402,29 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
         what_was_attempted.append(f"{action}: {action_input.get('path', action_input.get('command', 'unknown'))}")
 
         # Check if action succeeded or failed
-        success_indicators = ['successfully', 'success', 'created', 'wrote', 'ok', 'passed']
-        fail_indicators = ['error', 'failed', 'exception', 'traceback', 'not found']
+        # Strip [stderr] prefix before checking - stderr is just a stream name, not an error
+        observation_for_check = observation.lower()
+        if observation_for_check.startswith('[stderr]'):
+            observation_for_check = observation_for_check[8:].strip()
 
-        observation_lower = observation.lower()
-        if any(ind in observation_lower for ind in success_indicators):
+        success_indicators = ['successfully', 'success', 'created', 'wrote', 'passed', ' ok', '\nok']
+        # Use more specific fail indicators to avoid false positives
+        fail_indicators = ['error:', ' error', 'failed', 'failure', 'exception', 'traceback', 'not found', 'no such file']
+
+        has_success = any(ind in observation_for_check for ind in success_indicators)
+        has_failure = any(ind in observation_for_check for ind in fail_indicators)
+
+        if has_success and not has_failure:
             what_succeeded.append(f"{action}: {action_input.get('path', action_input.get('command', ''))}")
-        elif any(ind in observation_lower for ind in fail_indicators):
+        elif has_failure and not has_success:
             what_failed.append(f"{action}: {observation}")
 
         # Extract based on action type
         if action == 'file_write':
             path = action_input.get('path', '')
-            if path and 'successfully' in observation_lower:
+            # Check for successful write
+            write_success = 'successfully' in observation.lower() or 'wrote' in observation.lower()
+            if path and (write_success or (has_success and not has_failure)):
                 files_created.append(path)
 
         elif action == 'file_edit':
