@@ -1,7 +1,7 @@
 # MVP Assessment: Agent Battle Command Center
 
 > **Assessment Date:** January 29, 2026
-> **Version:** Phase B (Post-Dual Complexity Assessment)
+> **Version:** Phase B.1 (Post-Security Hardening + crewai Migration)
 > **Assessor:** AI-Assisted Technical Review
 
 ---
@@ -105,9 +105,10 @@ Enable cost-effective AI-assisted software development by intelligently routing 
 | | Zod | - | Validation |
 | | Socket.io | - | WebSocket |
 | **Agents** | Python | 3.11+ | Runtime |
-| | FastAPI | 0.100+ | API framework |
-| | CrewAI | - | Agent framework |
-| | Anthropic SDK | - | Claude access |
+| | FastAPI | 0.109 | API framework |
+| | CrewAI | 0.86.0 | Agent framework |
+| | litellm | (internal) | LLM abstraction (via crewai) |
+| | Anthropic SDK | 0.25+ | Claude access |
 | **Database** | PostgreSQL | 16 | Primary store |
 | **AI Models** | Claude Opus | claude-opus-4 | Complex tasks, review |
 | | Claude Haiku | claude-3-haiku-20240307 | Medium tasks, assessment |
@@ -415,6 +416,8 @@ Results: result, error, errorCategory, apiCreditsUsed, timeSpentMs
 | SOFT_FAILURE false positives | Critical | ✅ Fixed | Phase B - Jan 28 |
 | Agent stuck in busy state | Critical | ✅ Fixed | Phase B - Jan 28 |
 | Haiku model ID incorrect | High | ✅ Fixed | Phase B - Jan 28 |
+| litellm Ollama connection refused | Critical | ✅ Fixed | Phase B.1 - Jan 29, added OLLAMA_API_BASE |
+| langchain CVEs (7 vulnerabilities) | High | ✅ Fixed | Phase B.1 - Jan 29, upgraded packages |
 
 ### Code Quality Issues
 
@@ -886,7 +889,10 @@ model TrainingDataset {
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | Yes | - | Claude API access |
-| `OLLAMA_MODEL` | No | llama3.1:8b | Local model |
+| `OLLAMA_URL` | No | http://ollama:11434 | Ollama API URL |
+| `OLLAMA_API_BASE` | Yes* | - | litellm Ollama connection (*in Docker) |
+| `OLLAMA_MODEL` | No | qwen2.5-coder:7b | Local model |
+| `DEFAULT_MODEL` | No | anthropic/claude-sonnet-4-20250514 | Default Claude model |
 | `DATABASE_URL` | Auto | PostgreSQL conn string | Database |
 | `AGENTS_URL` | Auto | http://agents:8000 | Agent service |
 | `API_PORT` | No | 3001 | API server port |
@@ -923,6 +929,7 @@ model TrainingDataset {
 |---------|------|--------|---------|
 | 1.0 | 2026-01-29 | AI Assessment | Initial creation |
 | 1.1 | 2026-01-29 | AI Assessment | Added security scanning (Trivy + Dependabot) |
+| 1.2 | 2026-01-29 | AI Assessment | crewai 0.86.0 migration, litellm integration, updated env vars |
 
 ---
 

@@ -16,9 +16,16 @@ A command center for orchestrating AI coding agents with cost-optimized tiered r
 
 ```
 UI (React:5173) → API (Express:3001) → Agents (FastAPI:8000) → Ollama/Claude
-                         ↓
-                   PostgreSQL:5432
+                         ↓                      ↓
+                   PostgreSQL:5432         litellm (internal)
 ```
+
+### Agent Service (crewai 0.86.0+)
+
+The agents service uses **crewai 0.86.0** which internally uses **litellm** for LLM connections:
+- Model strings use provider prefixes: `anthropic/claude-sonnet-4-20250514`, `ollama/qwen2.5-coder:7b`
+- `OLLAMA_API_BASE` environment variable required for litellm to connect to Ollama in Docker
+- No longer uses langchain LLM objects directly
 
 ## Storage Configuration
 
@@ -278,6 +285,19 @@ pnpm run security:report      # Generate HTML report for ISO compliance
 pnpm run security:ci          # SARIF output for CI/CD pipelines
 pnpm run security:audit       # Fail build if HIGH/CRITICAL vulns found
 ```
+
+## Environment Variables (Agents Service)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ANTHROPIC_API_KEY` | Yes* | - | Claude API access |
+| `OLLAMA_URL` | No | http://ollama:11434 | Ollama API URL |
+| `OLLAMA_API_BASE` | Yes** | - | litellm requires this for Ollama in Docker |
+| `OLLAMA_MODEL` | No | qwen2.5-coder:7b | Default local model |
+| `DEFAULT_MODEL` | No | anthropic/claude-sonnet-4-20250514 | Default Claude model |
+
+*Required if using Claude models
+**Required in Docker environment - set to same value as OLLAMA_URL
 
 ## Security Scanning
 
