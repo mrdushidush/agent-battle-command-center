@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Quick 8-Task Mixed Test Suite
- * - 5 simple tasks (priority 3) → Ollama
- * - 3 complex tasks (priority 5) → Haiku
+ * 10-Task Full Tier Test Suite
+ * - 5 simple tasks (priority 3) → Ollama (free, local)
+ * - 3 medium tasks (priority 5) → Haiku (~$0.001)
+ * - 1 complex task (priority 7) → Sonnet (~$0.005)
+ * - 1 advanced task (priority 9) → Opus (~$0.02)
  */
 
 const API_BASE = 'http://localhost:3001/api';
@@ -37,6 +39,32 @@ function makeComplexTask(title, description, expectedOutput, validation, fileNam
     validation,
     priority: 5,  // Haiku tier
     tier: 'haiku',
+    fileName
+  };
+}
+
+// Advanced task template (Sonnet tier)
+function makeSonnetTask(title, description, expectedOutput, validation, fileName) {
+  return {
+    title,
+    description,
+    expectedOutput,
+    validation,
+    priority: 7,  // Sonnet tier
+    tier: 'sonnet',
+    fileName
+  };
+}
+
+// Expert task template (Opus tier)
+function makeOpusTask(title, description, expectedOutput, validation, fileName) {
+  return {
+    title,
+    description,
+    expectedOutput,
+    validation,
+    priority: 9,  // Opus tier
+    tier: 'opus',
     fileName
   };
 }
@@ -124,6 +152,75 @@ Save to tasks/word_freq.py`,
     `python -c "from tasks.word_freq import word_frequency; r=word_frequency('hello world hello'); assert r.get('hello')==2 and r.get('world')==1; r2=word_frequency('Hello, hello!'); assert r2.get('hello')==2; assert word_frequency('')=={}; print('PASS')"`,
     "word_freq"
   ),
+
+  // === SONNET TIER (1 complex task) ===
+  makeSonnetTask(
+    "Create a Stack data structure with full operations",
+    `Create a Python class Stack in tasks/stack.py that implements a stack data structure:
+
+Requirements:
+1. __init__(self, max_size=None) - Initialize empty stack, optional max size
+2. push(item) - Add item to top, raise OverflowError if at max_size
+3. pop() - Remove and return top item, raise IndexError if empty
+4. peek() - Return top item without removing, raise IndexError if empty
+5. is_empty() - Return True if stack is empty
+6. is_full() - Return True if stack is at max_size (False if no max)
+7. size() - Return current number of items
+8. clear() - Remove all items
+9. __repr__() - Return string like "Stack([1, 2, 3])"
+10. __contains__(item) - Support 'in' operator
+
+The stack should store items in a list internally.
+
+Example usage:
+  s = Stack(max_size=3)
+  s.push(1)
+  s.push(2)
+  s.peek()  # Returns 2
+  s.pop()   # Returns 2
+  1 in s    # Returns True
+  s.size()  # Returns 1
+
+Save to tasks/stack.py`,
+    "Stack class with push, pop, peek, and utility methods",
+    `python -c "from tasks.stack import Stack; s=Stack(3); s.push(1); s.push(2); assert s.peek()==2; assert s.pop()==2; assert s.size()==1; assert 1 in s; assert s.is_empty()==False; s.clear(); assert s.is_empty()==True; print('PASS')"`,
+    "stack"
+  ),
+
+  // === OPUS TIER (1 advanced task) ===
+  makeOpusTask(
+    "Create a LRU Cache with O(1) operations",
+    `Create a Python class LRUCache in tasks/lru_cache.py that implements a Least Recently Used cache:
+
+Requirements:
+1. __init__(self, capacity: int) - Initialize cache with given capacity
+2. get(key) - Return value if key exists (marks as recently used), else return -1
+3. put(key, value) - Insert or update key-value pair
+   - If key exists, update value and mark as recently used
+   - If at capacity, evict least recently used item before inserting
+4. Both get and put must be O(1) time complexity
+5. Use OrderedDict or implement with dict + doubly linked list
+
+Example usage:
+  cache = LRUCache(2)
+  cache.put(1, 1)
+  cache.put(2, 2)
+  cache.get(1)      # Returns 1, marks key 1 as recently used
+  cache.put(3, 3)   # Evicts key 2 (least recently used)
+  cache.get(2)      # Returns -1 (not found)
+  cache.get(3)      # Returns 3
+
+The implementation should handle:
+- Cache hits (existing keys)
+- Cache misses (non-existent keys)
+- Capacity overflow (eviction)
+- Update existing keys
+
+Save to tasks/lru_cache.py`,
+    "LRU Cache with O(1) get and put operations",
+    `python -c "from tasks.lru_cache import LRUCache; c=LRUCache(2); c.put(1,1); c.put(2,2); assert c.get(1)==1; c.put(3,3); assert c.get(2)==-1; assert c.get(3)==3; c.put(4,4); assert c.get(1)==-1; assert c.get(3)==3; assert c.get(4)==4; print('PASS')"`,
+    "lru_cache"
+  ),
 ];
 
 async function sleep(ms) {
@@ -165,7 +262,18 @@ async function createTask(task) {
   return response.json();
 }
 
-async function executeTask(taskId, agentId, description, expectedOutput, useClaude) {
+// Model mapping for each tier
+const TIER_MODELS = {
+  'ollama': null,  // Uses local Ollama
+  'haiku': 'claude-3-haiku-20240307',
+  'sonnet': 'claude-sonnet-4-20250514',
+  'opus': 'claude-opus-4-20250514'
+};
+
+async function executeTask(taskId, agentId, description, expectedOutput, tier) {
+  const useClaude = tier !== 'ollama';
+  const model = TIER_MODELS[tier];
+
   return await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -175,7 +283,7 @@ async function executeTask(taskId, agentId, description, expectedOutput, useClau
       task_description: description,
       expected_output: expectedOutput,
       use_claude: useClaude,
-      model: useClaude ? 'claude-3-haiku-20240307' : null
+      model: model
     })
   });
 }
@@ -222,28 +330,48 @@ async function runValidation(validation) {
   }
 }
 
-async function main() {
-  const ollamaTasks = tasks.filter(t => t.tier === 'ollama');
-  const haikuTasks = tasks.filter(t => t.tier === 'haiku');
+// Tier display config
+// Note: CTO agent is a supervisor (no file_write), so Opus coding tasks use qa-01
+const TIER_INFO = {
+  'ollama': { icon: '📦', name: 'Ollama', agent: 'coder-01' },
+  'haiku':  { icon: '🐰', name: 'Haiku',  agent: 'qa-01' },
+  'sonnet': { icon: '🎵', name: 'Sonnet', agent: 'qa-01' },
+  'opus':   { icon: '🎭', name: 'Opus',   agent: 'qa-01' }
+};
 
-  console.log('═'.repeat(65));
-  console.log('🧪 MIXED 8-TASK TEST SUITE (Ollama + Haiku)');
-  console.log('═'.repeat(65));
-  console.log(`   📦 Ollama tasks: ${ollamaTasks.length} (simple, priority 3)`);
-  console.log(`   🤖 Haiku tasks:  ${haikuTasks.length} (complex, priority 5)`);
-  console.log('═'.repeat(65));
+async function main() {
+  const tierCounts = {
+    ollama: tasks.filter(t => t.tier === 'ollama').length,
+    haiku: tasks.filter(t => t.tier === 'haiku').length,
+    sonnet: tasks.filter(t => t.tier === 'sonnet').length,
+    opus: tasks.filter(t => t.tier === 'opus').length
+  };
+
+  console.log('═'.repeat(70));
+  console.log('🧪 FULL 10-TASK TIER TEST SUITE (All Model Tiers)');
+  console.log('═'.repeat(70));
+  console.log(`   📦 Ollama: ${tierCounts.ollama} tasks (priority 3, free)`);
+  console.log(`   🐰 Haiku:  ${tierCounts.haiku} tasks (priority 5, ~$0.001)`);
+  console.log(`   🎵 Sonnet: ${tierCounts.sonnet} task  (priority 7, ~$0.005)`);
+  console.log(`   🎭 Opus:   ${tierCounts.opus} task  (priority 9, ~$0.02)`);
+  console.log('═'.repeat(70));
 
   await resetSystem();
 
-  const results = { ollama: { passed: 0, failed: 0 }, haiku: { passed: 0, failed: 0 } };
+  const results = {
+    ollama: { passed: 0, failed: 0 },
+    haiku: { passed: 0, failed: 0 },
+    sonnet: { passed: 0, failed: 0 },
+    opus: { passed: 0, failed: 0 }
+  };
   const startTime = Date.now();
 
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
-    const tierIcon = task.tier === 'ollama' ? '📦' : '🤖';
-    console.log(`\n[${i + 1}/${tasks.length}] ${tierIcon} ${task.title}`);
-    console.log(`   Tier: ${task.tier.toUpperCase()} (priority ${task.priority})`);
-    console.log('─'.repeat(50));
+    const tierInfo = TIER_INFO[task.tier];
+    console.log(`\n[${i + 1}/${tasks.length}] ${tierInfo.icon} ${task.title}`);
+    console.log(`   Tier: ${tierInfo.name.toUpperCase()} (priority ${task.priority})`);
+    console.log('─'.repeat(60));
 
     const taskStart = Date.now();
 
@@ -251,7 +379,7 @@ async function main() {
       const created = await createTask(task);
       console.log(`   Created: ${created.id.substring(0, 8)}...`);
 
-      const agentId = task.tier === 'haiku' ? 'qa-01' : 'coder-01';
+      const agentId = tierInfo.agent;
       await fetch(`${API_BASE}/queue/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,9 +388,8 @@ async function main() {
       console.log(`   Assigned to: ${agentId}`);
 
       console.log('   Executing...');
-      const useClaude = task.tier === 'haiku';
       const execResponse = await executeTask(
-        created.id, agentId, task.description, task.expectedOutput, useClaude
+        created.id, agentId, task.description, task.expectedOutput, task.tier
       );
 
       if (!execResponse.ok) {
@@ -300,29 +427,38 @@ async function main() {
   }
 
   const duration = Math.floor((Date.now() - startTime) / 1000);
-  const totalPassed = results.ollama.passed + results.haiku.passed;
+  const totalPassed = results.ollama.passed + results.haiku.passed + results.sonnet.passed + results.opus.passed;
   const totalTasks = tasks.length;
 
-  console.log('\n' + '═'.repeat(65));
+  console.log('\n' + '═'.repeat(70));
   console.log('📊 RESULTS BY TIER');
-  console.log('═'.repeat(65));
-  console.log(`   📦 Ollama: ${results.ollama.passed}/${ollamaTasks.length} passed (${Math.round(results.ollama.passed/ollamaTasks.length*100)}%)`);
-  console.log(`   🤖 Haiku:  ${results.haiku.passed}/${haikuTasks.length} passed (${Math.round(results.haiku.passed/haikuTasks.length*100)}%)`);
-  console.log('─'.repeat(65));
-  console.log(`   📈 Total:  ${totalPassed}/${totalTasks} passed (${Math.round(totalPassed/totalTasks*100)}%)`);
-  console.log(`   ⏱️  Duration: ${Math.floor(duration / 60)}m ${duration % 60}s`);
-  console.log('═'.repeat(65));
+  console.log('═'.repeat(70));
 
-  if (results.ollama.passed === ollamaTasks.length) {
-    console.log('\n✅ Ollama tier: All tasks passed!');
-  } else {
-    console.log(`\n⚠️  Ollama tier: ${results.ollama.failed} task(s) failed`);
+  // Display results for each tier
+  for (const [tier, info] of Object.entries(TIER_INFO)) {
+    const count = tierCounts[tier];
+    if (count > 0) {
+      const pct = Math.round(results[tier].passed / count * 100);
+      console.log(`   ${info.icon} ${info.name.padEnd(6)}: ${results[tier].passed}/${count} passed (${pct}%)`);
+    }
   }
 
-  if (results.haiku.passed === haikuTasks.length) {
-    console.log('✅ Haiku tier: All tasks passed!');
-  } else {
-    console.log(`⚠️  Haiku tier: ${results.haiku.failed} task(s) failed`);
+  console.log('─'.repeat(70));
+  console.log(`   📈 Total:  ${totalPassed}/${totalTasks} passed (${Math.round(totalPassed/totalTasks*100)}%)`);
+  console.log(`   ⏱️  Duration: ${Math.floor(duration / 60)}m ${duration % 60}s`);
+  console.log('═'.repeat(70));
+
+  // Summary per tier
+  console.log('');
+  for (const [tier, info] of Object.entries(TIER_INFO)) {
+    const count = tierCounts[tier];
+    if (count > 0) {
+      if (results[tier].passed === count) {
+        console.log(`✅ ${info.name} tier: All ${count} task(s) passed!`);
+      } else {
+        console.log(`⚠️  ${info.name} tier: ${results[tier].failed}/${count} task(s) failed`);
+      }
+    }
   }
 }
 

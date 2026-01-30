@@ -293,6 +293,9 @@ node scripts/run-manual-test.js
 # Run 20-task Ollama test suite (simple tasks, 100% pass rate expected)
 node scripts/run-20-ollama-tasks.js
 
+# Run 10-task full tier test (Ollama + Haiku + Sonnet + Opus, ~$1.50 cost)
+node scripts/run-8-mixed-test.js
+
 # Reset stuck agents
 curl -X POST http://localhost:3001/api/agents/reset-all
 
@@ -379,6 +382,64 @@ C:\dev\abcc-backups\daily\
 │   └── backup.log           # Operation log
 └── latest -> YYYYMMDD_HHMMSS  # Symlink to most recent
 ```
+
+## Writing Test Scripts
+
+Reference implementation: `scripts/run-8-mixed-test.js` (10-task full tier test, ~$1.50 cost)
+
+### Critical Requirements for Valid Test Scripts
+
+1. **Task Completion Step** - After execution, MUST call `/tasks/{id}/complete` to release the agent:
+   ```javascript
+   const execResult = await execResponse.json();
+   await fetch(`${API_BASE}/tasks/${created.id}/complete`, {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ success: execResult.success, result: execResult })
+   });
+   ```
+   Without this, agents get stuck "assigned" and won't accept new tasks.
+
+2. **Correct Model Names**:
+   - Haiku: `claude-3-haiku-20240307`
+   - Sonnet: `claude-sonnet-4-20250514`
+   - Opus: `claude-opus-4-20250514`
+   - Ollama: `null` (uses local model from OLLAMA_MODEL env)
+
+3. **Agent Selection by Tier**:
+   - `coder-01` - Ollama tasks (has file_write, simple coding)
+   - `qa-01` - Haiku/Sonnet/Opus tasks (has file_write, quality focus)
+   - `cto-01` - Supervisor only (NO file_write, for decomposition/review only)
+
+4. **Validation Command Escaping** - Use base64 encoding to avoid shell issues:
+   ```javascript
+   const b64Code = Buffer.from(pythonCode).toString('base64');
+   const cmd = `docker exec abcc-agents python3 -c "import base64; exec(base64.b64decode('${b64Code}').decode())"`;
+   ```
+
+5. **Wait for Agent** - Poll agent status before next task:
+   ```javascript
+   async function waitForAgent(agentId, maxWaitMs = 30000) {
+     while (Date.now() - start < maxWaitMs) {
+       const agent = await fetch(`${API_BASE}/agents/${agentId}`).then(r => r.json());
+       if (agent.status === 'idle') return true;
+       await sleep(1000);
+     }
+   }
+   ```
+
+### Tier Cost Reference (10-task mix, ~$1.50 total)
+
+| Tier | Tasks | Model | Cost/Task | Total |
+|------|-------|-------|-----------|-------|
+| Ollama | 5 | qwen2.5-coder:7b | $0 | $0 |
+| Haiku | 3 | claude-3-haiku | ~$0.05 | ~$0.15 |
+| Sonnet | 1 | claude-sonnet-4 | ~$0.30 | ~$0.30 |
+| Opus | 1 | claude-opus-4 | ~$1.00 | ~$1.00 |
+| **Total** | **10** | | | **~$1.50** |
+
+**Important:** Opus is intended for decomposition/code review via CTO agent, not direct coding.
+The CTO agent has no `file_write` tool - it orchestrates other agents instead.
 
 ## Documentation
 
