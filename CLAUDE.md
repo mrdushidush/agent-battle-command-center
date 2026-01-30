@@ -272,8 +272,13 @@ def my_tool(param: str) -> str:
 # Start everything
 docker compose up
 
-# Run test suite (10 tasks)
+# Run test suite (10 tasks) - DEPRECATED: has race conditions
 node scripts/quick-run.js -y
+
+# Run manual test (20 tasks) - RECOMMENDED: sequential execution
+# IMPORTANT: Tasks must run ONE AT A TIME with 30s delays!
+# See docs/TEST_RUNNER_GUIDE.md for details
+node scripts/run-manual-test.js
 
 # Reset stuck agents
 curl -X POST http://localhost:3001/api/agents/reset-all
