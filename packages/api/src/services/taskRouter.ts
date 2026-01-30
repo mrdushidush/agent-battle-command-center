@@ -1,29 +1,33 @@
 /**
  * Task Router Service - Cost-Optimized Tiered Routing
  *
- * NEW TIER SYSTEM:
- * ================
- * 1. DECOMPOSITION:
- *    - Complex (>=8) → Opus (strategic decomposition)
- *    - Standard (<8)  → Sonnet (cost-effective decomposition)
+ * ACADEMIC COMPLEXITY SCALE (1-10):
+ * =================================
+ * Based on Campbell's Task Complexity Theory and NLP Research Difficulty scales.
  *
- * 2. EXECUTION:
- *    - Simple (<4)   → Ollama (free, fast)
- *    - Medium+ (>=4) → Haiku (quality, cheap)
+ * | Score | Level    | Characteristics                                          | Model   |
+ * |-------|----------|----------------------------------------------------------|---------|
+ * | 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama  |
+ * | 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama  |
+ * | 5-6   | Moderate | Multiple paths; 2-3 source integration; standard logic   | Haiku   |
+ * | 7-8   | High     | Nested branches; conflicting dependencies; multi-file    | Sonnet  |
+ * | 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Opus    |
  *
- * 3. CODE REVIEW:
- *    - All completed → Opus batch review (highest quality)
+ * TIER ROUTING:
+ * =============
+ * - Trivial/Low (1-4)   → Ollama (FREE, ~12s/task)
+ * - Moderate (5-6)      → Haiku (~$0.001/task)
+ * - High (7-8)          → Sonnet (~$0.005/task)
+ * - Extreme (9-10)      → Opus (~$0.04/task)
  *
- * 4. FIX CYCLE:
- *    - 1st fix → Haiku
- *    - 2nd fix → Sonnet
- *    - 3rd fail → Human escalation
+ * DECOMPOSITION:
+ * - Standard (<8)  → Sonnet decomposes into subtasks
+ * - Complex (>=8)  → Opus strategic decomposition
  *
- * COST ESTIMATES:
- * - Ollama: $0 (local)
- * - Haiku: ~$0.001/task
- * - Sonnet: ~$0.005/task
- * - Opus: ~$0.04/task
+ * FIX CYCLE:
+ * - 1st failure → Haiku
+ * - 2nd failure → Sonnet
+ * - 3rd failure → Human escalation
  */
 
 import type { PrismaClient, Task, Agent } from '@prisma/client';
@@ -70,56 +74,148 @@ export class TaskRouter {
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Calculate task complexity score (1-10)
+   * Calculate task complexity score (1-10) using Academic Complexity Framework
    *
-   * Factors:
-   * - Number of steps in description
-   * - Keywords indicating complexity
-   * - Task type
-   * - Priority level
+   * Based on Campbell's Task Complexity Theory:
+   * - Component complexity: Number of distinct acts/information cues
+   * - Coordinative complexity: Relationships between task inputs and outputs
+   * - Dynamic complexity: Changes in states during task execution
+   *
+   * Factors analyzed:
+   * - Structural indicators (steps, files, dependencies)
+   * - Semantic indicators (keywords suggesting complexity level)
+   * - Task characteristics (type, history, requirements)
    */
   calculateComplexity(task: Task): number {
-    let score = 0;
+    const description = (task.description || '').toLowerCase();
+    const title = (task.title || '').toLowerCase();
+    const text = `${title} ${description}`;
 
-    const description = task.description || '';
+    let score = 1; // Base score (minimum complexity)
 
-    // Check for numbered steps
-    const steps = description.match(/Step \d+:/gi)?.length || 0;
-    score += steps * 0.5; // More steps = more complex
+    // ========================================
+    // 1. STRUCTURAL COMPLEXITY (Component)
+    // ========================================
 
-    // Check for complexity keywords
-    const complexityKeywords = {
-      high: ['multi-file', 'architecture', 'design', 'refactor', 'integrate', 'api', 'database'],
-      medium: ['test', 'verify', 'validate', 'debug', 'fix', 'update'],
-      low: ['create', 'add', 'simple', 'basic'],
+    // Count explicit steps (Step 1, Step 2, etc.)
+    const steps = description.match(/step \d+/gi)?.length || 0;
+    if (steps <= 2) score += 0;           // Trivial: 1-2 steps
+    else if (steps <= 4) score += 1;      // Low: 3-4 steps
+    else if (steps <= 6) score += 2;      // Moderate: 5-6 steps
+    else score += 3;                       // High: 7+ steps
+
+    // Count files mentioned (indicators of multi-file tasks)
+    const filePatterns = text.match(/\.(py|ts|js|tsx|jsx|json|md|css|html)\b/gi) || [];
+    const uniqueFiles = new Set(filePatterns).size;
+    if (uniqueFiles >= 3) score += 2;      // Multi-file task
+    else if (uniqueFiles === 2) score += 1;
+
+    // Count function/class definitions expected
+    const defCount = (text.match(/\b(function|class|def|interface|type)\b/gi) || []).length;
+    if (defCount >= 3) score += 1;
+
+    // ========================================
+    // 2. SEMANTIC COMPLEXITY (Keywords)
+    // ========================================
+
+    // Academic complexity indicators by tier
+    const complexityIndicators = {
+      // Trivial (1-2): Single-step, clear I/O, no decision-making
+      trivial: ['simple', 'basic', 'single', 'just', 'only', 'straightforward'],
+
+      // Low (3-4): Linear sequences, well-defined, no ambiguity
+      low: ['create', 'add', 'write', 'make', 'return', 'print', 'output'],
+
+      // Moderate (5-6): Multiple paths, 2-3 source integration
+      moderate: [
+        'handle', 'validate', 'check', 'multiple', 'combine', 'integrate',
+        'parse', 'convert', 'transform', 'edge case', 'error handling',
+        'if else', 'switch', 'conditional'
+      ],
+
+      // High (7-8): Nested logic, conflicting dependencies, multi-file
+      high: [
+        'refactor', 'redesign', 'optimize', 'async', 'concurrent', 'parallel',
+        'nested', 'recursive', 'complex', 'algorithm', 'data structure',
+        'database', 'api', 'service', 'module', 'component'
+      ],
+
+      // Extreme (9-10): Fuzzy goals, dynamic, architectural
+      extreme: [
+        'architect', 'design system', 'framework', 'infrastructure',
+        'scalab', 'distributed', 'microservice', 'migration', 'legacy',
+        'security', 'authentication', 'authorization', 'real-time'
+      ],
     };
 
-    complexityKeywords.high.forEach((keyword) => {
-      if (description.toLowerCase().includes(keyword)) score += 2;
-    });
+    // Score based on highest complexity indicators found
+    let maxTierScore = 0;
 
-    complexityKeywords.medium.forEach((keyword) => {
-      if (description.toLowerCase().includes(keyword)) score += 1;
-    });
+    // Check extreme first (highest weight)
+    const extremeMatches = complexityIndicators.extreme.filter((k) => text.includes(k)).length;
+    if (extremeMatches >= 2) maxTierScore = Math.max(maxTierScore, 4);
+    else if (extremeMatches === 1) maxTierScore = Math.max(maxTierScore, 3);
 
-    complexityKeywords.low.forEach((keyword) => {
-      if (description.toLowerCase().includes(keyword)) score -= 0.5;
-    });
+    // Check high
+    const highMatches = complexityIndicators.high.filter((k) => text.includes(k)).length;
+    if (highMatches >= 3) maxTierScore = Math.max(maxTierScore, 3);
+    else if (highMatches >= 1) maxTierScore = Math.max(maxTierScore, 2);
 
-    // Task type adds complexity
-    if (task.taskType === 'code') score += 1;
-    if (task.taskType === 'test') score += 1.5;
-    if (task.taskType === 'review') score += 2;
+    // Check moderate
+    const moderateMatches = complexityIndicators.moderate.filter((k) => text.includes(k)).length;
+    if (moderateMatches >= 2) maxTierScore = Math.max(maxTierScore, 2);
+    else if (moderateMatches === 1) maxTierScore = Math.max(maxTierScore, 1);
 
-    // Priority adds weight
-    score += (task.priority / 10) * 0.5;
+    // Trivial/low indicators reduce score (but not below 1)
+    const trivialMatches = complexityIndicators.trivial.filter((k) => text.includes(k)).length;
+    if (trivialMatches >= 2 && maxTierScore <= 1) score -= 0.5;
 
-    // Check if task previously failed
-    if (task.currentIteration > 0) {
-      score += task.currentIteration * 1.5; // Failed tasks are more complex
+    score += maxTierScore;
+
+    // ========================================
+    // 3. TASK CHARACTERISTICS
+    // ========================================
+
+    // Task type complexity
+    switch (task.taskType) {
+      case 'code':
+        score += 0.5;  // Standard coding
+        break;
+      case 'test':
+        score += 1.5;  // Testing requires understanding + verification
+        break;
+      case 'review':
+        score += 2.5;  // Review requires deep analysis
+        break;
+      case 'decomposition':
+        score += 3;    // Decomposition is high-level planning
+        break;
     }
 
-    return Math.min(10, Math.max(1, score));
+    // Failed tasks are harder (evidence of hidden complexity)
+    if (task.currentIteration > 0) {
+      score += Math.min(task.currentIteration * 1.5, 3); // Cap at +3
+    }
+
+    // Description length as proxy for requirement complexity
+    const wordCount = description.split(/\s+/).length;
+    if (wordCount > 200) score += 1;      // Long descriptions = more requirements
+    else if (wordCount > 100) score += 0.5;
+
+    // ========================================
+    // 4. COORDINATIVE COMPLEXITY
+    // ========================================
+
+    // Dependencies and imports mentioned
+    const importPatterns = text.match(/\b(import|require|from|include|depend)\b/gi) || [];
+    if (importPatterns.length >= 3) score += 1;
+
+    // Multiple outputs expected
+    const outputPatterns = text.match(/\b(return|output|result|response|yield)\b/gi) || [];
+    if (outputPatterns.length >= 3) score += 0.5;
+
+    // Clamp to valid range [1, 10]
+    return Math.min(10, Math.max(1, Math.round(score * 10) / 10));
   }
 
   /**
@@ -229,78 +325,79 @@ export class TaskRouter {
       }
     }
 
-    // NEW TIER SYSTEM ROUTING
-    // ========================
+    // ACADEMIC TIER ROUTING
+    // ======================
+    // Based on Campbell's Task Complexity Theory
 
-    // SIMPLE TASKS (<4 complexity) → Ollama (Coder - free)
-    if (!selectedAgent && complexity < 4) {
+    // TRIVIAL/LOW (1-4): Single-step to linear sequences → Ollama (FREE)
+    if (!selectedAgent && complexity < 5) {
       selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
       if (selectedAgent) {
-        reason = `Simple task (${complexity.toFixed(1)}/10) → Ollama (free, fast)`;
-        confidence = 0.85;
+        const level = complexity < 3 ? 'Trivial' : 'Low';
+        reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, ~12s)`;
+        confidence = 0.9;
         modelTier = 'ollama';
         estimatedCost = 0;
       }
     }
 
-    // MEDIUM+ TASKS (>=4 complexity) → Haiku (QA - quality, cheap)
-    if (!selectedAgent && complexity >= 4) {
+    // MODERATE (5-6): Multiple paths, 2-3 source integration → Haiku
+    if (!selectedAgent && complexity >= 5 && complexity < 7) {
       selectedAgent = agents.find((a) => a.agentType.name === 'qa') || null;
       if (selectedAgent) {
-        reason = `Medium+ task (${complexity.toFixed(1)}/10) → Haiku (quality, ~$0.001)`;
+        reason = `Moderate complexity (${complexity.toFixed(1)}/10) → Haiku (quality, ~$0.001)`;
         confidence = 0.9;
         modelTier = 'haiku';
         estimatedCost = 0.001;
-      } else {
-        // QA not available - use coder but WITH HAIKU tier for quality
-        // This ensures medium+ tasks still get Claude Haiku even when routed to coder agent
-        selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
-        if (selectedAgent) {
-          reason = `Medium+ task (${complexity.toFixed(1)}/10) → Coder w/ Haiku (QA busy, using quality model)`;
-          confidence = 0.75;
-          modelTier = 'haiku'; // Keep haiku tier for quality
-          estimatedCost = 0.001;
-        }
       }
     }
 
-    // FAILED TASKS - Use fix cycle logic
-    if (!selectedAgent && task.currentIteration > 0) {
-      const fixDecision = this.getFixDecision(task.currentIteration);
-
-      if (fixDecision.escalateToHuman) {
-        // Mark for human intervention
-        reason = `${task.currentIteration} failures → Escalate to human`;
-        confidence = 1.0;
-        modelTier = 'opus'; // Will flag for human
-        estimatedCost = 0;
-      } else {
-        // Route to appropriate fix tier
-        const fixAgentType = fixDecision.modelTier === 'sonnet' ? 'cto' : 'qa';
-        selectedAgent = agents.find((a) => a.agentType.name === fixAgentType) || null;
-        if (selectedAgent) {
-          reason = fixDecision.reason;
-          confidence = 0.85;
-          modelTier = fixDecision.modelTier;
-          estimatedCost = fixDecision.modelTier === 'sonnet' ? 0.005 : 0.001;
-        }
+    // HIGH (7-8): Nested logic, conflicting dependencies → Sonnet
+    if (!selectedAgent && complexity >= 7 && complexity < 9) {
+      selectedAgent = agents.find((a) => a.agentType.name === 'qa') || null;
+      if (selectedAgent) {
+        reason = `High complexity (${complexity.toFixed(1)}/10) → Sonnet (advanced, ~$0.005)`;
+        confidence = 0.85;
+        modelTier = 'sonnet';
+        estimatedCost = 0.005;
       }
     }
 
-    // Fallback: First available agent (preserve appropriate model tier based on complexity)
+    // EXTREME (9-10): Fuzzy goals, architectural scope → Opus
+    if (!selectedAgent && complexity >= 9) {
+      selectedAgent = agents.find((a) => a.agentType.name === 'cto') || null;
+      if (selectedAgent) {
+        reason = `Extreme complexity (${complexity.toFixed(1)}/10) → Opus (expert, ~$0.04)`;
+        confidence = 0.8;
+        modelTier = 'opus';
+        estimatedCost = 0.04;
+      }
+    }
+
+    // FALLBACK: If no agent selected yet, use best available
     if (!selectedAgent) {
-      selectedAgent = agents[0];
-      // Determine appropriate model tier based on task complexity
-      if (complexity >= 4) {
-        reason = `Fallback assignment (complexity ${complexity.toFixed(1)}/10) → using Haiku for quality`;
-        modelTier = 'haiku';
-        estimatedCost = 0.001;
-      } else {
-        reason = `Fallback assignment (complexity ${complexity.toFixed(1)}/10) → using Ollama`;
-        modelTier = 'ollama';
-        estimatedCost = 0;
+      // Try QA first, then Coder
+      selectedAgent = agents.find((a) => a.agentType.name === 'qa')
+        || agents.find((a) => a.agentType.name === 'coder')
+        || agents[0];
+
+      if (selectedAgent) {
+        // Determine tier based on complexity
+        if (complexity < 5) {
+          reason = `Fallback: ${complexity.toFixed(1)}/10 → Ollama`;
+          modelTier = 'ollama';
+          estimatedCost = 0;
+        } else if (complexity < 7) {
+          reason = `Fallback: ${complexity.toFixed(1)}/10 → Haiku`;
+          modelTier = 'haiku';
+          estimatedCost = 0.001;
+        } else {
+          reason = `Fallback: ${complexity.toFixed(1)}/10 → Sonnet`;
+          modelTier = 'sonnet';
+          estimatedCost = 0.005;
+        }
+        confidence = 0.6;
       }
-      confidence = 0.5;
     }
 
     // Find fallback agent (prefer QA as backup for coder tasks)

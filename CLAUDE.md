@@ -25,7 +25,7 @@ UI (React:5173) → API (Express:3001) → Agents (FastAPI:8000) → Ollama/Clau
 The agents service uses **crewai 0.86.0** which internally uses **litellm** for LLM connections:
 - Model strings use provider prefixes: `anthropic/claude-sonnet-4-20250514`, `ollama/qwen2.5-coder:7b`
 - `OLLAMA_API_BASE` environment variable required for litellm to connect to Ollama in Docker
-- For Ollama, uses `ChatOllama` from langchain for better tool calling support
+- Native litellm string format for both Ollama and Claude (much faster than wrapper classes)
 
 ### Ollama Configuration (Critical)
 
@@ -132,15 +132,46 @@ CTO agent breaks complex tasks into atomic subtasks:
 - Each has a validation command (e.g., `python -c "from tasks.calc import add; print(add(2,3))"`)
 
 ### Complexity Routing (taskRouter.ts)
+
+Based on **Campbell's Task Complexity Theory** and NLP Research Difficulty scales.
+
 Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
-- Router calculates rule-based score from description keywords, steps, etc.
+- Router calculates rule-based score using academic complexity factors
 - Haiku AI provides independent assessment with reasoning
 - Final score = average of both (saved to task for fine-tuning)
 
+**Academic Complexity Scale:**
+
+| Score | Level    | Characteristics                                          | Model  | Cost/Task |
+|-------|----------|----------------------------------------------------------|--------|-----------|
+| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama | FREE      |
+| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama | FREE      |
+| 5-6   | Moderate | Multiple paths; 2-3 source integration; standard logic   | Haiku  | ~$0.001   |
+| 7-8   | High     | Nested branches; conflicting dependencies; multi-file    | Sonnet | ~$0.005   |
+| 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Opus   | ~$0.04    |
+
+**Complexity Factors (Campbell's Theory):**
+
+1. **Component Complexity** (Structural)
+   - Number of steps mentioned (Step 1, Step 2, etc.)
+   - File count (.py, .ts, .js files mentioned)
+   - Function/class definitions expected
+
+2. **Coordinative Complexity** (Dependencies)
+   - Import/require statements
+   - Multiple outputs expected
+   - Cross-file interactions
+
+3. **Dynamic Complexity** (Semantic)
+   - Keywords indicating complexity level
+   - Task type (code < test < review < decomposition)
+   - Failure history (retries indicate hidden complexity)
+
 **Routing tiers:**
-- Simple (< 4) → Coder (Ollama) - free, fast
-- Medium (4-7) → QA (Haiku) - quality, ~$0.001
-- Complex (≥ 8) → QA (Sonnet) - high quality, ~$0.005
+- Trivial/Low (1-4) → Coder (Ollama) - FREE, ~12s/task
+- Moderate (5-6) → QA (Haiku) - ~$0.001/task
+- High (7-8) → QA (Sonnet) - ~$0.005/task
+- Extreme (9-10) → CTO (Opus) - ~$0.04/task
 - Failed tasks use fix cycle (Haiku → Sonnet → Human)
 
 **Task fields for complexity tracking:**
