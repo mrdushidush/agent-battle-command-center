@@ -23,9 +23,19 @@ UI (React:5173) → API (Express:3001) → Agents (FastAPI:8000) → Ollama/Clau
 ### Agent Service (crewai 0.86.0+)
 
 The agents service uses **crewai 0.86.0** which internally uses **litellm** for LLM connections:
-- Model strings use provider prefixes: `anthropic/claude-sonnet-4-20250514`, `ollama/qwen3:8b`
+- Model strings use provider prefixes: `anthropic/claude-sonnet-4-20250514`, `ollama/qwen2.5-coder:7b`
 - `OLLAMA_API_BASE` environment variable required for litellm to connect to Ollama in Docker
-- No longer uses langchain LLM objects directly
+- For Ollama, uses `ChatOllama` from langchain for better tool calling support
+
+### Ollama Configuration (Critical)
+
+**Model:** `qwen2.5-coder:7b` (not qwen3:8b)
+- qwen2.5-coder has much better instruction following for code tasks
+- Achieves **100% success rate** on simple file creation tasks (vs 45% with qwen3:8b)
+
+**Temperature:** Must be `0` for reliable tool calling
+- Set in `packages/agents/src/models/ollama.py`
+- Higher temperatures cause inconsistent tool usage (model sometimes outputs code instead of calling tools)
 
 ### Rate Limiting
 
@@ -280,6 +290,9 @@ node scripts/quick-run.js -y
 # See docs/TEST_RUNNER_GUIDE.md for details
 node scripts/run-manual-test.js
 
+# Run 20-task Ollama test suite (simple tasks, 100% pass rate expected)
+node scripts/run-20-ollama-tasks.js
+
 # Reset stuck agents
 curl -X POST http://localhost:3001/api/agents/reset-all
 
@@ -315,7 +328,7 @@ pnpm run security:audit       # Fail build if HIGH/CRITICAL vulns found
 | `ANTHROPIC_API_KEY` | Yes* | - | Claude API access |
 | `OLLAMA_URL` | No | http://ollama:11434 | Ollama API URL |
 | `OLLAMA_API_BASE` | Yes** | - | litellm requires this for Ollama in Docker |
-| `OLLAMA_MODEL` | No | qwen3:8b | Default local model |
+| `OLLAMA_MODEL` | No | qwen2.5-coder:7b | Default local model (best for code tasks) |
 | `DEFAULT_MODEL` | No | anthropic/claude-sonnet-4-20250514 | Default Claude model |
 | `RATE_LIMIT_BUFFER` | No | 0.8 | Trigger rate limiting at this % of limit |
 | `MIN_API_DELAY` | No | 0.5 | Minimum delay (seconds) between API calls |

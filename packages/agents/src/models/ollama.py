@@ -17,11 +17,14 @@ def get_ollama_llm(model: str | None = None):
 
     Note: Using ChatOllama instead of Ollama for better tool/function calling support.
     Each call creates a fresh instance to avoid context carryover between tasks.
+
+    IMPORTANT: temperature=0 is critical for consistent tool calling.
+    Higher temps cause the model to sometimes skip tool calls and just output code.
     """
     return ChatOllama(
         base_url=settings.OLLAMA_URL,
         model=model or settings.OLLAMA_MODEL,
-        temperature=0.7,
+        temperature=0,  # Critical: 0 for deterministic tool calling
         # Increase timeout for larger models
         timeout=120,
         # Verbose to see tool calls in logs
