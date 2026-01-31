@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * 10-Task Full Tier Test Suite
+ * 9-Task Mixed Tier Test Suite
  * - 5 simple tasks (priority 3) → Ollama (free, local)
  * - 3 medium tasks (priority 5) → Haiku (~$0.001)
  * - 1 complex task (priority 7) → Sonnet (~$0.005)
- * - 1 advanced task (priority 9) → Opus (~$0.02)
+ *
+ * Total cost: ~$0.01 (Opus removed - works well, too costly for regular testing)
  */
 
 const API_BASE = 'http://localhost:3001/api';
@@ -56,18 +57,6 @@ function makeSonnetTask(title, description, expectedOutput, validation, fileName
   };
 }
 
-// Expert task template (Opus tier)
-function makeOpusTask(title, description, expectedOutput, validation, fileName) {
-  return {
-    title,
-    description,
-    expectedOutput,
-    validation,
-    priority: 9,  // Opus tier
-    tier: 'opus',
-    fileName
-  };
-}
 
 const tasks = [
   // === OLLAMA TIER (5 simple tasks) ===
@@ -186,41 +175,6 @@ Save to tasks/stack.py`,
     `python -c "from tasks.stack import Stack; s=Stack(3); s.push(1); s.push(2); assert s.peek()==2; assert s.pop()==2; assert s.size()==1; assert 1 in s; assert s.is_empty()==False; s.clear(); assert s.is_empty()==True; print('PASS')"`,
     "stack"
   ),
-
-  // === OPUS TIER (1 advanced task) ===
-  makeOpusTask(
-    "Create a LRU Cache with O(1) operations",
-    `Create a Python class LRUCache in tasks/lru_cache.py that implements a Least Recently Used cache:
-
-Requirements:
-1. __init__(self, capacity: int) - Initialize cache with given capacity
-2. get(key) - Return value if key exists (marks as recently used), else return -1
-3. put(key, value) - Insert or update key-value pair
-   - If key exists, update value and mark as recently used
-   - If at capacity, evict least recently used item before inserting
-4. Both get and put must be O(1) time complexity
-5. Use OrderedDict or implement with dict + doubly linked list
-
-Example usage:
-  cache = LRUCache(2)
-  cache.put(1, 1)
-  cache.put(2, 2)
-  cache.get(1)      # Returns 1, marks key 1 as recently used
-  cache.put(3, 3)   # Evicts key 2 (least recently used)
-  cache.get(2)      # Returns -1 (not found)
-  cache.get(3)      # Returns 3
-
-The implementation should handle:
-- Cache hits (existing keys)
-- Cache misses (non-existent keys)
-- Capacity overflow (eviction)
-- Update existing keys
-
-Save to tasks/lru_cache.py`,
-    "LRU Cache with O(1) get and put operations",
-    `python -c "from tasks.lru_cache import LRUCache; c=LRUCache(2); c.put(1,1); c.put(2,2); assert c.get(1)==1; c.put(3,3); assert c.get(2)==-1; assert c.get(3)==3; c.put(4,4); assert c.get(1)==-1; assert c.get(3)==3; assert c.get(4)==4; print('PASS')"`,
-    "lru_cache"
-  ),
 ];
 
 async function sleep(ms) {
@@ -267,7 +221,6 @@ const TIER_MODELS = {
   'ollama': null,  // Uses local Ollama
   'haiku': 'claude-3-haiku-20240307',
   'sonnet': 'claude-sonnet-4-20250514',
-  'opus': 'claude-opus-4-20250514'
 };
 
 async function executeTask(taskId, agentId, description, expectedOutput, tier) {
@@ -331,12 +284,10 @@ async function runValidation(validation) {
 }
 
 // Tier display config
-// Note: CTO agent is a supervisor (no file_write), so Opus coding tasks use qa-01
 const TIER_INFO = {
   'ollama': { icon: '📦', name: 'Ollama', agent: 'coder-01' },
   'haiku':  { icon: '🐰', name: 'Haiku',  agent: 'qa-01' },
   'sonnet': { icon: '🎵', name: 'Sonnet', agent: 'qa-01' },
-  'opus':   { icon: '🎭', name: 'Opus',   agent: 'qa-01' }
 };
 
 async function main() {
@@ -344,16 +295,14 @@ async function main() {
     ollama: tasks.filter(t => t.tier === 'ollama').length,
     haiku: tasks.filter(t => t.tier === 'haiku').length,
     sonnet: tasks.filter(t => t.tier === 'sonnet').length,
-    opus: tasks.filter(t => t.tier === 'opus').length
   };
 
   console.log('═'.repeat(70));
-  console.log('🧪 FULL 10-TASK TIER TEST SUITE (All Model Tiers)');
+  console.log('🧪 9-TASK MIXED TIER TEST SUITE');
   console.log('═'.repeat(70));
   console.log(`   📦 Ollama: ${tierCounts.ollama} tasks (priority 3, free)`);
   console.log(`   🐰 Haiku:  ${tierCounts.haiku} tasks (priority 5, ~$0.001)`);
   console.log(`   🎵 Sonnet: ${tierCounts.sonnet} task  (priority 7, ~$0.005)`);
-  console.log(`   🎭 Opus:   ${tierCounts.opus} task  (priority 9, ~$0.02)`);
   console.log('═'.repeat(70));
 
   await resetSystem();
@@ -362,7 +311,6 @@ async function main() {
     ollama: { passed: 0, failed: 0 },
     haiku: { passed: 0, failed: 0 },
     sonnet: { passed: 0, failed: 0 },
-    opus: { passed: 0, failed: 0 }
   };
   const startTime = Date.now();
 
@@ -427,7 +375,7 @@ async function main() {
   }
 
   const duration = Math.floor((Date.now() - startTime) / 1000);
-  const totalPassed = results.ollama.passed + results.haiku.passed + results.sonnet.passed + results.opus.passed;
+  const totalPassed = results.ollama.passed + results.haiku.passed + results.sonnet.passed;
   const totalTasks = tasks.length;
 
   console.log('\n' + '═'.repeat(70));

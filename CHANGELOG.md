@@ -4,6 +4,132 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [Phase C] - 2026-01-31
+
+### Parallel Execution + Auto Code Review + Training Export
+
+**Major Milestone:** Complete task lifecycle with quality assurance. Ollama 5x faster via native LiteLLM. Auto code review and scheduled training data export.
+
+#### Added
+- **Parallel Task Execution** (`packages/api/src/services/resourcePool.ts`)
+  - Ollama and Claude tasks run simultaneously
+  - ResourcePoolService manages slots (ollama: 1, claude: 2)
+  - ~40% faster throughput for mixed batches
+  - New endpoints: `/queue/resources`, `/queue/parallel-assign`
+
+- **Auto Code Review** (`packages/api/src/services/codeReviewService.ts`)
+  - Opus reviews completed tasks automatically
+  - Quality score (0-10) and findings
+  - Skips trivial tasks (complexity < 3)
+  - Cost: ~$0.025/review
+  - Configurable via `AUTO_CODE_REVIEW` env var
+
+- **Scheduled Training Export** (`packages/api/src/services/schedulerService.ts`)
+  - Daily JSONL export for fine-tuning
+  - OpenAI/Anthropic compatible format
+  - 30-day retention with auto-cleanup
+  - New endpoints: `/api/training-data/scheduler/status`, `/api/training-data/scheduler/export`
+
+- **Academic Complexity Framework** (`packages/api/src/services/taskRouter.ts`)
+  - Based on Campbell's Task Complexity Theory
+  - Component, Coordinative, Dynamic complexity factors
+  - 5-tier routing: Trivial/Low → Ollama, Moderate → Haiku, High → Sonnet, Extreme → Opus
+
+#### Changed
+- **Native LiteLLM Integration** - Ollama 5x faster (~12s vs ~2min/task)
+  - Changed from ChatOllama wrapper to litellm string format
+  - `ollama/qwen2.5-coder:7b` instead of ChatOllama instance
+
+#### Test Results
+| Suite | Tasks | Pass Rate | Duration |
+|-------|-------|-----------|----------|
+| Parallel Test | 8 | 75% | 139s |
+| Mixed 10-Task | 10 | 90% | 6m 26s |
+
+---
+
+## [Phase B.2] - 2026-01-30
+
+### Ollama 100% Reliability + Full Tier Validation
+
+**Major Milestone:** Fixed critical Ollama tool calling issues, achieving 100% success rate on 20-task suite. Validated all 4 model tiers (Ollama/Haiku/Sonnet/Opus) working end-to-end.
+
+#### Fixed
+- **Ollama Tool Calling** - Temperature=0.7 caused non-deterministic behavior
+  - Root cause: Higher temperatures made model skip tool calls and output code directly
+  - Fix: Set temperature=0 for deterministic tool calling
+  - Location: `packages/agents/src/models/ollama.py`
+
+- **Model Selection** - Changed default from qwen3:8b to qwen2.5-coder:7b
+  - qwen2.5-coder:7b has better instruction following for code tasks
+  - Same VRAM requirements (~6GB)
+  - Updated in: `docker-compose.yml`, `packages/agents/src/config.py`
+
+- **Test Script Reliability** - Missing task completion step caused stuck agents
+  - Scripts must call `/tasks/{id}/complete` to release agents
+  - Added base64 encoding for shell validation commands
+  - Documented in CLAUDE.md
+
+#### Added
+- **10-Task Mixed Tier Test Suite** (`scripts/run-8-mixed-test.js`)
+  - 5 Ollama tasks (simple functions)
+  - 3 Haiku tasks (FizzBuzz, palindrome, word frequency)
+  - 1 Sonnet task (Stack class)
+  - 1 Opus task (LRU Cache)
+  - Total cost: ~$1.50
+
+- **Agent Role Documentation** - Clarified agent capabilities
+  - CTO (cto-01): Supervisor only, NO file_write tool
+  - QA (qa-01): Execution agent for all Claude tiers (Haiku/Sonnet/Opus)
+  - Coder (coder-01): Simple execution for Ollama tier only
+
+- **Test Script Writing Guide** (CLAUDE.md)
+  - Critical requirements for valid test scripts
+  - Correct model names reference
+  - Agent selection by tier
+  - Validation command escaping
+
+#### Test Results
+| Suite | Tasks | Pass Rate | Duration |
+|-------|-------|-----------|----------|
+| Ollama 20-task | 20 | **100%** | 173s |
+| Mixed 10-task | 10 | Validated | ~15min |
+
+#### MVP Score Improvement
+- Agent System: 8/10 → **9/10**
+- Operational Features: 7/10 → **8/10**
+- Overall: 8.2/10 → **8.65/10**
+
+---
+
+## [Phase B.1] - 2026-01-29
+
+### crewai 0.86.0 Migration + Rate Limiting
+
+**Major Milestone:** Migrated to crewai 0.86.0 (breaking API changes), added Anthropic rate limiting, fixed litellm/Ollama connection issues.
+
+#### Fixed
+- **litellm Ollama Connection** - "Connection refused" errors in Docker
+  - Required `OLLAMA_API_BASE` environment variable for litellm
+  - Set to same value as `OLLAMA_URL`
+
+- **langchain CVEs** - 7 security vulnerabilities resolved
+  - Upgraded langchain packages to patched versions
+
+#### Added
+- **Anthropic Rate Limiter** (`packages/agents/src/monitoring/rate_limiter.py`)
+  - Sliding window algorithm (RPM/TPM tracking)
+  - Per-model-tier limits (Haiku/Sonnet/Opus)
+  - 80% buffer threshold to prevent hitting limits
+  - Thread-safe singleton pattern
+
+- **Security Scanning** (Trivy + Dependabot)
+  - `pnpm run security:scan` - Quick terminal check
+  - `pnpm run security:report` - HTML report for auditors
+  - `.github/dependabot.yml` - Weekly automated scans
+
+---
+
 ## [Phase B] - 2026-01-28
 
 ### Dual Complexity Assessment & SOFT_FAILURE Fix
