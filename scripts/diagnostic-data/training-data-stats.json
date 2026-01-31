@@ -1,9 +1,9 @@
 {
-  "total": 3,
-  "claudeExecutions": 1,
-  "localExecutions": 2,
+  "total": 105,
+  "claudeExecutions": 51,
+  "localExecutions": 54,
   "comparisonPairs": 0,
   "goodExamples": 0,
-  "avgComplexity": 10,
+  "avgComplexity": 6.508571428571428,
   "avgQualityScore": 0
 }

@@ -86,10 +86,8 @@ async function runTask(task, index, total) {
       body: JSON.stringify({ status })
     });
 
-    // 4. Reset agent and wait for idle
-    await fetch(`${API}/agents/coder-01/reset`, { method: 'POST' });
-    await sleep(2000);
-    await waitForAgentIdle('coder-01');
+    // 4. Reset agent
+    await fetch(`${API}/agents/reset-all`, { method: 'POST' });
 
     console.log(`   ${status === 'completed' ? '✅ PASS' : '❌ FAIL'} (${duration}s)`);
 
@@ -97,10 +95,8 @@ async function runTask(task, index, total) {
 
   } catch (error) {
     console.log(`   ❌ ERROR: ${error.message}`);
-    // Reset agent on error and wait for idle
-    await fetch(`${API}/agents/coder-01/reset`, { method: 'POST' });
-    await sleep(2000);
-    await waitForAgentIdle('coder-01');
+    // Reset agent on error
+    await fetch(`${API}/agents/reset-all`, { method: 'POST' });
     await fetch(`${API}/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -143,7 +139,7 @@ async function main() {
     const result = await runTask(tasks[i], i + 1, tasks.length);
     results.push(result);
 
-    // 30 second delay between tasks to ensure agent state is fully reset
+    // 30 second delay before next task
     if (i < tasks.length - 1) {
       console.log('   ⏳ Waiting 30s before next task...');
       await sleep(30000);

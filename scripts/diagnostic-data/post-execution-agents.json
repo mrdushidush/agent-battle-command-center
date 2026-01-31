@@ -4,20 +4,20 @@
     "agentTypeId": "b1251b2e-530b-4cf6-b354-fc55b7d0617d",
     "type": "coder",
     "name": "Coder-01",
-    "status": "idle",
-    "currentTaskId": null,
+    "status": "busy",
+    "currentTaskId": "8e11c158-df7a-450d-a25f-23d546abca68",
     "config": {
       "preferredModel": "claude-sonnet-4-20250514"
     },
     "stats": {
-      "successRate": 1,
-      "tasksFailed": 0,
+      "successRate": 0.89,
+      "tasksFailed": 8,
       "totalTimeMs": 0,
-      "tasksCompleted": 2,
+      "tasksCompleted": 67,
       "totalApiCredits": 0
     },
     "createdAt": "2026-01-28T18:50:21.995Z",
-    "updatedAt": "2026-01-28T20:04:55.295Z"
+    "updatedAt": "2026-01-30T01:52:36.680Z"
   },
   {
     "id": "coder-02",
@@ -30,14 +30,14 @@
       "preferredModel": "claude-sonnet-4-20250514"
     },
     "stats": {
-      "successRate": 0,
+      "successRate": 1,
       "tasksFailed": 0,
       "totalTimeMs": 0,
-      "tasksCompleted": 0,
+      "tasksCompleted": 1,
       "totalApiCredits": 0
     },
     "createdAt": "2026-01-28T18:50:22.002Z",
-    "updatedAt": "2026-01-28T20:04:55.295Z"
+    "updatedAt": "2026-01-30T01:51:28.832Z"
   },
   {
     "id": "cto-01",
@@ -53,34 +53,34 @@
     },
     "stats": {
       "successRate": 0,
-      "tasksFailed": 0,
+      "tasksFailed": 8,
       "totalTimeMs": 0,
       "tasksCompleted": 0,
       "totalApiCredits": 0
     },
     "createdAt": "2026-01-28T18:50:22.011Z",
-    "updatedAt": "2026-01-28T20:04:55.295Z"
+    "updatedAt": "2026-01-30T01:53:22.482Z"
   },
   {
     "id": "qa-01",
     "agentTypeId": "6a3df33e-a623-4182-b8bf-7bb7b99bc94d",
     "type": "qa",
     "name": "QA-Alpha",
-    "status": "idle",
-    "currentTaskId": null,
+    "status": "busy",
+    "currentTaskId": "86db7af8-2071-40b7-acad-47946d0536be",
     "config": {
       "preferredModel": "claude-haiku-4-20250514",
       "alwaysUseClaude": true,
       "maxContextTokens": 8000
     },
     "stats": {
-      "successRate": 1,
-      "tasksFailed": 0,
+      "successRate": 0.3,
+      "tasksFailed": 30,
       "totalTimeMs": 0,
-      "tasksCompleted": 1,
+      "tasksCompleted": 13,
       "totalApiCredits": 0
     },
     "createdAt": "2026-01-28T18:50:22.007Z",
-    "updatedAt": "2026-01-28T20:04:55.295Z"
+    "updatedAt": "2026-01-30T01:42:03.959Z"
   }
 ]

@@ -389,6 +389,14 @@ node scripts/run-8-mixed-test.js
 # Run parallel execution test (5 Ollama + 3 Claude running simultaneously)
 node scripts/run-parallel-test.js
 
+# Full system health check (runs all checks + load test)
+node scripts/full-system-health-check.js
+
+# Health check options:
+node scripts/full-system-health-check.js --skip-load-test  # Skip load test
+node scripts/full-system-health-check.js --skip-trivy      # Skip vulnerability scan
+node scripts/full-system-health-check.js --clear-tasks     # Clear pending tasks first
+
 # Reset stuck agents
 curl -X POST http://localhost:3001/api/agents/reset-all
 

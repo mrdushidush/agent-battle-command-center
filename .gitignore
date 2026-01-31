@@ -54,3 +54,16 @@ workspace/
 
 # Security reports (contain vulnerability details)
 security-reports/
+
+# Scripts temporary files
+scripts/results-archive/
+scripts/results-*.json
+scripts/*-report-*.json
+scripts/temp_tasks.json
+scripts/execution-results.json
+
+# Documentation archives (old/obsolete docs moved here)
+# docs/archive/  # Commented out - we want to track archived docs
+
+# Windows artifacts
+nul
