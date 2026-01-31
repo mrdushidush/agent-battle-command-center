@@ -375,9 +375,38 @@ model CodeReview {
 
 ## Current Priorities
 
-1. **Training Data Collection** - Use archives for model improvement
-2. **Cost Budget Alerts** - Warnings when approaching token/cost limits
-3. **Agent Performance History** - Time-series charts for trends
+### Phase 1: MCP Integration (Next)
+1. **Enable MCP Flag** - Set `USE_MCP=true` and ensure all tests pass
+2. **Fix MCP + Ollama** - Investigate why MCP context overwhelms Ollama (load test stalled at 2/20 tasks)
+3. **Memory System Testing** - Verify cross-task learning works end-to-end
+
+### Phase 2: Tier System Refinement
+1. **Ollama Stress Testing** - Find the complexity threshold where Ollama fails >60% of tasks
+   - Current: 100% success on complexity 1-4
+   - Test complexity 5 tasks systematically
+   - Document failure patterns for training data
+2. **Tier Boundary Validation** - Confirm optimal routing thresholds
+3. **Cost Optimization** - Track actual costs vs estimates per tier
+
+### Phase 3: UI/UX Overhaul (WOW Factor)
+1. **Agent Workspace View** - New main panel showing:
+   - Visual representation of each agent's current task
+   - Real-time flow of thoughts (streaming)
+   - Tool usage visualization (file_write, shell_run, etc.)
+   - Progress indicators per agent
+2. **Enhanced Minimap** - Make it bigger and more interactive:
+   - Click to focus on agent
+   - Hover for task details
+   - Visual task queue flow
+3. **Polish & Animation** - Add the "wow effect":
+   - Smooth transitions
+   - Status pulse animations
+   - Sound feedback improvements
+
+### Backlog
+- Training Data Collection - Use archives for model improvement
+- Cost Budget Alerts - Warnings when approaching token/cost limits
+- Agent Performance History - Time-series charts for trends
 
 ## Patterns to Follow
 
