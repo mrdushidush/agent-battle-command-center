@@ -22,6 +22,7 @@ import { ChatService } from './services/chatService.js';
 import { ResourcePoolService } from './services/resourcePool.js';
 import { CodeReviewService } from './services/codeReviewService.js';
 import { SchedulerService } from './services/schedulerService.js';
+import { mcpBridge } from './services/mcpBridge.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -101,6 +102,11 @@ async function start() {
     await prisma.$connect();
     console.log('Connected to database');
 
+    // Connect MCP Bridge (Redis pub/sub)
+    await mcpBridge.connect();
+    const mcpStatus = mcpBridge.getStatus();
+    console.log(`MCP Bridge: ${mcpStatus.enabled ? 'enabled' : 'disabled'}, ${mcpStatus.connected ? 'connected' : 'disconnected'}`);
+
     // Start human escalation checker
     humanEscalation.startChecker();
 
@@ -123,6 +129,7 @@ process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down...');
   humanEscalation.stopChecker();
   scheduler.stop();
+  await mcpBridge.disconnect();
   await prisma.$disconnect();
   process.exit(0);
 });

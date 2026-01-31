@@ -7,6 +7,7 @@ import { TrainingDataService } from './trainingDataService.js';
 import { calculateActualComplexity, categorizeError } from './complexityCalculator.js';
 import { ResourcePoolService } from './resourcePool.js';
 import type { CodeReviewService } from './codeReviewService.js';
+import { mcpBridge } from './mcpBridge.js';
 
 export interface TaskAssignment {
   taskId: string;
@@ -130,6 +131,9 @@ export class TaskQueueService {
     this.emitTaskUpdate(updatedTask as unknown as Task);
     this.emitAgentUpdate(this.formatAgent(updatedAgent));
 
+    // Publish to MCP Gateway (Redis pub/sub)
+    await mcpBridge.publishTaskAssigned(taskId, agentId);
+
     return { taskId, agentId };
   }
 
@@ -153,6 +157,9 @@ export class TaskQueueService {
     });
 
     this.emitTaskUpdate(task as unknown as Task);
+
+    // Publish to MCP Gateway
+    await mcpBridge.publishTaskUpdated(taskId, { status: 'in_progress', iteration: task.currentIteration });
   }
 
   async handleTaskCompletion(taskId: string, result: Record<string, unknown>): Promise<void> {
@@ -282,6 +289,11 @@ export class TaskQueueService {
     }
 
     this.emitTaskUpdate(updatedTask as unknown as Task);
+
+    // Publish to MCP Gateway (async, non-blocking)
+    mcpBridge.publishTaskCompleted(taskId, result).catch((error) => {
+      console.error('Failed to publish task completion to MCP:', error);
+    });
   }
 
   async handleTaskFailure(taskId: string, error: string): Promise<void> {
@@ -399,6 +411,11 @@ export class TaskQueueService {
     }
 
     this.emitTaskUpdate(updatedTask as unknown as Task);
+
+    // Publish to MCP Gateway (async, non-blocking)
+    mcpBridge.publishTaskFailed(taskId, error || 'Max iterations reached').catch((err) => {
+      console.error('Failed to publish task failure to MCP:', err);
+    });
 
     // Emit alert
     this.io.emit('alert', {
