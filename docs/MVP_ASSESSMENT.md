@@ -740,7 +740,123 @@ packages/mcp-gateway/
 | 1.3 | 2026-01-29 | Anthropic API rate limiting |
 | 2.0 | 2026-01-30 | Ollama reliability fix, full tier validation, test documentation |
 | 2.1 | 2026-01-31 | MCP Gateway integration (Phase D) - Infrastructure setup |
-| **2.2** | **2026-02-01** | **MCP Fix + Tiered Memory System** |
+| 2.2 | 2026-02-01 | MCP Fix + Tiered Memory System |
+| 2.3 | 2026-02-02 | P0 Bug Fix: Agent loop detection improvements |
+| 2.4 | 2026-02-02 | QA Assessment Complete: Architecture refactoring, test infrastructure, CI/CD |
+| 2.5 | 2026-02-02 | Python Unit Tests: Added pytest tests for agents service |
+| **2.6** | **2026-02-02** | **Stuck Task Auto-Recovery: 10-min timeout with automatic recovery** |
+
+### Version 2.5 Changes (2026-02-02)
+
+**Python Unit Tests for Agents Service**
+
+Added pytest-based unit tests for the agents service to enable CI/CD testing:
+
+**Test Files Created:**
+- `packages/agents/tests/__init__.py` - Test package initialization
+- `packages/agents/tests/conftest.py` - Pytest fixtures (ActionHistory reset)
+- `packages/agents/tests/test_action_history.py` - Loop detection tests (~295 lines, 15 test cases)
+- `packages/agents/tests/test_file_ops.py` - File operations tests (~400 lines, 17 test cases)
+- `packages/agents/pytest.ini` - Pytest configuration
+
+**Test Coverage:**
+
+| Module | Test File | Test Cases | Focus Areas |
+|--------|-----------|------------|-------------|
+| `action_history.py` | `test_action_history.py` | 15 | TOOL_SPECIFIC_LIMITS, path tracking, reset, duplicates |
+| `file_ops.py` | `test_file_ops.py` | 17 | Directory validation, security checks, CRUD operations |
+
+**Run Tests:**
+```bash
+cd packages/agents && python -m pytest tests/ -v
+```
+
+---
+
+### Version 2.4 Changes (2026-02-02)
+
+**QA Assessment Tasks #1-9 Completed**
+
+Comprehensive QA assessment following the QA_PLAN.md:
+
+**Architecture Simplification:**
+- `ollamaOptimizer.ts` extracted (178 lines) - Ollama rest delays, context pollution prevention
+- `taskAssigner.ts` extracted (229 lines) - Task-to-agent assignment with file lock handling
+- 26 old test scripts archived to `scripts/archive/`, 12 active scripts remain
+- Complexity model simplified from 5 fields to 3 (migration ready, not applied)
+
+**Bug Fixes:**
+- P0: Tool-specific limits prevent 47-write bug (file_write: 3, file_edit: 5, shell_run: 10)
+- P1: Test file validation blocks test files from workspace/tasks/
+
+**Test Infrastructure:**
+- `ollamaOptimizer.test.ts` - 344 lines, 15 unit tests
+- `taskAssigner.test.ts` - 392 lines, 17 unit tests
+- `task-lifecycle.test.ts` - 1013 lines, 43 integration tests
+- Prisma mock configured with jest-mock-extended
+- Total: ~2,200 test lines, ~99 test cases
+
+**CI/CD Pipeline:**
+- `.github/workflows/ci.yml` - 305 lines, 6 jobs
+- lint, unit-tests, build, integration-tests, docker-build, security-scan
+- PostgreSQL + Redis services for integration tests
+- Trivy + npm audit for security scanning
+
+**Documentation:**
+- `QA_RESULTS.md` - Full QA assessment with pass/fail for each item
+- `QA_PLAN.md` - Updated with completion status
+
+**Files Created:**
+- `packages/api/src/services/ollamaOptimizer.ts`
+- `packages/api/src/services/taskAssigner.ts`
+- `packages/api/src/services/__tests__/ollamaOptimizer.test.ts`
+- `packages/api/src/services/__tests__/taskAssigner.test.ts`
+- `packages/api/src/__tests__/integration/task-lifecycle.test.ts`
+- `packages/api/src/__mocks__/prisma.ts`
+- `.github/workflows/ci.yml`
+- `QA_RESULTS.md`
+
+---
+
+### Version 2.3 Changes (2026-02-02)
+
+**P0 Bug Fix: Agent Inefficiency - 47 File Writes for Simple Task**
+
+The loop detection system was allowing agents to make excessive tool calls (up to 47 file writes to the same file) without triggering safeguards. This caused wasted compute time and API costs.
+
+**Root Cause:**
+- Previous detection only checked last 5 actions for exact duplicates
+- No tracking of cumulative writes to the same file path
+- No hard limit on total tool calls per task
+
+**Solution:** Enhanced `action_history.py` with three new safeguards:
+
+1. **Tool-specific path limits:**
+   ```python
+   TOOL_SPECIFIC_LIMITS = {
+       'file_write': 3,   # Max 3 writes to same file path
+       'file_edit': 5,    # Max 5 edits to same file path
+       'shell_run': 10,   # Max 10 identical shell commands
+   }
+   ```
+
+2. **Hard limit on total tool calls:**
+   ```python
+   MAX_TOTAL_TOOL_CALLS = 50  # Per task absolute limit
+   ```
+
+3. **Path tracking:** New `_tool_path_counts` dictionary tracks how many times each tool has been called on each file path.
+
+**Files Modified:**
+- `packages/agents/src/monitoring/action_history.py` - Added tool limits, path tracking, hard limit
+
+**Impact:**
+- Prevents runaway agents from making 47+ writes
+- Maximum 3 writes allowed to same file before failure
+- Maximum 50 total tool calls per task
+- Clear error messages guide agents to try different approaches
+
+---
 
 ### Version 2.2 Changes (2026-02-01)
 
@@ -786,6 +902,55 @@ docker logs abcc-backup --tail 20
 # Security scan
 pnpm run security:scan
 ```
+
+---
+
+### Version 2.6 Changes (2026-02-02)
+
+**Stuck Task Auto-Recovery**
+
+Implemented automatic detection and recovery of tasks stuck in `in_progress` status, preventing agents from being permanently blocked.
+
+**Problem:**
+- Tasks could get stuck if agent container crashes, network issues, or agent hangs
+- Stuck tasks blocked agents from accepting new work
+- Required manual intervention to reset
+
+**Solution:** New `StuckTaskRecoveryService` with periodic background checker:
+
+```typescript
+// Default configuration
+const TASK_TIMEOUT_MS = 10 * 60 * 1000;    // 10 minutes
+const CHECK_INTERVAL_MS = 60 * 1000;        // Every minute
+```
+
+**Recovery Actions:**
+1. Find tasks in `in_progress` longer than timeout threshold
+2. Release file locks for the stuck task
+3. Release resource pool slot
+4. Mark task as `aborted` with `errorCategory: 'timeout'`
+5. Update execution record to `failed`
+6. Update agent stats and set to `idle`
+7. Emit WebSocket events for UI update
+8. Emit `task_timeout` alert for visibility
+
+**API Endpoints:**
+- `GET /api/agents/stuck-recovery/status` - Service status + recent recoveries
+- `POST /api/agents/stuck-recovery/check` - Manual recovery trigger
+- `PATCH /api/agents/stuck-recovery/config` - Runtime configuration update
+
+**Environment Variables:**
+- `STUCK_TASK_TIMEOUT_MS` - Timeout threshold (default: 600000)
+- `STUCK_TASK_CHECK_INTERVAL_MS` - Check frequency (default: 60000)
+- `STUCK_TASK_RECOVERY_ENABLED` - Enable/disable (default: true)
+
+**Files Created:**
+- `packages/api/src/services/stuckTaskRecovery.ts` - Recovery service (~400 lines)
+
+**Files Modified:**
+- `packages/api/src/index.ts` - Service initialization and lifecycle
+- `packages/api/src/routes/agents.ts` - API endpoints
+- `CLAUDE.md` - Documentation
 
 ---
 

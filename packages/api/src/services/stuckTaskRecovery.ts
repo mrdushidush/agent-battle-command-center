@@ -366,7 +366,7 @@ export class StuckTaskRecoveryService {
       status: agent.status as Agent['status'],
       currentTaskId: agent.currentTaskId,
       config: agent.config as Agent['config'],
-      stats: agent.stats as Agent['stats'],
+      stats: agent.stats as unknown as Agent['stats'],
       createdAt: agent.createdAt,
       updatedAt: agent.updatedAt,
     };

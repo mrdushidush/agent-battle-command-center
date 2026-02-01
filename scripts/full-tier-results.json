@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-02-01T21:08:10.183Z",
+  "duration": 1757,
+  "results": {
+    "ollama": {
+      "passed": 13,
+      "failed": 2,
+      "times": [
+        12,
+        206,
+        8,
+        201,
+        34,
+        24,
+        6,
+        35,
+        180,
+        8,
+        20,
+        7,
+        57,
+        23,
+        233
+      ],
+      "total": 15
+    },
+    "haiku": {
+      "passed": 0,
+      "failed": 3,
+      "times": [
+        336,
+        406,
+        324
+      ],
+      "total": 3
+    },
+    "sonnet": {
+      "passed": 1,
+      "failed": 1,
+      "times": [
+        360,
+        328
+      ],
+      "total": 2
+    }
+  },
+  "totalPassed": 14,
+  "totalTasks": 20,
+  "successRate": 70
+}

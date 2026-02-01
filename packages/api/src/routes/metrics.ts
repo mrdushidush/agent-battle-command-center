@@ -211,12 +211,11 @@ metricsRouter.get('/complexity-distribution', asyncHandler(async (req, res) => {
   // Get tasks with complexity scores
   const tasks = await prisma.task.findMany({
     where: {
-      finalComplexity: { not: null },
+      complexity: { not: null },
     },
     select: {
       id: true,
-      finalComplexity: true,
-      actualComplexity: true,
+      complexity: true,
       status: true,
     },
   });
@@ -231,7 +230,7 @@ metricsRouter.get('/complexity-distribution', asyncHandler(async (req, res) => {
   ];
 
   for (const task of tasks) {
-    const complexity = task.finalComplexity || 0;
+    const complexity = task.complexity || 0;
 
     // Find matching bucket
     const bucket = buckets.find(b => complexity >= b.min && complexity <= b.max);

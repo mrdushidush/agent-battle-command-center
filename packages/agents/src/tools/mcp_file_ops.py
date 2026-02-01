@@ -61,9 +61,10 @@ def mcp_file_read(path: str) -> str:
     agent_id, task_id = get_context()
     try:
         client = get_http_client()
-        response = client.get(
-            f"{MCP_GATEWAY_URL}/files/read",
-            params={"path": path, "task_id": task_id, "agent_id": agent_id}
+        # Gateway expects POST to /tools/file_read with JSON body
+        response = client.post(
+            f"{MCP_GATEWAY_URL}/tools/file_read",
+            json={"path": path, "task_id": task_id}
         )
         response.raise_for_status()
         data = response.json()
@@ -102,13 +103,13 @@ def mcp_file_write(path: str, content: str) -> str:
     agent_id, task_id = get_context()
     try:
         client = get_http_client()
+        # Gateway expects POST to /tools/file_write with JSON body
         response = client.post(
-            f"{MCP_GATEWAY_URL}/files/write",
+            f"{MCP_GATEWAY_URL}/tools/file_write",
             json={
                 "path": path,
                 "content": content,
-                "task_id": task_id,
-                "agent_id": agent_id
+                "task_id": task_id
             }
         )
         response.raise_for_status()

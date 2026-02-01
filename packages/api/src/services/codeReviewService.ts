@@ -116,7 +116,7 @@ export class CodeReviewService {
       return { shouldReview: false, reviewer: null, reason: 'Task not completed' };
     }
 
-    const complexity = task.finalComplexity || task.routerComplexity || 5;
+    const complexity = task.complexity || 5;
     const isOllamaTask = executedByModel === 'ollama' || !executedByModel;
 
     // Increment counters
@@ -215,7 +215,7 @@ export class CodeReviewService {
           taskId,
           reviewerId: 'auto-review',
           reviewerModel: decision.reviewer === 'opus' ? 'claude-opus-4-5-20251101' : 'claude-haiku-4-5-20251001',
-          initialComplexity: task.finalComplexity || task.routerComplexity || 5,
+          initialComplexity: task.complexity || 5,
           opusComplexity: reviewResult.qualityScore,
           findings: reviewResult.findings as unknown as undefined,
           summary: reviewResult.summary,

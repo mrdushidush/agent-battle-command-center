@@ -40,6 +40,10 @@ class FileWriteTool(BaseTool):
             if not path or content is None:
                 return "Error: Both 'path' and 'content' are required"
 
+            # Validate directory structure - test files must go in tests/
+            if 'test_' in path and 'tasks/' in path:
+                return "Error: Test files must be in workspace/tests/, not workspace/tasks/. Please use the correct path (e.g., tests/test_module.py instead of tasks/test_module.py)."
+
             # Register action and check for loops (truncate content for comparison)
             ActionHistory.register_action("file_write", {
                 "path": path,

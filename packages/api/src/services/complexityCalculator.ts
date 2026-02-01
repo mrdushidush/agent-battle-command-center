@@ -10,7 +10,7 @@ export function calculateActualComplexity(
   task: Task & { executionLogs?: ExecutionLog[] },
   logs: ExecutionLog[]
 ): number {
-  const { status, currentIteration, maxIterations, finalComplexity } = task;
+  const { status, currentIteration, maxIterations, complexity: taskComplexity } = task;
 
   // Base complexity from task status
   let baseComplexity = 0;
@@ -26,7 +26,7 @@ export function calculateActualComplexity(
     baseComplexity = 6;
   } else {
     // Unknown/pending - use estimated complexity
-    return finalComplexity ?? 5;
+    return taskComplexity ?? 5;
   }
 
   // Adjust based on tool calls (more tool calls = more complexity)
@@ -53,10 +53,10 @@ export function calculateActualComplexity(
   // Calculate final actual complexity
   let actualComplexity = baseComplexity + toolCallAdjustment + retryAdjustment + loopAdjustment;
 
-  // For failed tasks, cap at finalComplexity + 2
+  // For failed tasks, cap at complexity + 2
   // (don't assume task was super complex just because it failed)
   if (status === 'failed' || status === 'aborted') {
-    const cap = (finalComplexity ?? 8) + 2;
+    const cap = (taskComplexity ?? 8) + 2;
     actualComplexity = Math.min(actualComplexity, cap);
   }
 

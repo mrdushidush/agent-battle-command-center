@@ -18,13 +18,10 @@ from src.tools import (
     complete_decomposition,
 )
 
-# MCP tools (only imported if USE_MCP is enabled)
+# MCP memory tools (only imported if USE_MCP is enabled)
+# NOTE: MCP file ops require MCP Gateway which isn't deployed
+# So we only import memory tools (which use direct HTTP to API)
 if settings.USE_MCP:
-    from src.tools.mcp_file_ops import (
-        mcp_file_read,
-        mcp_file_write,
-        mcp_file_edit,
-    )
     from src.tools.mcp_memory import (
         recall_similar_solutions,
         learn_from_success,
@@ -73,7 +70,9 @@ CTO_TOOLS_HTTP = [
     code_search,  # CTO can search codebase
 ]
 
-# MCP tool sets (real-time collaboration mode with memory)
+# MCP tool sets (HTTP file tools + memory tools for learning)
+# NOTE: MCP file ops are NOT used because MCP Gateway isn't deployed
+# Memory tools work fine (they use direct HTTP to API service)
 if settings.USE_MCP:
     # Memory and context tools for learning from past tasks
     MEMORY_TOOLS = [
@@ -84,9 +83,14 @@ if settings.USE_MCP:
         get_project_context,
     ]
 
-    CODER_TOOLS_MCP = [mcp_file_read, mcp_file_write, mcp_file_edit, file_list, shell_run, code_search, find_file] + MEMORY_TOOLS
-    QA_TOOLS_MCP = [mcp_file_read, mcp_file_write, file_list, shell_run, code_search, find_file] + MEMORY_TOOLS
-    CTO_TOOLS_MCP = CTO_TOOLS_HTTP + MEMORY_TOOLS  # CTO can recall and learn
+    # Coder (Ollama): HTTP file tools only - no memory (keep simple)
+    CODER_TOOLS_MCP = CODER_TOOLS_HTTP
+
+    # QA (Claude): HTTP file tools + memory tools
+    QA_TOOLS_MCP = QA_TOOLS_HTTP + MEMORY_TOOLS
+
+    # CTO: HTTP tools + memory tools
+    CTO_TOOLS_MCP = CTO_TOOLS_HTTP + MEMORY_TOOLS
 else:
     CODER_TOOLS_MCP = CODER_TOOLS_HTTP
     QA_TOOLS_MCP = QA_TOOLS_HTTP

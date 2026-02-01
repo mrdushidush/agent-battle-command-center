@@ -1,17 +1,33 @@
-import { Plus, CheckCircle, Clock } from 'lucide-react';
+import { Plus, CheckCircle, Clock, Archive } from 'lucide-react';
 import { useState } from 'react';
 import { TaskCard } from '../shared/TaskCard';
 import { useUIStore } from '../../store/uiState';
 import { CreateTaskModal } from './CreateTaskModal';
+
+// Helper to check if a date is today
+function isToday(date: Date | string | null | undefined): boolean {
+  if (!date) return false;
+  const dateObj = date instanceof Date ? date : new Date(date);
+  const today = new Date();
+  return dateObj.toDateString() === today.toDateString();
+}
 
 export function TaskQueue() {
   const { tasks } = useUIStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'coder' | 'qa'>('all');
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const completedTasks = tasks.filter(t => ['completed', 'failed', 'aborted'].includes(t.status));
+  const allCompletedTasks = tasks.filter(t => ['completed', 'failed', 'aborted'].includes(t.status));
+
+  // Filter completed tasks: show only today's unless archive mode is on
+  const completedTasks = showArchive
+    ? allCompletedTasks
+    : allCompletedTasks.filter(t => isToday(t.completedAt) || isToday(t.updatedAt));
+
+  const archivedCount = allCompletedTasks.length - allCompletedTasks.filter(t => isToday(t.completedAt) || isToday(t.updatedAt)).length;
 
   const displayTasks = showCompleted ? completedTasks : pendingTasks;
   const filteredTasks = filter === 'all'
@@ -27,14 +43,18 @@ export function TaskQueue() {
             Task Queue
           </h2>
           <span className="text-xs text-gray-500">
-            {showCompleted ? `${completedTasks.length} completed` : `${pendingTasks.length} pending`}
+            {showCompleted
+              ? showArchive
+                ? `${completedTasks.length} total completed`
+                : `${completedTasks.length} completed today`
+              : `${pendingTasks.length} pending`}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Pending/Completed Toggle */}
           <button
-            onClick={() => setShowCompleted(!showCompleted)}
+            onClick={() => { setShowCompleted(!showCompleted); setShowArchive(false); }}
             className={`p-1.5 rounded transition-colors ${
               showCompleted ? 'bg-hud-green/20 text-hud-green' : 'bg-command-accent text-gray-400'
             }`}
@@ -42,6 +62,19 @@ export function TaskQueue() {
           >
             {showCompleted ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
           </button>
+          {/* Archive Toggle (only visible when showing completed) */}
+          {showCompleted && archivedCount > 0 && (
+            <button
+              onClick={() => setShowArchive(!showArchive)}
+              className={`p-1.5 rounded transition-colors flex items-center gap-1 text-xs ${
+                showArchive ? 'bg-hud-orange/20 text-hud-orange' : 'bg-command-accent text-gray-400'
+              }`}
+              title={showArchive ? 'Show today only' : `Show all (${archivedCount} archived)`}
+            >
+              <Archive className="w-4 h-4" />
+              {showArchive ? 'Today' : `+${archivedCount}`}
+            </button>
+          )}
           {/* Filter */}
           <div className="flex items-center gap-1 bg-command-accent rounded-lg p-1">
             {['all', 'coder', 'qa'].map((f) => (
@@ -76,13 +109,27 @@ export function TaskQueue() {
         {filteredTasks.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 text-sm">
             <div className="text-center">
-              <p>{showCompleted ? 'No completed tasks' : 'No pending tasks'}</p>
+              <p>{showCompleted
+                ? showArchive
+                  ? 'No completed tasks'
+                  : archivedCount > 0
+                    ? 'No tasks completed today'
+                    : 'No completed tasks'
+                : 'No pending tasks'}</p>
               {!showCompleted && (
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="mt-2 text-hud-blue hover:underline"
                 >
                   Create one
+                </button>
+              )}
+              {showCompleted && !showArchive && archivedCount > 0 && (
+                <button
+                  onClick={() => setShowArchive(true)}
+                  className="mt-2 text-hud-orange hover:underline"
+                >
+                  View {archivedCount} archived tasks
                 </button>
               )}
             </div>

@@ -64,6 +64,39 @@ Rest delays between tasks prevent this issue.
 - `GET /api/agents/ollama-status` - View task counts and config
 - `POST /api/agents/ollama-reset-counter` - Reset task counters
 
+### Stuck Task Auto-Recovery (IMPLEMENTED Feb 2026)
+
+Tasks can get stuck in `in_progress` status if agents crash or hang. The StuckTaskRecoveryService
+automatically detects and recovers these tasks.
+
+**Implementation** (`packages/api/src/services/stuckTaskRecovery.ts`):
+- Periodic check every 60 seconds for tasks stuck longer than timeout
+- Default timeout: 10 minutes in `in_progress` status
+- On recovery: marks task as aborted, releases agent to idle, releases file locks
+- Emits WebSocket events for UI feedback (`task_timeout` alert)
+
+**Configuration (Environment Variables):**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `STUCK_TASK_TIMEOUT_MS` | 600000 (10 min) | Time before task is considered stuck |
+| `STUCK_TASK_CHECK_INTERVAL_MS` | 60000 (1 min) | How often to check for stuck tasks |
+| `STUCK_TASK_RECOVERY_ENABLED` | true | Set to 'false' to disable |
+
+**API Endpoints:**
+- `GET /api/agents/stuck-recovery/status` - View service status and recent recoveries
+- `POST /api/agents/stuck-recovery/check` - Manually trigger recovery check
+- `PATCH /api/agents/stuck-recovery/config` - Update configuration at runtime
+
+**Recovery Actions:**
+1. Release file locks for the stuck task
+2. Release resource pool slot
+3. Mark task as `aborted` with `errorCategory: 'timeout'`
+4. Update execution record to `failed`
+5. Update agent stats (increment `tasksFailed`) and set to `idle`
+6. Emit `task_updated` and `agent_status_changed` WebSocket events
+7. Emit `task_timeout` alert for visibility
+8. Publish to MCP Gateway
+
 ### Rate Limiting
 
 Anthropic API rate limiting is implemented to prevent hitting API limits:
@@ -678,6 +711,8 @@ The CTO agent has no `file_write` tool - it orchestrates other agents instead.
 
 ## Documentation
 
+- [QA Plan](QA_PLAN.md) - Architecture simplification & QA assessment plan
+- [QA Results](QA_RESULTS.md) - QA verification results and metrics
 - [API Reference](docs/API.md) - All endpoints
 - [Development Guide](docs/DEVELOPMENT.md) - Testing, debugging
 - [Changelog](CHANGELOG.md) - Version history

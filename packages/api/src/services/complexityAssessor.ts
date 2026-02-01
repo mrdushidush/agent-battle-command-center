@@ -17,11 +17,9 @@ interface HaikuAssessment {
 }
 
 interface DualAssessment {
-  routerComplexity: number;
-  haikuComplexity: number;
-  haikuReasoning: string;
-  finalComplexity: number;
-  assessmentMethod: 'dual' | 'router_only' | 'haiku_only';
+  complexity: number;          // The final score used for routing
+  complexitySource: 'router' | 'haiku' | 'dual';  // How the score was determined
+  complexityReasoning: string; // Explanation of the score
 }
 
 /**
@@ -124,11 +122,9 @@ export async function getDualComplexityAssessment(
   if (!haikuAssessment) {
     // Fallback to router-only assessment
     return {
-      routerComplexity,
-      haikuComplexity: routerComplexity,
-      haikuReasoning: 'Haiku assessment unavailable, using router complexity',
-      finalComplexity: routerComplexity,
-      assessmentMethod: 'router_only',
+      complexity: routerComplexity,
+      complexitySource: 'router',
+      complexityReasoning: 'Haiku assessment unavailable, using router complexity',
     };
   }
 
@@ -137,11 +133,9 @@ export async function getDualComplexityAssessment(
   const finalComplexity = (routerComplexity + haikuAssessment.complexity) / 2;
 
   return {
-    routerComplexity,
-    haikuComplexity: haikuAssessment.complexity,
-    haikuReasoning: haikuAssessment.reasoning,
-    finalComplexity: Math.round(finalComplexity * 10) / 10, // Round to 1 decimal
-    assessmentMethod: 'dual',
+    complexity: Math.round(finalComplexity * 10) / 10, // Round to 1 decimal
+    complexitySource: 'dual',
+    complexityReasoning: `Router: ${routerComplexity}, Haiku: ${haikuAssessment.complexity}. ${haikuAssessment.reasoning}`,
   };
 }
 

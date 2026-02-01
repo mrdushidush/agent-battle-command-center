@@ -72,12 +72,11 @@ model Task {
   updatedAt            DateTime  @updatedAt @map("updated_at")
   completedAt          DateTime? @map("completed_at")
 
-  // Complexity assessment fields (for dual-assessment system)
-  routerComplexity     Float?    @map("router_complexity")      // Complexity from rule-based router
-  haikuComplexity      Float?    @map("haiku_complexity")       // Complexity assessed by Haiku
-  haikuReasoning       String?   @map("haiku_reasoning") @db.Text // Haiku's explanation
-  finalComplexity      Float?    @map("final_complexity")       // Averaged complexity used for routing
-  actualComplexity     Float?    @map("actual_complexity")      // Actual complexity based on execution
+  // Simplified complexity model (consolidated from 5 fields to 3)
+  // Migration note: finalComplexity → complexity, tracks source for audit
+  complexity           Float?    // Single complexity score used for routing (1-10)
+  complexitySource     String?   @map("complexity_source") @db.VarChar(50) // "router", "haiku", "dual", "actual"
+  complexityReasoning  String?   @map("complexity_reasoning") @db.Text // Explanation of score
   errorCategory        String?   @map("error_category") @db.VarChar(50) // Error categorization for failures
 
   assignedAgent     Agent?          @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
@@ -174,7 +173,7 @@ model ExecutionLog {
 
   // Agent reasoning
   thought     String?  @db.Text
-  action      String   @db.VarChar(100)
+  action      String   @db.VarChar(255)
   actionInput Json
   observation String   @db.Text
 

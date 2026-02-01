@@ -67,6 +67,12 @@ if __name__ == "__main__":
     print("All tests passed!")
 ```
 
+## DIRECTORY STRUCTURE RULES (CRITICAL)
+- Source code files go in: workspace/tasks/
+- Test files go in: workspace/tests/
+- NEVER place test_*.py files in workspace/tasks/
+- ALWAYS import from tasks package: from tasks.module import func
+
 ## Critical Rules
 1. Complete ALL numbered steps in order
 2. After successful file_write, move to NEXT step (don't repeat)

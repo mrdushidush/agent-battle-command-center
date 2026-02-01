@@ -3,20 +3,22 @@
  *
  * ACADEMIC COMPLEXITY SCALE (1-10):
  * =================================
- * Based on Campbell's Task Complexity Theory and NLP Research Difficulty scales.
+ * Based on Campbell's Task Complexity Theory and Ollama stress testing (Feb 2026).
+ * Key finding: Ollama achieves 100% on C1-C6 with 3s rest delays + reset every 5 tasks.
  *
  * | Score | Level    | Characteristics                                          | Model   |
  * |-------|----------|----------------------------------------------------------|---------|
  * | 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama  |
  * | 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama  |
- * | 5-8   | Moderate | Multiple paths; dependencies; standard to complex logic  | Haiku   |
+ * | 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama  |
+ * | 7-8   | Complex  | Multiple functions; algorithms; data structures          | Haiku   |
  * | 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Sonnet  |
  *
  * TIER ROUTING (Execution):
  * =========================
- * - Trivial/Low (1-4)   → Ollama (FREE, ~12s/task)
- * - Moderate (5-8)      → Haiku (~$0.001/task)
- * - Extreme (9-10)      → Sonnet (~$0.005/task)
+ * - Trivial/Moderate (1-6) → Ollama (FREE, ~30s/task avg)
+ * - Complex (7-8)          → Haiku (~$0.001/task)
+ * - Extreme (9-10)         → Sonnet (~$0.005/task)
  * - NOTE: Opus NEVER writes code - decomposition & reviews only
  *
  * DECOMPOSITION:
@@ -49,10 +51,8 @@ export interface RoutingDecision {
   estimatedCost: number; // Estimated cost in USD
   // Complexity assessment info
   complexity: number; // Final complexity used for routing
-  routerComplexity?: number; // Rule-based complexity
-  haikuComplexity?: number; // Haiku's assessment
-  haikuReasoning?: string; // Haiku's explanation
-  assessmentMethod?: 'dual' | 'router_only' | 'haiku_only';
+  complexitySource?: string; // How complexity was determined: 'router', 'haiku', 'dual'
+  complexityReasoning?: string; // Explanation of the complexity score
 }
 
 export interface DecompositionDecision {
@@ -262,8 +262,7 @@ export class TaskRouter {
           modelTier: 'opus' as ModelTier,
           estimatedCost: 0.04,
           complexity: 10, // High complexity if no agents available
-          routerComplexity: 10,
-          assessmentMethod: 'router_only' as const,
+          complexitySource: 'router',
         };
       }
 
@@ -273,9 +272,8 @@ export class TaskRouter {
     // Calculate complexity using dual assessment (router + Haiku)
     const routerComplexity = this.calculateComplexity(task);
     let complexity = routerComplexity;
-    let haikuComplexity: number | undefined;
-    let haikuReasoning: string | undefined;
-    let assessmentMethod: 'dual' | 'router_only' | 'haiku_only' = 'router_only';
+    let complexitySource: string = 'router';
+    let complexityReasoning: string | undefined;
 
     // Try dual assessment with Haiku (if API key available and task is not trivial)
     if (routerComplexity >= 2) {
@@ -286,23 +284,21 @@ export class TaskRouter {
           routerComplexity
         );
 
-        complexity = dualAssessment.finalComplexity;
-        haikuComplexity = dualAssessment.haikuComplexity;
-        haikuReasoning = dualAssessment.haikuReasoning;
-        assessmentMethod = dualAssessment.assessmentMethod;
+        complexity = dualAssessment.complexity;
+        complexitySource = dualAssessment.complexitySource;
+        complexityReasoning = dualAssessment.complexityReasoning;
 
         // Save complexity assessments to task for future fine-tuning
         await this.prisma.task.update({
           where: { id: task.id },
           data: {
-            routerComplexity,
-            haikuComplexity,
-            haikuReasoning,
-            finalComplexity: complexity,
+            complexity,
+            complexitySource,
+            complexityReasoning,
           },
         });
 
-        console.log(`📊 Dual complexity: router=${routerComplexity}, haiku=${haikuComplexity}, final=${complexity}`);
+        console.log(`📊 Complexity assessment: ${complexity} (source: ${complexitySource})`);
       } catch (error) {
         console.warn('Dual assessment failed, using router complexity:', error);
         complexity = routerComplexity;
@@ -330,25 +326,26 @@ export class TaskRouter {
 
     // ACADEMIC TIER ROUTING
     // ======================
-    // Based on Campbell's Task Complexity Theory
+    // Based on Campbell's Task Complexity Theory + Ollama stress testing (Feb 2026)
+    // Ollama achieves 100% success on C1-C6 with rest delays + periodic context reset
 
-    // TRIVIAL/LOW (1-4): Single-step to linear sequences → Ollama (FREE)
-    if (!selectedAgent && complexity < 5) {
+    // TRIVIAL/MODERATE (1-6): Single-step to moderate logic → Ollama (FREE)
+    if (!selectedAgent && complexity < 7) {
       selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
       if (selectedAgent) {
-        const level = complexity < 3 ? 'Trivial' : 'Low';
-        reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, ~12s)`;
+        const level = complexity < 3 ? 'Trivial' : complexity < 5 ? 'Low' : 'Moderate';
+        reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, ~30s)`;
         confidence = 0.9;
         modelTier = 'ollama';
         estimatedCost = 0;
       }
     }
 
-    // MODERATE (5-8): Multiple paths, dependencies, standard to complex logic → Haiku
-    if (!selectedAgent && complexity >= 5 && complexity < 9) {
+    // COMPLEX (7-8): Multiple functions, algorithms, data structures → Haiku
+    if (!selectedAgent && complexity >= 7 && complexity < 9) {
       selectedAgent = agents.find((a) => a.agentType.name === 'qa') || null;
       if (selectedAgent) {
-        reason = `Moderate complexity (${complexity.toFixed(1)}/10) → Haiku (quality, ~$0.001)`;
+        reason = `Complex (${complexity.toFixed(1)}/10) → Haiku (quality, ~$0.001)`;
         confidence = 0.9;
         modelTier = 'haiku';
         estimatedCost = 0.001;
@@ -374,8 +371,8 @@ export class TaskRouter {
         || agents[0];
 
       if (selectedAgent) {
-        // Determine tier based on complexity (matching new thresholds)
-        if (complexity < 5) {
+        // Determine tier based on complexity (matching new thresholds: Ollama 1-6, Haiku 7-8, Sonnet 9-10)
+        if (complexity < 7) {
           reason = `Fallback: ${complexity.toFixed(1)}/10 → Ollama`;
           modelTier = 'ollama';
           estimatedCost = 0;
@@ -407,10 +404,8 @@ export class TaskRouter {
       estimatedCost,
       // Complexity assessment info
       complexity,
-      routerComplexity,
-      haikuComplexity,
-      haikuReasoning,
-      assessmentMethod,
+      complexitySource,
+      complexityReasoning,
     };
   }
 
