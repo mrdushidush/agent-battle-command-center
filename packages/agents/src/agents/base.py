@@ -101,6 +101,12 @@ CTO_TOOLS = CTO_TOOLS_MCP if settings.USE_MCP else CTO_TOOLS_HTTP
 def get_tools_for_agent(agent_type: str, use_mcp: bool = None) -> list:
     """Get tools for agent type with optional MCP mode override.
 
+    MCP memory tools are ONLY enabled for Claude agents (qa, cto), never for Ollama (coder).
+    This is because:
+    1. Ollama performs worse with extra context/tools
+    2. Memory tools add token overhead that impacts Ollama's limited context
+    3. Coder agent should stay simple and fast
+
     Args:
         agent_type: Agent type ("coder", "qa", "cto")
         use_mcp: Override USE_MCP setting (None = use global setting)
@@ -110,8 +116,14 @@ def get_tools_for_agent(agent_type: str, use_mcp: bool = None) -> list:
     """
     use_mcp = use_mcp if use_mcp is not None else settings.USE_MCP
 
+    # Coder (Ollama) NEVER gets MCP tools - keep it simple
+    # Only QA and CTO (Claude) get MCP memory tools when enabled
+    if agent_type == "coder":
+        # Coder always uses HTTP tools, never MCP (even if USE_MCP is enabled)
+        return CODER_TOOLS_HTTP
+
+    # For Claude agents (qa, cto), use MCP tools if enabled
     tool_map = {
-        "coder": CODER_TOOLS_MCP if use_mcp else CODER_TOOLS_HTTP,
         "qa": QA_TOOLS_MCP if use_mcp else QA_TOOLS_HTTP,
         "cto": CTO_TOOLS_MCP if use_mcp else CTO_TOOLS_HTTP,
     }

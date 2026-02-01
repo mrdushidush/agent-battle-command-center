@@ -739,7 +739,29 @@ packages/mcp-gateway/
 | 1.2 | 2026-01-29 | crewai 0.86.0 migration |
 | 1.3 | 2026-01-29 | Anthropic API rate limiting |
 | 2.0 | 2026-01-30 | Ollama reliability fix, full tier validation, test documentation |
-| **2.1** | **2026-01-31** | **MCP Gateway integration (Phase D) - Infrastructure setup** |
+| 2.1 | 2026-01-31 | MCP Gateway integration (Phase D) - Infrastructure setup |
+| **2.2** | **2026-02-01** | **MCP Fix + Tiered Memory System** |
+
+### Version 2.2 Changes (2026-02-01)
+
+**MCP Bug Fixes:**
+1. **Async handling** - Replaced async httpx with **synchronous httpx** to avoid uvloop incompatibility (nest_asyncio can't patch uvloop)
+2. **Parameter passing** - Removed `agent_id`/`task_id` params from MCP tools; now reads from environment variables set by main.py
+3. **Selective MCP** - MCP memory tools only enabled for Claude agents (qa, cto), never for Ollama (coder)
+
+**Files Modified:**
+- `packages/agents/src/agents/coder.py` - Expanded Ollama backstory (~400 → ~1200 tokens)
+- `packages/agents/src/tools/mcp_file_ops.py` - Sync httpx + env var context
+- `packages/agents/src/tools/mcp_memory.py` - Sync httpx for all 5 memory tools
+- `packages/agents/src/agents/base.py` - Selective MCP for Claude only
+- `packages/agents/src/main.py` - Set CURRENT_AGENT_ID/CURRENT_TASK_ID env vars
+- `docker-compose.yml` - Enabled USE_MCP=true for agents service
+
+**Test Results:**
+- ✅ Memory tools: 2 consecutive calls without event loop errors
+- ✅ Container: Starts without crash (uvloop compatible)
+- ✅ Ollama task: SUCCESS in 43s (coder-01)
+- ✅ File creation: Verified `mcp_test2.py` created correctly
 
 ---
 

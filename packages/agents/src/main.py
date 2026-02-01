@@ -146,14 +146,20 @@ def get_llm(use_claude: bool, model: str | None, allow_fallback: bool):
         raise ValueError("No LLM available. Set ANTHROPIC_API_KEY or ensure Ollama is running.")
 
 
-def get_agent(agent_type: str, llm):
-    """Get the appropriate agent based on type."""
+def get_agent(agent_type: str, llm, use_mcp: bool = True):
+    """Get the appropriate agent based on type.
+
+    Args:
+        agent_type: Type of agent (coder, qa, cto)
+        llm: LLM instance or model string
+        use_mcp: Whether to enable MCP tools (disable for Ollama, enable for Claude)
+    """
     if agent_type.startswith("coder"):
-        return create_coder_agent(llm)
+        return create_coder_agent(llm, use_mcp=use_mcp)
     elif agent_type.startswith("qa"):
-        return create_qa_agent(llm)
+        return create_qa_agent(llm, use_mcp=use_mcp)
     elif agent_type.startswith("cto"):
-        return create_cto_agent(llm)
+        return create_cto_agent(llm, use_mcp=use_mcp)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
 
@@ -232,7 +238,16 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         else:
             agent_type = "coder"  # Default fallback
 
-        agent = get_agent(agent_type, llm)
+        # Enable MCP only for Claude (Ollama can't handle extra context)
+        use_mcp_for_agent = request.use_claude and settings.USE_MCP
+        print(f"🔧 MCP enabled: {use_mcp_for_agent} (use_claude={request.use_claude}, USE_MCP={settings.USE_MCP})")
+
+        # Set context environment variables for MCP tools to read
+        os.environ['CURRENT_AGENT_ID'] = request.agent_id
+        os.environ['CURRENT_TASK_ID'] = request.task_id
+        print(f"📋 Set MCP context: agent={request.agent_id}, task={request.task_id}")
+
+        agent = get_agent(agent_type, llm, use_mcp=use_mcp_for_agent)
 
         # Wrap agent tools with logging
         agent.tools = [create_tool_wrapper(tool, execution_logger) for tool in agent.tools]

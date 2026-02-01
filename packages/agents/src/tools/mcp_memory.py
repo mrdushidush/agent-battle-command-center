@@ -4,11 +4,13 @@ These tools allow agents to:
 - Recall solutions from similar past tasks
 - Propose new learnings for human approval
 - Record feedback on memory usefulness
+
+Note: Uses synchronous httpx to avoid event loop issues with uvloop.
 """
 
-import asyncio
 import json
 import logging
+import os
 from typing import Optional
 
 from crewai_tools import tool
@@ -19,32 +21,16 @@ logger = logging.getLogger(__name__)
 # API URL for memory endpoints
 API_URL = "http://api:3001/api/memories"
 
-# Global HTTP client
-_client: Optional[httpx.AsyncClient] = None
+# Global synchronous HTTP client (reused across calls)
+_client: Optional[httpx.Client] = None
 
 
-def get_client() -> httpx.AsyncClient:
-    """Get or create HTTP client."""
+def get_client() -> httpx.Client:
+    """Get or create synchronous HTTP client."""
     global _client
     if _client is None:
-        _client = httpx.AsyncClient(timeout=30.0)
+        _client = httpx.Client(timeout=30.0)
     return _client
-
-
-def run_async(coro):
-    """Run async coroutine in sync context."""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            future = pool.submit(asyncio.run, coro)
-            return future.result(timeout=30)
-    else:
-        return asyncio.run(coro)
 
 
 @tool("recall_similar_solutions")
@@ -66,20 +52,17 @@ def recall_similar_solutions(task_type: str, keywords: str) -> str:
         # Returns: {"memories": [{"pattern": "...", "solution": "...", "successCount": 5}]}
     """
     try:
-        async def fetch():
-            client = get_client()
-            response = await client.get(
-                f"{API_URL}/search",
-                params={
-                    "taskType": task_type,
-                    "keywords": keywords,
-                    "limit": 5
-                }
-            )
-            response.raise_for_status()
-            return response.json()
-
-        data = run_async(fetch())
+        client = get_client()
+        response = client.get(
+            f"{API_URL}/search",
+            params={
+                "taskType": task_type,
+                "keywords": keywords,
+                "limit": 5
+            }
+        )
+        response.raise_for_status()
+        data = response.json()
         memories = data.get("memories", [])
 
         if not memories:
@@ -146,22 +129,19 @@ def learn_from_success(
         )
     """
     try:
-        async def propose():
-            client = get_client()
-            response = await client.post(
-                API_URL,
-                json={
-                    "taskType": task_type,
-                    "pattern": pattern,
-                    "solution": solution,
-                    "errorPattern": error_pattern if error_pattern else None,
-                    "keywords": [k.strip() for k in keywords.split(",") if k.strip()],
-                }
-            )
-            response.raise_for_status()
-            return response.json()
-
-        memory = run_async(propose())
+        client = get_client()
+        response = client.post(
+            API_URL,
+            json={
+                "taskType": task_type,
+                "pattern": pattern,
+                "solution": solution,
+                "errorPattern": error_pattern if error_pattern else None,
+                "keywords": [k.strip() for k in keywords.split(",") if k.strip()],
+            }
+        )
+        response.raise_for_status()
+        memory = response.json()
 
         logger.info(f"Proposed memory {memory.get('id')} for human approval")
         return json.dumps({
@@ -196,16 +176,13 @@ def record_memory_feedback(memory_id: str, was_helpful: bool) -> str:
         record_memory_feedback("mem-123", True)  # The solution worked!
     """
     try:
-        async def feedback():
-            client = get_client()
-            response = await client.post(
-                f"{API_URL}/{memory_id}/feedback",
-                json={"success": was_helpful}
-            )
-            response.raise_for_status()
-            return response.json()
-
-        memory = run_async(feedback())
+        client = get_client()
+        response = client.post(
+            f"{API_URL}/{memory_id}/feedback",
+            json={"success": was_helpful}
+        )
+        response.raise_for_status()
+        memory = response.json()
 
         logger.info(f"Recorded feedback for memory {memory_id}: helpful={was_helpful}")
         return json.dumps({
@@ -245,16 +222,13 @@ def get_previous_attempt(task_id: str) -> str:
         # If task failed review, shows what to fix
     """
     try:
-        async def fetch():
-            client = get_client()
-            # Get task details from API
-            response = await client.get(f"http://api:3001/api/tasks/{task_id}")
-            if response.status_code == 404:
-                return {"previousAttempts": 0, "message": "Task not found"}
-            response.raise_for_status()
-            return response.json()
-
-        task = run_async(fetch())
+        client = get_client()
+        # Get task details from API
+        response = client.get(f"http://api:3001/api/tasks/{task_id}")
+        if response.status_code == 404:
+            return json.dumps({"previousAttempts": 0, "message": "Task not found"})
+        response.raise_for_status()
+        task = response.json()
         result = task.get("result", {}) or {}
 
         # Check if this task has review context from a failed review
@@ -312,15 +286,12 @@ def get_project_context(section: str = "all") -> str:
         # Returns coding standards for TypeScript and Python
     """
     try:
-        async def fetch():
-            client = get_client()
-            response = await client.get(f"{API_URL}/architecture")
-            if response.status_code == 404:
-                return {"error": "No architectural context found. Run: node scripts/generate-arch-context.js"}
-            response.raise_for_status()
-            return response.json()
-
-        data = run_async(fetch())
+        client = get_client()
+        response = client.get(f"{API_URL}/architecture")
+        if response.status_code == 404:
+            return json.dumps({"error": "No architectural context found. Run: node scripts/generate-arch-context.js"})
+        response.raise_for_status()
+        data = response.json()
 
         if "error" in data:
             return json.dumps(data)
