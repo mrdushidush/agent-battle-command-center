@@ -128,14 +128,32 @@ export async function getDualComplexityAssessment(
     };
   }
 
-  // Calculate weighted average (equal weight for now)
-  // Could adjust weights based on historical accuracy
-  const finalComplexity = (routerComplexity + haikuAssessment.complexity) / 2;
+  // When Haiku rates higher than router by 2+ points, trust Haiku
+  // Router misses semantic complexity (e.g., "LRU cache" = keywords miss data structure)
+  // Haiku can see the actual problem complexity through semantic understanding
+  const diff = haikuAssessment.complexity - routerComplexity;
+  let finalComplexity: number;
+  let reasoning: string;
+
+  if (diff >= 2) {
+    // Haiku sees much higher complexity - use Haiku's score directly
+    // This prevents averaging down complex tasks that keywords miss
+    finalComplexity = haikuAssessment.complexity;
+    reasoning = `Router: ${routerComplexity}, Haiku: ${haikuAssessment.complexity} (using Haiku - semantic complexity). ${haikuAssessment.reasoning}`;
+  } else if (diff <= -2) {
+    // Haiku sees much lower complexity - use average but favor router slightly
+    finalComplexity = routerComplexity * 0.6 + haikuAssessment.complexity * 0.4;
+    reasoning = `Router: ${routerComplexity}, Haiku: ${haikuAssessment.complexity}. ${haikuAssessment.reasoning}`;
+  } else {
+    // Close scores - simple average
+    finalComplexity = (routerComplexity + haikuAssessment.complexity) / 2;
+    reasoning = `Router: ${routerComplexity}, Haiku: ${haikuAssessment.complexity}. ${haikuAssessment.reasoning}`;
+  }
 
   return {
     complexity: Math.round(finalComplexity * 10) / 10, // Round to 1 decimal
     complexitySource: 'dual',
-    complexityReasoning: `Router: ${routerComplexity}, Haiku: ${haikuAssessment.complexity}. ${haikuAssessment.reasoning}`,
+    complexityReasoning: reasoning,
   };
 }
 

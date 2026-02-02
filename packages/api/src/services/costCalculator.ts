@@ -4,29 +4,55 @@ import { Decimal } from '@prisma/client/runtime/library';
 /**
  * Cost rates per million tokens (input / output)
  * Rates in USD per 1M tokens
+ * Updated Feb 2026 with official Anthropic pricing
+ *
+ * | Model              | Input   | Output  |
+ * |--------------------|---------|---------|
+ * | Opus 4.5           | $5      | $25     |
+ * | Opus 4/4.1         | $15     | $75     |
+ * | Sonnet 4/4.5       | $3      | $15     |
+ * | Haiku 4.5          | $1      | $5      |
+ * | Haiku 3.5          | $0.80   | $4      |
+ * | Haiku 3            | $0.25   | $1.25   |
  */
 const COST_RATES: Record<string, { input: number; output: number }> = {
   // Ollama - free local model
   'ollama': { input: 0, output: 0 },
 
-  // Claude 3.5 Haiku - Fast, cost-effective
-  'claude-3-5-haiku': { input: 0.25, output: 1.25 },
-  'claude-3-5-haiku-20241022': { input: 0.25, output: 1.25 },
+  // Claude Haiku 3 (deprecated but kept for legacy logs)
+  'claude-3-haiku': { input: 0.25, output: 1.25 },
+  'claude-haiku-3': { input: 0.25, output: 1.25 },
 
-  // Claude 3.5 Sonnet - Balanced
+  // Claude Haiku 3.5
+  'claude-3-5-haiku': { input: 0.80, output: 4 },
+  'claude-3-5-haiku-20241022': { input: 0.80, output: 4 },
+  'claude-haiku-3-5': { input: 0.80, output: 4 },
+
+  // Claude Haiku 4.5 - Current default
+  'claude-haiku-4-5': { input: 1, output: 5 },
+  'claude-haiku-4-5-20251001': { input: 1, output: 5 },
+
+  // Claude Sonnet 3.5/3.7 (deprecated)
   'claude-3-5-sonnet': { input: 3, output: 15 },
   'claude-3-5-sonnet-20241022': { input: 3, output: 15 },
   'claude-3-5-sonnet-20240620': { input: 3, output: 15 },
+  'claude-3-7-sonnet': { input: 3, output: 15 },
 
-  // Claude Sonnet 4.5 - Latest Sonnet
+  // Claude Sonnet 4/4.5 - Current default
   'claude-sonnet-4': { input: 3, output: 15 },
   'claude-sonnet-4-5': { input: 3, output: 15 },
+  'claude-sonnet-4-20250514': { input: 3, output: 15 },
   'claude-sonnet-4-5-20250929': { input: 3, output: 15 },
 
-  // Claude Opus 4.5 - Most capable
+  // Claude Opus 3/4/4.1 (legacy pricing)
+  'claude-3-opus': { input: 15, output: 75 },
+  'claude-opus-3': { input: 15, output: 75 },
   'claude-opus-4': { input: 15, output: 75 },
-  'claude-opus-4-5': { input: 15, output: 75 },
-  'claude-opus-4-5-20251101': { input: 15, output: 75 },
+  'claude-opus-4-1': { input: 15, output: 75 },
+
+  // Claude Opus 4.5 - Current default (cheaper than Opus 4!)
+  'claude-opus-4-5': { input: 5, output: 25 },
+  'claude-opus-4-5-20251101': { input: 5, output: 25 },
 };
 
 /**
@@ -45,21 +71,30 @@ function getModelRate(modelName: string | null): { input: number; output: number
     return COST_RATES[normalizedModel];
   }
 
-  // Check for partial matches
+  // Check for partial matches (order matters - check specific versions first)
   if (normalizedModel.includes('ollama')) {
     return COST_RATES['ollama'];
   }
-  if (normalizedModel.includes('haiku')) {
+  // Haiku versions
+  if (normalizedModel.includes('haiku-4-5') || normalizedModel.includes('haiku-4.5')) {
+    return COST_RATES['claude-haiku-4-5'];
+  }
+  if (normalizedModel.includes('haiku-3-5') || normalizedModel.includes('haiku-3.5')) {
     return COST_RATES['claude-3-5-haiku'];
   }
-  if (normalizedModel.includes('sonnet-4') || normalizedModel.includes('sonnet4')) {
-    return COST_RATES['claude-sonnet-4'];
+  if (normalizedModel.includes('haiku')) {
+    return COST_RATES['claude-haiku-4-5']; // Default to current version
   }
+  // Sonnet versions
   if (normalizedModel.includes('sonnet')) {
-    return COST_RATES['claude-3-5-sonnet'];
+    return COST_RATES['claude-sonnet-4']; // All Sonnet versions same price
+  }
+  // Opus versions
+  if (normalizedModel.includes('opus-4-5') || normalizedModel.includes('opus-4.5')) {
+    return COST_RATES['claude-opus-4-5'];
   }
   if (normalizedModel.includes('opus')) {
-    return COST_RATES['claude-opus-4'];
+    return COST_RATES['claude-opus-4']; // Default to legacy pricing for older Opus
   }
 
   // Default to zero cost for unknown models

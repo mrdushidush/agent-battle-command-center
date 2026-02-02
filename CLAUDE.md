@@ -128,6 +128,37 @@ Anthropic API rate limiting is implemented to prevent hitting API limits:
 - Tracks requests and tokens per minute per model tier
 - Automatically waits before API calls when approaching limits
 
+### Claude API Pricing (Feb 2026)
+
+Official Anthropic pricing per million tokens:
+
+| Model | Input | Output | 5m Cache Write | Cache Hit |
+|-------|-------|--------|----------------|-----------|
+| **Opus 4.5** | $5 | $25 | $6.25 | $0.50 |
+| **Opus 4/4.1** | $15 | $75 | $18.75 | $1.50 |
+| **Sonnet 4/4.5** | $3 | $15 | $3.75 | $0.30 |
+| **Haiku 4.5** | $1 | $5 | $1.25 | $0.10 |
+| **Haiku 3.5** | $0.80 | $4 | $1 | $0.08 |
+| **Haiku 3** | $0.25 | $1.25 | $0.30 | $0.03 |
+
+**Current models in use:**
+- **Haiku:** `claude-haiku-4-5-20251001` - $1/$5 per MTok
+- **Sonnet:** `claude-sonnet-4-20250514` - $3/$15 per MTok
+- **Opus:** `claude-opus-4-5-20251101` - $5/$25 per MTok (note: Opus 4.5 is cheaper than Opus 4!)
+
+**Estimated costs per task:**
+| Tier | Avg Tokens | Est. Cost |
+|------|------------|-----------|
+| Ollama | N/A | FREE |
+| Haiku | ~2K in/1K out | ~$0.007 |
+| Sonnet | ~3K in/2K out | ~$0.04 |
+| Opus (review) | ~5K in/2K out | ~$0.075 |
+
+**Cost tracking:**
+- `packages/api/src/services/costCalculator.ts` - Per-log cost calculation
+- `packages/api/src/services/budgetService.ts` - Daily budget enforcement
+- Budget display in TopBar with real-time WebSocket updates
+
 ## Storage Configuration
 
 **Docker Desktop** is configured to store all data on D drive to avoid C drive bottlenecks:
@@ -283,9 +314,11 @@ CTO agent breaks complex tasks into atomic subtasks:
 Based on **Campbell's Task Complexity Theory** and NLP Research Difficulty scales.
 
 Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
-- Router calculates rule-based score using academic complexity factors
-- Haiku AI provides independent assessment with reasoning
-- Final score = average of both (saved to task for fine-tuning)
+- Router calculates rule-based score using keyword matching and structural analysis
+- Haiku AI provides semantic assessment understanding actual problem complexity
+- **Smart weighting (Feb 2026):** When Haiku rates 2+ points higher than router, use Haiku's score directly
+  - This prevents averaging down semantically complex tasks (e.g., "LRU cache" keywords miss but Haiku sees)
+- For complex tasks (7+), only QA agent is allowed - NO fallback to Ollama
 
 **Academic Complexity Scale:**
 
@@ -294,10 +327,17 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
 | 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama | FREE      |
 | 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama | FREE      |
 | 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama | FREE      |
-| 7-8   | Complex  | Multiple functions; algorithms; data structures          | Haiku  | ~$0.001   |
-| 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Sonnet | ~$0.005   |
+| 7-8   | Complex  | Multiple functions; algorithms; data structures          | Haiku  | ~$0.003   |
+| 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Sonnet | ~$0.01    |
 
 **Note:** Opus is reserved for decomposition (9+) and code reviews only - it never writes code.
+
+**Complexity Keywords (Feb 2026 update):**
+- **High complexity (7-8):** cache, lru, linked list, hash map, tree, graph, queue, stack, heap,
+  binary, sorting, searching, o(1), o(n), o(log, time complexity, space complexity,
+  async, concurrent, parallel, recursive, algorithm, data structure
+- **Extreme complexity (9-10):** architect, design system, framework, distributed, microservice,
+  migration, security, authentication, real-time
 
 **Complexity Factors (Campbell's Theory):**
 
@@ -318,16 +358,17 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
 
 **Routing tiers:**
 - Trivial/Moderate (1-6) → Coder (Ollama) - FREE, ~30s/task avg
-- Complex (7-8) → QA (Haiku) - ~$0.001/task
-- Extreme (9-10) → QA (Sonnet) - ~$0.005/task
-- Decomposition (9+) → CTO (Opus) - ~$0.04/task (no coding)
+- Complex (7-8) → QA (Haiku) - ~$0.003/task
+- Extreme (9-10) → QA (Sonnet) - ~$0.01/task
+- Decomposition (9+) → CTO (Opus) - ~$0.02/task (no coding)
 - Failed tasks use fix cycle (Ollama → Haiku → Human)
+- **Important:** Complex tasks (7+) will queue if QA agent is busy - no fallback to Ollama
 
 **Task fields for complexity tracking:**
 - `routerComplexity` - Rule-based score
 - `haikuComplexity` - AI assessment
 - `haikuReasoning` - AI explanation
-- `finalComplexity` - Averaged score used for routing
+- `finalComplexity` - Weighted score used for routing
 
 ### Code Review System
 New `CodeReview` model tracks Opus reviews:

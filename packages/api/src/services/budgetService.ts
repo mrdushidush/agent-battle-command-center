@@ -32,11 +32,12 @@ export interface DailySpend {
   taskCount: number;
 }
 
-// Cost rates in cents per 1M tokens
+// Cost rates in cents per 1M tokens (Feb 2026 Anthropic pricing)
+// Note: Using current model versions (Haiku 4.5, Sonnet 4, Opus 4.5)
 const COST_RATES = {
-  haiku: { input: 25, output: 125 },      // $0.25/$1.25 per 1M
-  sonnet: { input: 300, output: 1500 },   // $3/$15 per 1M
-  opus: { input: 1500, output: 7500 },    // $15/$75 per 1M
+  haiku: { input: 100, output: 500 },     // $1/$5 per 1M (Haiku 4.5)
+  sonnet: { input: 300, output: 1500 },   // $3/$15 per 1M (Sonnet 4/4.5)
+  opus: { input: 500, output: 2500 },     // $5/$25 per 1M (Opus 4.5 - cheaper than 4!)
 };
 
 class BudgetService {

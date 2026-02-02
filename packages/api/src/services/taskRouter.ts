@@ -141,7 +141,11 @@ export class TaskRouter {
       high: [
         'refactor', 'redesign', 'optimize', 'async', 'concurrent', 'parallel',
         'nested', 'recursive', 'complex', 'algorithm', 'data structure',
-        'database', 'api', 'service', 'module', 'component'
+        'database', 'api', 'service', 'module', 'component',
+        // Data structures and algorithms
+        'cache', 'lru', 'linked list', 'hash map', 'hashmap', 'tree', 'graph',
+        'queue', 'stack', 'heap', 'binary', 'sorting', 'searching',
+        'o(1)', 'o(n)', 'o(log', 'time complexity', 'space complexity'
       ],
 
       // Extreme (9-10): Fuzzy goals, dynamic, architectural
@@ -276,8 +280,9 @@ export class TaskRouter {
     let complexitySource: string = 'router';
     let complexityReasoning: string | undefined;
 
-    // Try dual assessment with Haiku (if API key available and task is not trivial)
-    if (routerComplexity >= 2) {
+    // Try dual assessment with Haiku (always, unless already high complexity)
+    // Note: Router can underestimate (e.g. "LRU cache" = 1.5 but should be 7+)
+    if (routerComplexity <= 8) {
       try {
         const dualAssessment = await getDualComplexityAssessment(
           task.title,
@@ -376,29 +381,40 @@ export class TaskRouter {
       }
     }
 
-    // FALLBACK: If no agent selected yet, use best available
+    // FALLBACK: If no agent selected yet, handle based on complexity
     if (!selectedAgent) {
-      // Try QA first, then Coder
-      selectedAgent = agents.find((a) => a.agentType.name === 'qa')
-        || agents.find((a) => a.agentType.name === 'coder')
-        || agents[0];
+      // For high-complexity tasks (7+), ONLY allow qa agent - don't fall back to coder
+      // This prevents routing complex tasks to Ollama which can't handle them
+      if (complexity >= 7) {
+        const qaAgent = agents.find((a) => a.agentType.name === 'qa');
+        if (qaAgent) {
+          selectedAgent = qaAgent;
+          if (complexity < 9) {
+            reason = `Complex (${complexity.toFixed(1)}/10) → Haiku (qa agent available)`;
+            modelTier = 'haiku';
+            estimatedCost = 0.001;
+          } else {
+            reason = `Extreme (${complexity.toFixed(1)}/10) → Sonnet (qa agent available)`;
+            modelTier = 'sonnet';
+            estimatedCost = 0.005;
+          }
+          confidence = 0.7;
+        } else {
+          // No qa agent available for complex task - throw error so task queues
+          throw new Error(`No suitable agent for complex task (${complexity.toFixed(1)}/10). QA agent required but not idle.`);
+        }
+      } else {
+        // For simple tasks (< 7), coder is fine
+        selectedAgent = agents.find((a) => a.agentType.name === 'coder')
+          || agents.find((a) => a.agentType.name === 'qa')
+          || agents[0];
 
-      if (selectedAgent) {
-        // Determine tier based on complexity (matching new thresholds: Ollama 1-6, Haiku 7-8, Sonnet 9-10)
-        if (complexity < 7) {
+        if (selectedAgent) {
           reason = `Fallback: ${complexity.toFixed(1)}/10 → Ollama`;
           modelTier = 'ollama';
           estimatedCost = 0;
-        } else if (complexity < 9) {
-          reason = `Fallback: ${complexity.toFixed(1)}/10 → Haiku`;
-          modelTier = 'haiku';
-          estimatedCost = 0.001;
-        } else {
-          reason = `Fallback: ${complexity.toFixed(1)}/10 → Sonnet`;
-          modelTier = 'sonnet';
-          estimatedCost = 0.005;
+          confidence = 0.6;
         }
-        confidence = 0.6;
       }
     }
 
