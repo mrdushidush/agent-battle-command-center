@@ -70,7 +70,11 @@ export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
 
     setExecuting(true);
     try {
-      await executeApi.quickExecute(task.id, preferredAgent.id);
+      const result = await executeApi.quickExecute(task.id, preferredAgent.id);
+      if (result.queued) {
+        // Task was queued because agent is busy - show friendly message
+        alert(`📋 ${result.message}`);
+      }
     } catch (error) {
       console.error('Failed to execute task:', error);
       alert('Failed to execute task: ' + (error instanceof Error ? error.message : 'Unknown error'));

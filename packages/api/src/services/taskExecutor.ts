@@ -22,6 +22,8 @@ import type { CodeReviewService } from './codeReviewService.js';
 import { mcpBridge } from './mcpBridge.js';
 import { OllamaOptimizer, getOllamaOptimizer } from './ollamaOptimizer.js';
 import { TaskAssigner } from './taskAssigner.js';
+import { TaskRouter } from './taskRouter.js';
+import { ExecutorService } from './executor.js';
 
 export class TaskExecutor {
   private trainingDataService: TrainingDataService;
@@ -343,6 +345,11 @@ export class TaskExecutor {
     if (updatedAgent) {
       this.emitAgentUpdate(this.formatAgent(updatedAgent));
     }
+
+    // Auto-assign next pending task (async, non-blocking)
+    this.autoAssignNextTask(agentId).catch((error) => {
+      console.error('Auto-assign after completion failed:', error);
+    });
   }
 
   /**
@@ -386,6 +393,11 @@ export class TaskExecutor {
     if (updatedAgent) {
       this.emitAgentUpdate(this.formatAgent(updatedAgent));
     }
+
+    // Auto-assign next pending task (async, non-blocking)
+    this.autoAssignNextTask(agentId).catch((error) => {
+      console.error('Auto-assign after failure failed:', error);
+    });
   }
 
   /**
@@ -535,6 +547,112 @@ export class TaskExecutor {
     } catch (error) {
       console.error('Failed to capture training data:', error);
       // Don't throw - we don't want to break task completion
+    }
+  }
+
+  /**
+   * Auto-assign next pending task to an idle agent
+   * Called after task completion/failure when agent becomes idle
+   */
+  async autoAssignNextTask(agentId: string): Promise<void> {
+    try {
+      // Get the agent that just became idle
+      const agent = await this.prisma.agent.findUnique({
+        where: { id: agentId },
+        include: { agentType: true },
+      });
+
+      if (!agent || agent.status !== 'idle') {
+        return; // Agent not found or not idle (might still be in rest)
+      }
+
+      // Get next pending task for this agent type
+      const pendingTask = await this.prisma.task.findFirst({
+        where: {
+          status: 'pending',
+          OR: [
+            { requiredAgent: null },
+            { requiredAgent: agent.agentType.name },
+          ],
+        },
+        orderBy: [
+          { priority: 'desc' },
+          { createdAt: 'asc' },
+        ],
+      });
+
+      if (!pendingTask) {
+        console.log(`📭 No pending tasks for ${agent.name} - staying idle`);
+        return;
+      }
+
+      // Use TaskRouter to properly route and assign the task
+      const taskRouter = new TaskRouter(this.prisma);
+      const decision = await taskRouter.routeTask(pendingTask.id);
+
+      // Only auto-assign if the decision matches this agent type
+      // (respects complexity routing - don't assign Haiku tasks to Ollama agent)
+      const agentMatchesDecision =
+        (decision.modelTier === 'ollama' && agent.agentType.name === 'coder') ||
+        (decision.modelTier === 'haiku' && agent.agentType.name === 'qa') ||
+        (decision.modelTier === 'sonnet' && agent.agentType.name === 'qa');
+
+      if (!agentMatchesDecision) {
+        console.log(`⏭️ Task ${pendingTask.id.substring(0, 8)} requires ${decision.modelTier}, ${agent.name} is ${agent.agentType.name} - skipping`);
+        return;
+      }
+
+      // Assign the task
+      await this.taskAssigner.assignTask(pendingTask.id, agentId);
+
+      console.log(`🔄 Auto-assigned task "${pendingTask.title}" to ${agent.name}`);
+
+      // Emit notification for UI
+      this.io.emit('alert', {
+        type: 'info',
+        title: 'Task Auto-Assigned',
+        message: `${agent.name} picked up: ${pendingTask.title}`,
+        timestamp: new Date(),
+      });
+
+      // Mark task as in progress and trigger execution
+      await this.handleTaskStart(pendingTask.id);
+
+      // Execute the task asynchronously
+      const executor = new ExecutorService();
+      const executeAsync = async () => {
+        try {
+          const result = await executor.executeTask({
+            taskId: pendingTask.id,
+            agentId: agentId,
+            taskDescription: pendingTask.description || pendingTask.title,
+            expectedOutput: `Successfully completed: ${pendingTask.title}`,
+            useClaude: decision.modelTier !== 'ollama',
+          });
+
+          if (result.success) {
+            await this.handleTaskCompletion(pendingTask.id, {
+              output: result.output ?? '',
+              metrics: result.metrics ?? {},
+            });
+          } else {
+            await this.handleTaskFailure(pendingTask.id, result.error || 'Unknown error');
+          }
+        } catch (error) {
+          console.error('Auto-execution error:', error);
+          await this.handleTaskFailure(
+            pendingTask.id,
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+      };
+
+      // Fire and forget - execution happens in background
+      executeAsync();
+
+    } catch (error) {
+      console.error('Auto-assign failed:', error);
+      // Don't throw - auto-assign is a nice-to-have, not critical
     }
   }
 }

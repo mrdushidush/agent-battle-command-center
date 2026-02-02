@@ -18,7 +18,7 @@ export function TopBar() {
     setMuted,
     metrics,
   } = useUIStore();
-  const unacknowledgedAlerts = alerts.filter(a => !a.acknowledged).length;
+  const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
   const [resetting, setResetting] = useState(false);
 
   const toggleMute = () => {

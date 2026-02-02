@@ -131,7 +131,7 @@ export const useUIStore = create<UIState>((set) => ({
   setAgents: (agents) => set({ agents }),
   addAlert: (alert) =>
     set((state) => ({
-      alerts: [alert, ...state.alerts].slice(0, 50), // Keep last 50
+      alerts: [{ ...alert, acknowledged: alert.acknowledged ?? false }, ...state.alerts].slice(0, 50), // Keep last 50
       alertsPanelOpen: true,
     })),
   acknowledgeAlert: (id) =>

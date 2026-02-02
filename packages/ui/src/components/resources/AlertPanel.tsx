@@ -60,7 +60,7 @@ export function AlertPanel() {
           <AlertTriangle className="w-4 h-4 text-hud-amber" />
           <span className="font-display text-sm uppercase tracking-wider">Alerts</span>
           <span className="text-xs text-gray-500">
-            ({alerts.filter(a => !a.acknowledged).length})
+            ({alerts.filter(a => a && a.acknowledged === false).length})
           </span>
         </div>
         <div className="flex items-center gap-1">

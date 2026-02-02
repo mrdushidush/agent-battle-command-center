@@ -137,13 +137,24 @@ export const executeApi = {
     }),
 
   // Quick execute - auto-assigns and executes a pending task
-  quickExecute: async (taskId: string, agentId: string) => {
+  quickExecute: async (taskId: string, agentId: string): Promise<{ started: boolean; taskId: string; queued?: boolean; message?: string }> => {
     // First assign the task
-    await request<Task>('/queue/assign', {
+    const assignResult = await request<{ queued?: boolean; message?: string; task?: Task } | Task>('/queue/assign', {
       method: 'POST',
       body: JSON.stringify({ taskId, agentId }),
     });
-    // Then execute it
+
+    // Check if task was queued (agent busy) instead of assigned
+    if ('queued' in assignResult && assignResult.queued) {
+      return {
+        started: false,
+        taskId,
+        queued: true,
+        message: assignResult.message || 'Task queued - will auto-execute when agent is free'
+      };
+    }
+
+    // Task was assigned, now execute it
     return request<{ started: boolean; taskId: string }>('/execute', {
       method: 'POST',
       body: JSON.stringify({ taskId, useClaude: false }),

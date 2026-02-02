@@ -4,7 +4,7 @@ import { useUIStore } from '../../store/uiState';
 
 export function Sidebar() {
   const { agents, sidebarCollapsed, toggleSidebar, alerts } = useUIStore();
-  const unacknowledgedAlerts = alerts.filter(a => !a.acknowledged).length;
+  const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
 
   // Group agents by type
   const coderAgents = agents.filter(a => a.type === 'coder');

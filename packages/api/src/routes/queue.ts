@@ -86,7 +86,14 @@ queueRouter.post('/assign', asyncHandler(async (req, res) => {
   }
 
   if (agent.status !== 'idle') {
-    res.status(400).json({ error: 'Agent is not idle' });
+    // Agent is busy - task stays in queue and will be auto-assigned when agent is free
+    res.json({
+      queued: true,
+      message: `${agent.name} is busy - task queued and will be assigned automatically when agent is free`,
+      task: task,
+      agentStatus: agent.status,
+      currentTaskId: agent.currentTaskId,
+    });
     return;
   }
 
@@ -280,6 +287,7 @@ queueRouter.post('/parallel-assign', asyncHandler(async (req, res) => {
     const agent = await prisma.agent.findFirst({
       where: {
         agentType: { name: agentTypeName },
+        status: 'idle', // Only assign to idle agents to prevent race conditions
       },
       include: { agentType: true },
     });
