@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiGet } from '../../lib/api';
 
 interface ComplexityBucket {
   range: string;
@@ -23,8 +24,7 @@ export function ComplexityDistribution() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/metrics/complexity-distribution');
-      const result = await response.json();
+      const result = await apiGet<ComplexityData>('/api/metrics/complexity-distribution');
       setData(result);
     } catch (error) {
       console.error('Failed to fetch complexity distribution:', error);

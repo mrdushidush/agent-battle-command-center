@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { apiGet, apiPost } from '../../lib/api';
 
 interface TaskMemory {
   id: string;
@@ -31,20 +32,13 @@ export function MemoryApproval() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [memoriesRes, statsRes] = await Promise.all([
-        fetch('http://localhost:3001/api/memories/pending'),
-        fetch('http://localhost:3001/api/memories/stats'),
+      const [memoriesData, statsData] = await Promise.all([
+        apiGet<{ memories: TaskMemory[] }>('/api/memories/pending'),
+        apiGet<MemoryStats>('/api/memories/stats'),
       ]);
 
-      if (memoriesRes.ok) {
-        const data = await memoriesRes.json();
-        setMemories(data.memories || []);
-      }
-
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data);
-      }
+      setMemories(memoriesData.memories || []);
+      setStats(statsData);
     } catch (err) {
       console.error('Error fetching memories:', err);
     } finally {
@@ -61,16 +55,9 @@ export function MemoryApproval() {
   const handleApprove = async (id: string) => {
     setActionLoading(id);
     try {
-      const response = await fetch(`http://localhost:3001/api/memories/${id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approvedBy: 'human' }),
-      });
-
-      if (response.ok) {
-        setMemories(prev => prev.filter(m => m.id !== id));
-        fetchData(); // Refresh stats
-      }
+      await apiPost(`/api/memories/${id}/approve`, { approvedBy: 'human' });
+      setMemories(prev => prev.filter(m => m.id !== id));
+      fetchData(); // Refresh stats
     } catch (err) {
       console.error('Error approving memory:', err);
     } finally {
@@ -81,14 +68,9 @@ export function MemoryApproval() {
   const handleReject = async (id: string) => {
     setActionLoading(id);
     try {
-      const response = await fetch(`http://localhost:3001/api/memories/${id}/reject`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        setMemories(prev => prev.filter(m => m.id !== id));
-        fetchData(); // Refresh stats
-      }
+      await apiPost(`/api/memories/${id}/reject`);
+      setMemories(prev => prev.filter(m => m.id !== id));
+      fetchData(); // Refresh stats
     } catch (err) {
       console.error('Error rejecting memory:', err);
     } finally {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiFetch } from '../../lib/api';
 
 interface CodeReviewFinding {
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -45,7 +46,7 @@ export function CodeReviewPanel({ taskId }: CodeReviewPanelProps) {
   const fetchReview = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3001/api/code-reviews/task/${taskId}`);
+      const response = await apiFetch(`/api/code-reviews/task/${taskId}`);
 
       if (response.status === 404) {
         setReview(null);

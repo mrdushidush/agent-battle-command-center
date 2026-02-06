@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { audioManager } from '../../audio/audioManager';
 import { SettingsModal } from '../modals/SettingsModal';
 import { AnimatedCurrency } from '../shared/AnimatedCounter';
+import { apiGet, apiPost } from '../../lib/api';
 
 export function TopBar() {
   const {
@@ -27,8 +28,7 @@ export function TopBar() {
 
   // Fetch initial budget status
   useEffect(() => {
-    fetch('/api/budget/status')
-      .then(res => res.json())
+    apiGet<any>('/api/budget/status')
       .then(data => {
         updateBudget({
           dailySpentCents: data.dailySpentCents,
@@ -58,11 +58,7 @@ export function TopBar() {
 
     setResetting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/agents/reset-all', {
-        method: 'POST',
-      });
-
-      const result = await response.json();
+      const result = await apiPost<{ success: boolean; count: number }>('/api/agents/reset-all');
 
       if (result.success) {
         alert(`Successfully reset ${result.count} agents`);

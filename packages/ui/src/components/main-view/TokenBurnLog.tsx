@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Flame, Zap, TrendingUp, DollarSign } from 'lucide-react';
+import { apiGet } from '../../lib/api';
 
 interface TokenEntry {
   id: string;
@@ -86,8 +87,7 @@ export function TokenBurnLog() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/execution-logs?limit=100');
-        const data = await response.json();
+        const data = await apiGet<any[]>('/api/execution-logs?limit=100');
 
         // Filter and transform logs that have token data
         const tokenEntries: TokenEntry[] = data

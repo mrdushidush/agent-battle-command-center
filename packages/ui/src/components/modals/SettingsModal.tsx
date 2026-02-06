@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Volume2, DollarSign, Monitor, Palette, Play } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { audioManager } from '../../audio/audioManager';
+import { apiPost } from '../../lib/api';
 
 type SettingsTab = 'audio' | 'budget' | 'display' | 'theme';
 
@@ -42,14 +43,8 @@ export function SettingsModal() {
 
   const handleBudgetLimitChange = async (cents: number) => {
     try {
-      const response = await fetch('/api/budget/limit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dailyLimitCents: cents }),
-      });
-      if (response.ok) {
-        updateBudget({ dailyLimitCents: cents });
-      }
+      await apiPost('/api/budget/limit', { dailyLimitCents: cents });
+      updateBudget({ dailyLimitCents: cents });
     } catch (error) {
       console.error('Failed to update budget limit:', error);
     }

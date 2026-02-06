@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Terminal, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { apiGet } from '../../lib/api';
 
 interface ExecutionLogEntry {
   id: string;
@@ -23,8 +24,7 @@ export function ToolLog() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/execution-logs?limit=50');
-        const data = await response.json();
+        const data = await apiGet<any[]>('/api/execution-logs?limit=50');
 
         // Transform API data to log entries
         const entries: ExecutionLogEntry[] = data.map((log: any) => ({
