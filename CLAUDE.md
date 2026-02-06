@@ -495,9 +495,14 @@ model CodeReview {
 
 ## Current Priorities
 
-### Phase 1: MCP Integration (DISABLED Feb 2026)
+### Phase 1: MCP Integration (DISABLED Feb 2026, MADE OPTIONAL Feb 2026)
 
 **Status:** `USE_MCP=false` (disabled for better Claude performance)
+
+**Docker Configuration (Feb 2026):** MCP gateway is now truly optional using Docker Compose profiles
+- **Default:** `docker compose up` - MCP gateway does NOT start
+- **With MCP:** `docker compose --profile mcp up` - Starts MCP gateway
+- MCP gateway removed from `depends_on` in api/agents services (was blocking startup even when disabled)
 
 **Finding:** MCP adds latency and complexity. Disabling MCP improved Haiku success rate from 60% to 100%.
 
@@ -506,6 +511,7 @@ model CodeReview {
 2. ✅ **Tool parameter mismatch** - Removed agent_id/task_id params; tools read from env vars set by main.py
 3. ✅ **Token bloat** - MCP memory tools only for Claude (qa, cto), never for Ollama (coder)
 4. ✅ **Tier-based MCP** - Coder always uses HTTP tools, QA/CTO get memory tools when USE_MCP=true
+5. ✅ **Docker optional** - MCP gateway uses profiles, won't start unless explicitly requested
 
 **Recommendation:** Keep MCP disabled until specific memory/context features are needed. Direct API calls are faster and more reliable.
 

@@ -489,6 +489,7 @@ docker exec abcc-ollama ollama rm <old-model-name>
 - **[CORS Configuration](docs/CORS.md)** - Origin restrictions and security
 - **[Rate Limiting](docs/RATE_LIMITING.md)** - Request limits and bypass
 - **[Error Handling](docs/ERROR_HANDLING.md)** - UI error boundaries
+- **[Database Migrations](docs/DATABASE_MIGRATIONS.md)** - Schema changes and deployment
 - **[API Reference](docs/API.md)** - All endpoints and examples
 - **[Development Guide](docs/DEVELOPMENT.md)** - Testing and debugging
 - **[AI Assistant Context](CLAUDE.md)** - Project overview for AI tools

@@ -80,8 +80,6 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-      mcp-gateway:
-        condition: service_started
     volumes:
       - ./workspace:/app/workspace
 
@@ -102,12 +100,11 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-      mcp-gateway:
-        condition: service_started
     volumes:
       - ./workspace:/app/workspace
 
   mcp-gateway:
+    profiles: ["mcp"]  # Only start when USE_MCP=true
     build:
       context: ./packages/mcp-gateway
       dockerfile: Dockerfile

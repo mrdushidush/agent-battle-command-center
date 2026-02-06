@@ -67,7 +67,8 @@ app.add_middleware(
 )
 
 
-# Store for step-by-step execution state
+# DEPRECATED: Step-by-step execution state (returns stub data)
+# TODO: Implement real agent introspection for micromanager mode
 execution_state: dict[str, dict] = {}
 
 
@@ -421,7 +422,7 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
 
 @app.post("/execute/step", response_model=StepResponse)
 async def execute_step(request: StepRequest) -> StepResponse:
-    """Execute a single step for micromanager mode."""
+    """DEPRECATED: Returns stub data. Real step-by-step execution not implemented."""
     task_id = request.task_id
 
     # Initialize state if needed
