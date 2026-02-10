@@ -267,12 +267,12 @@ export function useSocket() {
     });
 
     // Code review events (Opus reviewing code)
-    socket.on('code_review_started', (event: { payload: { taskId: string; reviewerId?: string } }) => {
+    socket.on('code_review_started', () => {
       playWithDelay(() => playOpusReview('cto'));
     });
 
     // Task decomposition events (CTO breaking down tasks)
-    socket.on('task_decomposition_started', (event: { payload: { taskId: string; agentId?: string } }) => {
+    socket.on('task_decomposition_started', () => {
       playWithDelay(() => playDecomposition('cto'));
     });
 
