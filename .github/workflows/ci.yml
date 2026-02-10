@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm --filter @abcc/api db:generate
+
       - name: Build shared package
         run: pnpm --filter @abcc/shared build
 
@@ -144,6 +147,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @abcc/api db:generate
 
       - name: Build all packages
         run: pnpm build
