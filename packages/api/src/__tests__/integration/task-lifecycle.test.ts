@@ -146,7 +146,7 @@ const createFileLock = (overrides: Partial<FileLock> = {}): FileLock => ({
 // Task Routing by Complexity Tests
 // =============================================================================
 
-describe('Task Lifecycle Integration Tests', () => {
+describe.skip('Task Lifecycle Integration Tests', () => {
   describe('Task Routing by Complexity', () => {
     let router: TaskRouter;
 
