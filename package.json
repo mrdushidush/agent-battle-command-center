@@ -23,7 +23,7 @@
     "security:audit": "pnpm audit && trivy fs . --severity HIGH,CRITICAL --exit-code 1"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "typescript": "^5.3.3"
   },
   "engines": {
