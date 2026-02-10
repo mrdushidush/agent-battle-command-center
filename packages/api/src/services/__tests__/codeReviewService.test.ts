@@ -1,25 +1,17 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { CodeReviewService } from '../codeReviewService.js';
+import { prismaMock } from '../../__mocks__/prisma.js';
 
-// Mock dependencies
-jest.mock('../../db/client.js', () => ({
-  prisma: {
-    codeReview: {
-      create: jest.fn(),
-      findFirst: jest.fn(),
-    },
-    task: {
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-  },
-}));
+// Mock SocketIO
+const mockIO = {
+  emit: jest.fn(),
+} as any;
 
 describe('CodeReviewService', () => {
   let reviewService: CodeReviewService;
 
   beforeEach(() => {
-    reviewService = CodeReviewService.getInstance();
+    reviewService = new CodeReviewService(prismaMock, mockIO);
     jest.clearAllMocks();
   });
 

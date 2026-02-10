@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, afterEach, jest } from '@jest/globals';
 
 // Mock environment variables
 const originalEnv = process.env;

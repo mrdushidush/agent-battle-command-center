@@ -7,7 +7,7 @@ describe('BudgetService', () => {
   beforeEach(() => {
     // Get singleton instance and reset state
     budgetService = BudgetService.getInstance();
-    budgetService.updateConfig({ dailyLimitCents: 500, warningThreshold: 0.8, enabled: true });
+    budgetService.setConfig({ dailyLimitCents: 500, warningThreshold: 0.8, enabled: true });
   });
 
   describe('recordCost', () => {

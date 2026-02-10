@@ -1,23 +1,22 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { SchedulerService } from '../schedulerService.js';
+import { prismaMock } from '../../__mocks__/prisma.js';
 
 describe('SchedulerService', () => {
   let schedulerService: SchedulerService;
 
   beforeEach(() => {
-    schedulerService = SchedulerService.getInstance();
+    schedulerService = new SchedulerService(prismaMock);
   });
 
   afterEach(() => {
     schedulerService.stop();
   });
 
-  describe('getInstance', () => {
-    it('should return singleton instance', () => {
-      const instance1 = SchedulerService.getInstance();
-      const instance2 = SchedulerService.getInstance();
-
-      expect(instance1).toBe(instance2);
+  describe('constructor', () => {
+    it('should create service instance', () => {
+      const instance = new SchedulerService(prismaMock);
+      expect(instance).toBeInstanceOf(SchedulerService);
     });
   });
 
