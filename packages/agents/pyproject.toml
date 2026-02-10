@@ -1,6 +1,6 @@
 [project]
 name = "abcc-agents"
-version = "1.0.0"
+version = "0.2.0-beta"
 description = "AI Agent executor service for Agent Battle Command Center"
 requires-python = ">=3.11"
 
