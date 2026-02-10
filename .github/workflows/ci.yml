@@ -37,6 +37,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @abcc/api db:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/abcc_ci?schema=public
 
       - name: Build shared package
         run: pnpm --filter @abcc/shared build
@@ -150,6 +152,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @abcc/api db:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/abcc_ci?schema=public
 
       - name: Build all packages
         run: pnpm build
