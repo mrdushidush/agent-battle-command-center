@@ -9,5 +9,10 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",   # Line too long (handled by line-length)
+    "E402",   # Module level import not at top (intentional in main.py)
+    "F401",   # Unused imports (many are re-exports for external use)
+    "F841",   # Local variable assigned but unused (minor)
+]

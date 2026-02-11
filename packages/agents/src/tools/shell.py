@@ -48,7 +48,7 @@ def _check_dangerous_patterns(command: str) -> str | None:
     """Check for shell injection patterns. Returns error message if found, None if safe."""
     for pattern in DANGEROUS_PATTERNS:
         if re.search(pattern, command, re.IGNORECASE):
-            return f"Error: Command contains potentially dangerous pattern. Shell operators and system calls are not allowed for security."
+            return "Error: Command contains potentially dangerous pattern. Shell operators and system calls are not allowed for security."
     return None
 
 
@@ -81,7 +81,7 @@ def _validate_python_code(args: list[str]) -> str | None:
 
         for pattern in dangerous_python:
             if re.search(pattern, code, re.IGNORECASE):
-                return f"Error: Python code contains restricted operation for security. Avoid os.system, subprocess, eval, exec, and network operations."
+                return "Error: Python code contains restricted operation for security. Avoid os.system, subprocess, eval, exec, and network operations."
 
     return None
 
@@ -152,7 +152,7 @@ class ShellRunTool(BaseTool):
         except subprocess.TimeoutExpired:
             return "Error: Command timed out after 60 seconds"
         except FileNotFoundError:
-            return f"Error: Command not found"
+            return "Error: Command not found"
         except Exception as e:
             return f"Error running command: {str(e)}"
 

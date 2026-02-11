@@ -27,7 +27,7 @@ class ActionHistory:
 
     _instance = None
     _history: List[Tuple[str, Dict, datetime]] = []
-    _tool_path_counts: Dict[str, Dict[str, int]] = {}  # {tool_name: {path: count}}
+    _tool_path_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     _total_calls: int = 0
 
     def __new__(cls):
@@ -109,11 +109,11 @@ class ActionHistory:
             past_tool, past_params, _ = recent_actions[i]
             if past_tool == tool_name and cls._params_match(params, past_params, threshold=0.8):
                 # Similar duplicate - warning but don't block
-                print(f"\n[WARNING] Detected similar action to previous attempt")
+                print("\n[WARNING] Detected similar action to previous attempt")
                 print(f"   Tool: {tool_name}")
                 print(f"   Previous: {cls._format_params(past_params)}")
                 print(f"   Current:  {cls._format_params(params)}")
-                print(f"   Consider trying a different approach if this fails.\n")
+                print("   Consider trying a different approach if this fails.\n")
 
         # Check for same tool 5+ times in recent history
         same_tool_count = sum(1 for t, _, _ in recent_actions if t == tool_name)

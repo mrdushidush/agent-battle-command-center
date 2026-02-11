@@ -206,7 +206,7 @@ class ExecutionLogger:
         if failed:
             print(f"⚠️  {len(failed)} logs still failed after retry")
         else:
-            print(f"✅ All buffered logs sent successfully")
+            print("✅ All buffered logs sent successfully")
 
     @staticmethod
     def estimate_tokens(text: str) -> int:

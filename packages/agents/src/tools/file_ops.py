@@ -139,7 +139,7 @@ class FileListTool(BaseTool):
 
             items = []
             for item in sorted(full_path.iterdir()):
-                prefix = "[DIR] " if item.is_dir() else "[FILE]"
+                prefix = "[DIR]" if item.is_dir() else "[FILE]"
                 items.append(f"{prefix} {item.name}")
 
             return "\n".join(items) if items else "Directory is empty"

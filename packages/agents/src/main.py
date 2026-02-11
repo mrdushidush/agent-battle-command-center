@@ -32,6 +32,9 @@ if os.environ.get("RATE_LIMIT_DEBUG", "false").lower() == "true":
 # Track rate limit events for logging
 _rate_limit_count = 0
 
+# Track ongoing executions for abort support
+execution_state: dict = {}
+
 
 def handle_litellm_failure(kwargs, completion_response, start_time, end_time):
     """Callback for litellm failures - tracks rate limit events."""
@@ -166,7 +169,7 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         ActionHistory.reset()
 
         # Get LLM
-        print(f"\n🔍 DEBUG: Request parameters:")
+        print("\n🔍 DEBUG: Request parameters:")
         print(f"   use_claude: {request.use_claude}")
         print(f"   model: {request.model}")
         print(f"   allow_fallback: {request.allow_fallback}")
@@ -235,9 +238,9 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         description = request.task_description or "Complete the assigned task."
         expected_output = request.expected_output or "Task completed successfully with all requirements met."
 
-        print(f"\n📝 Task Description:")
+        print("\n📝 Task Description:")
         print(f"   {description[:200]}{'...' if len(description) > 200 else ''}")
-        print(f"\n💡 Expected Output:")
+        print("\n💡 Expected Output:")
         print(f"   {expected_output[:200]}{'...' if len(expected_output) > 200 else ''}\n")
 
         crew_task = Task(
@@ -339,7 +342,7 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
                 task_id=request.task_id,
                 api_url="http://api:3001"
             )
-            print(f"\n📊 Structured Output (parsed from execution logs):")
+            print("\n📊 Structured Output (parsed from execution logs):")
         except Exception as e:
             print(f"⚠️  Could not parse structured output: {e}")
             print(f"   Raw output: {output_text[:500]}")

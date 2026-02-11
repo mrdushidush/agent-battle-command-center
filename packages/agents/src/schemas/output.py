@@ -230,7 +230,7 @@ def _parse_from_execution_logs(logs: List[dict], raw_output: str) -> AgentOutput
                     if parsed.tests_run > 0:
                         test_results = parsed.summary
                     else:
-                        test_results = f"Tests ran but no test results found in output"
+                        test_results = "Tests ran but no test results found in output"
                         if parsed.tests_run == 0:
                             what_failed.append(f"Test execution: {parsed.summary}")
 
@@ -361,7 +361,7 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
                 return _parse_from_execution_logs(logs, raw_output)
         except Exception as e:
             print(f"⚠️  Could not fetch execution logs: {e}")
-            print(f"   Falling back to parsing raw output...")
+            print("   Falling back to parsing raw output...")
             # Fall through to parse raw output
 
     # Try to find structured JSON output first
@@ -429,7 +429,7 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
 
         elif action == 'file_edit':
             path = action_input.get('path', '')
-            if path and 'successfully' in observation_lower:
+            if path and 'successfully' in observation_for_check:
                 files_modified.append(path)
 
         elif action == 'file_read':
@@ -450,7 +450,7 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
                     if parsed.tests_run > 0:
                         test_results = parsed.summary
                     else:
-                        test_results = f"Tests ran but no test results found in output"
+                        test_results = "Tests ran but no test results found in output"
                         if parsed.tests_run == 0:
                             what_failed.append(f"Test execution: {parsed.summary}")
 
