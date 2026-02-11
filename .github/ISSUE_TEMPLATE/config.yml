@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: README & Documentation
+    url: https://github.com/mrdushidush/agent-battle-command-center#readme
+    about: Check the README for setup instructions and architecture details
+  - name: Contributing Guide
+    url: https://github.com/mrdushidush/agent-battle-command-center/blob/main/CONTRIBUTING.md
+    about: Read how to contribute to ABCC

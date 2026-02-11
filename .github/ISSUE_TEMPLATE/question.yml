@@ -1,0 +1,43 @@
+name: Question
+description: Ask a question about setup, usage, or architecture
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got a question? Ask away! For general discussion, consider using GitHub Discussions if enabled.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      description: What area is your question about?
+      options:
+        - Setup / Installation
+        - Configuration
+        - Ollama / Local Models
+        - Claude API
+        - Task Routing
+        - UI / Dashboard
+        - Architecture
+        - Contributing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Any relevant details, screenshots, or config snippets.
+    validations:
+      required: false
