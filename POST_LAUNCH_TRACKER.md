@@ -17,8 +17,8 @@
 | Issues | 0 | |
 | PRs | 0 | |
 | Release | v0.2.0-beta | Pre-release |
-| CI | GREEN | Tests skipped (needs proper fix) |
-| Community Health | 71% | Missing: CoC, issue templates |
+| CI | GREEN | 15 test suites passing, 0 failures |
+| Community Health | 85% | Missing: CoC |
 
 **Traffic Sources:**
 - github.com: 35 referrals (4 unique)
@@ -49,7 +49,7 @@
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Fix CI tests properly (not skip) | TODO | | Integration tests fail: `role "root" does not exist` in Postgres |
+| Fix CI tests properly (not skip) | DONE | Feb 11 | 15 passing, 2 skipped (with reasons), 0 failures. Was 6 active / 9 skipped. |
 | Add demo GIF/video to README | TODO | | Static screenshots don't sell the RTS experience |
 | Cross-post to more communities | TODO | | HN, Dev.to, r/selfhosted, r/ollama, Twitter/X |
 | Enable GitHub Discussions | TODO | | Lower barrier than issues for questions |
