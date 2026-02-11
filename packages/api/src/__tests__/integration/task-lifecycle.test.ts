@@ -1,14 +1,15 @@
 /**
  * Integration Tests for Task Lifecycle
  *
+ * SKIPPED: These tests require a running PostgreSQL database and Redis instance.
+ * They are designed to run in CI with service containers (see .github/workflows/ci.yml).
+ * To run locally: docker compose up postgres redis, then run with DATABASE_URL set.
+ *
  * Tests the complete task lifecycle including:
  * - Task routing by complexity
  * - Task status transitions
  * - Agent state management
  * - File locking
- *
- * These tests use mocked Prisma client and socket.io to test service interactions
- * without requiring Docker or external dependencies.
  */
 
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';

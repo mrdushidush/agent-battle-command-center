@@ -64,7 +64,6 @@ jobs:
 
       - name: Run Python linting (ruff)
         run: ruff check packages/agents/src --output-format=github
-        continue-on-error: true
 
   unit-tests:
     name: Unit Tests
@@ -122,8 +121,7 @@ jobs:
       - name: Run Python unit tests
         run: |
           cd packages/agents
-          python -m pytest tests/ -v --tb=short || echo "No Python tests found"
-        continue-on-error: true
+          python -m pytest tests/ -v --tb=short
         env:
           PYTHONPATH: ${{ github.workspace }}/packages/agents
 

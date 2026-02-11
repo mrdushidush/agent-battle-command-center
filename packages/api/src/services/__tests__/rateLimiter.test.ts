@@ -1,77 +1,74 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
+import { AnthropicRateLimiter } from '../rateLimiter.js';
 
-// Mock rate limiter module
-const mockRateLimiter = jest.fn();
-jest.mock('express-rate-limit', () => ({
-  default: (config: any) => {
-    mockRateLimiter(config);
-    return (req: any, res: any, next: any) => next();
-  },
-}));
+describe('AnthropicRateLimiter', () => {
+  // Note: We test the class directly rather than the singleton to isolate state
+  let limiter: AnthropicRateLimiter;
 
-describe.skip('rateLimiter middleware', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    limiter = new AnthropicRateLimiter();
   });
 
-  it('should create rate limiter with default config', async () => {
-    // Import after mocking
-    await import('../rateLimiter.js');
+  describe('getModelTier', () => {
+    it('should identify haiku models', () => {
+      expect(limiter.getModelTier('claude-haiku-4-5-20251001')).toBe('haiku');
+      expect(limiter.getModelTier('anthropic/claude-haiku-4-5-20251001')).toBe('haiku');
+    });
 
-    expect(mockRateLimiter).toHaveBeenCalledWith(
-      expect.objectContaining({
-        windowMs: expect.any(Number),
-        max: expect.any(Number),
-        standardHeaders: true,
-        legacyHeaders: false,
-      })
-    );
+    it('should identify sonnet models', () => {
+      expect(limiter.getModelTier('claude-sonnet-4-5-20250929')).toBe('sonnet');
+      expect(limiter.getModelTier('anthropic/claude-sonnet-4-20250514')).toBe('sonnet');
+    });
+
+    it('should identify opus models', () => {
+      expect(limiter.getModelTier('claude-opus-4-5-20251101')).toBe('opus');
+    });
+
+    it('should default to opus for unknown models', () => {
+      expect(limiter.getModelTier('unknown-model')).toBe('opus');
+    });
   });
 
-  it('should use environment variable for window time', async () => {
-    process.env.RATE_LIMIT_WINDOW_MS = '30000';
-
-    // Re-import to pick up env var
-    delete require.cache[require.resolve('../rateLimiter.js')];
-    await import('../rateLimiter.js');
-
-    expect(mockRateLimiter).toHaveBeenCalledWith(
-      expect.objectContaining({
-        windowMs: 30000,
-      })
-    );
-
-    delete process.env.RATE_LIMIT_WINDOW_MS;
+  describe('recordUsage', () => {
+    it('should record without throwing', () => {
+      expect(() => {
+        limiter.recordUsage('haiku', 1000, 500);
+      }).not.toThrow();
+    });
   });
 
-  it('should use environment variable for max requests', async () => {
-    process.env.RATE_LIMIT_MAX = '200';
+  describe('getStatus', () => {
+    it('should return status for all tiers', () => {
+      const status = limiter.getStatus();
 
-    delete require.cache[require.resolve('../rateLimiter.js')];
-    await import('../rateLimiter.js');
+      expect(status).toHaveProperty('haiku');
+      expect(status).toHaveProperty('sonnet');
+      expect(status).toHaveProperty('opus');
+    });
 
-    expect(mockRateLimiter).toHaveBeenCalledWith(
-      expect.objectContaining({
-        max: 200,
-      })
-    );
+    it('should show usage after recording', () => {
+      limiter.recordUsage('haiku', 1000, 500);
 
-    delete process.env.RATE_LIMIT_MAX;
+      const status = limiter.getStatus();
+      expect(status.haiku.requests).toBeGreaterThan(0);
+    });
+
+    it('should include limits in status', () => {
+      const status = limiter.getStatus();
+
+      expect(status.haiku.limits).toBeDefined();
+      expect(status.haiku.limits.rpm).toBeGreaterThan(0);
+    });
   });
 
-  it('should include custom message in response', async () => {
-    await import('../rateLimiter.js');
+  describe('waitForCapacity', () => {
+    it('should return quickly when under limits', async () => {
+      const start = Date.now();
+      await limiter.waitForCapacity('haiku', 100, 50);
+      const elapsed = Date.now() - start;
 
-    const config = mockRateLimiter.mock.calls[0][0] as any;
-    expect(config.message).toBeDefined();
-    expect(config.message).toContain('rate limit');
-  });
-
-  it('should use sliding window by default', async () => {
-    await import('../rateLimiter.js');
-
-    const config = mockRateLimiter.mock.calls[0][0] as any;
-    expect(config.standardHeaders).toBe(true);
-    expect(config.legacyHeaders).toBe(false);
+      // Should complete within reasonable time (MIN_API_DELAY + buffer)
+      expect(elapsed).toBeLessThan(5000);
+    });
   });
 });
