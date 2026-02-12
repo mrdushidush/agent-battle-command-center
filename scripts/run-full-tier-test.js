@@ -14,6 +14,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
+const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -181,9 +182,9 @@ const TIER_CONFIG = {
 async function resetSystem() {
   console.log('🔄 Resetting system...');
   try {
-    await fetch(`${API_BASE}/agents/reset-all`, { method: 'POST' });
-    await fetch(`${API_BASE}/queue/resources/clear`, { method: 'POST' });
-    await fetch(`${API_BASE}/agents/ollama-reset-counter`, { method: 'POST' });
+    await fetch(`${API_BASE}/agents/reset-all`, { method: 'POST', headers: { 'X-API-Key': API_KEY } });
+    await fetch(`${API_BASE}/queue/resources/clear`, { method: 'POST', headers: { 'X-API-Key': API_KEY } });
+    await fetch(`${API_BASE}/agents/ollama-reset-counter`, { method: 'POST', headers: { 'X-API-Key': API_KEY } });
     console.log('   ✓ Agents, resources, and Ollama counter reset');
   } catch (e) {
     console.log('   ⚠ Could not reset: ' + e.message);
@@ -202,7 +203,7 @@ async function resetSystem() {
 async function createTask(task, tier) {
   const response = await fetch(`${API_BASE}/tasks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       title: `[TIER-${tier.toUpperCase()}] C${task.complexity}: ${task.name}`,
       description: task.description,
@@ -217,7 +218,7 @@ async function createTask(task, tier) {
 async function assignTask(taskId, agentId) {
   const response = await fetch(`${API_BASE}/queue/assign`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({ taskId, agentId })
   });
   return response.json();
@@ -242,7 +243,7 @@ async function executeTask(taskId, agentId, description, tier) {
 async function completeTask(taskId, result) {
   await fetch(`${API_BASE}/tasks/${taskId}/complete`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({ success: result.success, result })
   });
 }
@@ -251,7 +252,7 @@ async function waitForAgent(agentId, maxWaitMs = 300000) {
   const start = Date.now();
   while (Date.now() - start < maxWaitMs) {
     try {
-      const response = await fetch(`${API_BASE}/agents/${agentId}`);
+      const response = await fetch(`${API_BASE}/agents/${agentId}`, { headers: { 'X-API-Key': API_KEY } });
       const agent = await response.json();
       if (agent.status === 'idle') return true;
     } catch (e) {}
@@ -304,7 +305,7 @@ async function runTask(task, taskId, tier, logPrefix) {
     console.log(`${logPrefix} 💥 C${task.complexity} ${task.name} - ERROR: ${e.message.substring(0, 40)}`);
 
     // Reset agent on error
-    await fetch(`${API_BASE}/agents/reset-all`, { method: 'POST' }).catch(() => {});
+    await fetch(`${API_BASE}/agents/reset-all`, { method: 'POST', headers: { 'X-API-Key': API_KEY } }).catch(() => {});
     await sleep(3000);
 
     return { passed: false, elapsed, complexity: task.complexity };
@@ -418,7 +419,7 @@ async function main() {
 
   // Check Ollama rest status
   try {
-    const ollamaStatus = await fetch(`${API_BASE}/agents/ollama-status`).then(r => r.json());
+    const ollamaStatus = await fetch(`${API_BASE}/agents/ollama-status`, { headers: { 'X-API-Key': API_KEY } }).then(r => r.json());
     console.log('');
     console.log('🛏️ Ollama Rest Status:');
     console.log(`   Tasks completed: ${JSON.stringify(ollamaStatus.agentTaskCounts)}`);
