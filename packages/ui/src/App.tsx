@@ -5,12 +5,22 @@ import { useAgents } from './hooks/useAgents';
 import { useTasks } from './hooks/useTasks';
 import { useUIStore } from './store/uiState';
 import { audioManager } from './audio/audioManager';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { ShortcutsHelp } from './components/shared/ShortcutsHelp';
 
 function App() {
   const { connect, disconnect, isConnected } = useSocket();
   const { fetchAgents } = useAgents();
   const { fetchTasks } = useTasks();
   const { audioSettings } = useUIStore();
+
+  // Initialize keyboard shortcuts with refresh callback
+  const { shortcuts } = useKeyboardShortcuts({
+    onRefresh: () => {
+      fetchTasks();
+      fetchAgents();
+    },
+  });
 
   useEffect(() => {
     connect();
@@ -37,6 +47,7 @@ function App() {
           Connecting to server...
         </div>
       )}
+      <ShortcutsHelp shortcuts={shortcuts} />
     </div>
   );
 }
