@@ -4,12 +4,17 @@
 
 A Command & Conquer Red Alert-inspired control center for orchestrating AI coding agents with intelligent tiered routing. Watch your AI agents work in real-time with a retro RTS-style interface.
 
-[![Beta Ready](https://img.shields.io/badge/status-Beta%20Ready%20(8.1%2F10)-brightgreen)](./MVP_ASSESSMENT.md)
+[![Strong MVP](https://img.shields.io/badge/status-Strong%20MVP%20(8.5%2F10)-brightgreen)](./MVP_ASSESSMENT.md)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-dushidush-blue?logo=docker)](https://hub.docker.com/u/dushidush)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![Tests](https://img.shields.io/badge/tests-27%20test%20files-success)](./packages/api/src/__tests__)
 [![Ollama Tested](https://img.shields.io/badge/Ollama%20C1--C8-95%25%20pass-success)](./scripts/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+### Quick Links
+
+[What Makes This Special](#-what-makes-this-special) · [Screenshots](#-screenshots) · [Quick Start (Docker Hub)](#-quick-start-docker-hub--recommended) · [Quick Start (Source)](#️-quick-start-build-from-source) · [Architecture](#️-architecture) · [Key Features](#-key-features) · [Configuration](#️-configuration) · [Usage](#-usage) · [Testing](#-testing) · [Troubleshooting](#-troubleshooting) · [Documentation](#-documentation) · [Development](#️-development) · [Contributing](#-contributing) · [Performance](#-performance--benchmarks) · [Roadmap](#️-roadmap)
 
 ---
 
