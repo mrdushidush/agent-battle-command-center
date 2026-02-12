@@ -81,5 +81,8 @@ docs/UI_FEATURE_SHOWCASE.md
 packages/agents/TEST_TOOLS.md
 packages/api/prisma/migrations/*/CODE_CHANGES.md
 
+# Backups
+backups/
+
 # Windows artifacts
 nul

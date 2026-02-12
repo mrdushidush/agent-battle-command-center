@@ -49,6 +49,7 @@ services:
       timeout: 10s
       retries: 30
       start_period: 120s
+    # GPU acceleration (NVIDIA only). Comment out this block for CPU-only mode:
     deploy:
       resources:
         reservations:
@@ -65,7 +66,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abcc}?schema=public
       AGENTS_URL: http://agents:8000
       API_PORT: 3001
       API_KEY: ${API_KEY}
@@ -176,7 +177,7 @@ services:
       - ./workspace:/workspace:ro
       - ./.env:/env-source/.env:ro
       - ./:/env-restore
-      - /c/dev/abcc-backups:/backups-mirror
+      - ${BACKUP_MIRROR_PATH:-./backups}:/backups-mirror
     depends_on:
       postgres:
         condition: service_healthy

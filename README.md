@@ -114,6 +114,7 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
    ```bash
    docker compose up --build
    ```
+   > **No NVIDIA GPU?** Comment out the `deploy:` block in `docker-compose.yml` (lines 53-58) to run Ollama in CPU-only mode. It's slower but works.
 
 5. **Open the UI**
    - Navigate to: http://localhost:5173
