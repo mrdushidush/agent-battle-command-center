@@ -1,8 +1,8 @@
 # Agent Battle Command Center - Full Architecture Assessment
 
-**Date:** 2026-02-06 (Updated: Evening Session)
+**Date:** 2026-02-06 (Updated: 2026-02-12 — Docker Hub + Onboarding)
 **Assessor:** Software Architecture Review (Claude Opus 4.6)
-**Codebase Snapshot:** master branch, clean working tree
+**Codebase Snapshot:** main branch, clean working tree
 **Previous Score:** 7.2 / 10 (Strong Alpha, Pre-MVP)
 
 ---
@@ -13,7 +13,7 @@ The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platf
 
 Since the initial assessment earlier today, **significant improvements** have been made across security, testing, error handling, and infrastructure. Multiple critical and high-severity items from the original assessment have been addressed.
 
-### Overall Score: **8.1 / 10** (MVP Ready)
+### Overall Score: **8.5 / 10** (Strong MVP)
 
 | Category | Previous | Current | Delta | Status |
 |----------|----------|---------|-------|--------|
@@ -23,10 +23,10 @@ Since the initial assessment earlier today, **significant improvements** have be
 | Test Coverage | 3/10 | 5/10 | +2.0 | 10 API tests + 2 Python test suites |
 | Documentation | 7/10 | 7.5/10 | +0.5 | CHANGELOG exists, LICENSE added |
 | Security | 5/10 | 7.5/10 | +2.5 | API auth, CORS restricted, secrets in .env |
-| DevOps / CI | 7/10 | 7.5/10 | +0.5 | Backup healthy, all 7 services up |
-| Community Readiness | 4/10 | 5.5/10 | +1.5 | LICENSE, CHANGELOG, auth in place |
+| DevOps / CI | 7/10 | 8.5/10 | +1.5 | Docker Hub publishing, CI/CD, backup healthy |
+| Community Readiness | 4/10 | 7/10 | +3.0 | Docker Hub, setup script, README, LICENSE |
 
-**Score improvement: +0.9 points (7.2 -> 8.1)**
+**Score improvement: +1.3 points (7.2 -> 8.5)**
 
 ---
 
@@ -216,18 +216,20 @@ For ABCC, an MVP means: **A user can deploy the system, submit coding tasks thro
 | Code review system | DONE | DONE | Tiered Haiku/Opus reviews |
 | Error recovery | DONE | DONE | Stuck task auto-recovery (10min timeout) |
 | Backup system | DONE | DONE | Automated 30-min PostgreSQL backups (verified healthy) |
-| One-command deployment | DONE | DONE | `docker compose up` |
+| One-command deployment | DONE | DONE | `docker compose up` (source) or `docker compose -f docker-compose.hub.yml up` (pre-built) |
 | **Authentication** | MISSING | **DONE** | API key auth on all endpoints |
 | **Error handling** | PARTIAL | **DONE** | Error boundaries + component-level isolation |
 | **CORS security** | MISSING | **DONE** | Configurable origins with test coverage |
 | **Rate limiting** | MISSING | **DONE** | 100 req/min per IP |
 | **Secrets management** | MISSING | **DONE** | All secrets in .env, not compose file |
 | **LICENSE** | MISSING | **DONE** | MIT License at project root |
-| Basic documentation | PARTIAL | PARTIAL | Internal docs excellent, user docs improving |
+| Basic documentation | PARTIAL | **IMPROVED** | README with dual quickstart, setup guide, API docs |
 | Test suite | MINIMAL | **IMPROVED** | 12 test files (was 6), but still needs more |
 | Configuration UI | PARTIAL | **IMPROVED** | Settings: audio, budget, display, theme all working |
-| Onboarding flow | MISSING | MISSING | No first-run setup wizard |
-| User-facing README | MINIMAL | MINIMAL | Needs screenshots and proper quickstart |
+| Onboarding flow | MISSING | **DONE** | `bash scripts/setup.sh` auto-generates .env with all keys |
+| User-facing README | MINIMAL | **DONE** | Docker Hub quickstart + build-from-source quickstart |
+| **Docker Hub images** | N/A | **DONE** | `dushidush/api`, `dushidush/agents`, `dushidush/ui` on Docker Hub |
+| **Startup validation** | N/A | **DONE** | Fails fast with clear errors on misconfigured .env |
 
 ### Verdict: **MVP Ready**
 
@@ -240,10 +242,8 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 
 **What keeps it at MVP (not Beta):**
 - Test coverage still needs work (5/10) — no UI tests, no E2E tests
-- No user-facing documentation (README needs screenshots/quickstart)
 - No CONTRIBUTING.md or SECURITY.md
 - Step-by-step mode still returns simulated data
-- No onboarding flow for new users
 
 ---
 
@@ -300,6 +300,10 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 7. **Training data pipeline** — Agent executions captured as JSONL for future fine-tuning.
 
 8. **Resilient operations** — Stuck task auto-recovery, automated backups, agent reset capabilities.
+
+9. **Docker Hub publishing** — Pre-built images (`dushidush/api`, `dushidush/agents`, `dushidush/ui`) eliminate the 5+ min build step. New users go from clone to running in ~30 seconds.
+
+10. **Onboarding automation** — `scripts/setup.sh` generates all secure keys, matches passwords/API keys automatically, and prompts for Anthropic key. Startup validation in `docker-entrypoint.sh` catches misconfigurations before the server starts.
 
 ---
 
@@ -374,13 +378,14 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 
 | Task | Priority | Status |
 |------|----------|--------|
-| Write user-facing README with screenshots | P0 | **In Progress** |
+| Write user-facing README with screenshots | P0 | **DONE** (dual quickstart: Docker Hub + source) |
 | Complete unit test coverage (20+ total) | P0 | **DONE** (27 tests) |
 | CONTRIBUTING.md + SECURITY.md | P1 | **DONE** |
+| Docker Hub image publishing | P1 | **DONE** (v0.2.1 — CI/CD on release) |
+| Setup script + startup validation | P1 | **DONE** (`scripts/setup.sh` + entrypoint checks) |
 | E2E test suite (Playwright) | P1 | Not started |
 | UI component tests (Vitest) | P1 | Not started |
 | Purge coder-02 / fix agent routing | P1 | Not started |
-| Onboarding flow / first-run wizard | P2 | 2 days |
 | Multi-language workspace (JS/TS) | P2 | 3 days |
 | API documentation (OpenAPI/Swagger) | P2 | 1 day |
 
@@ -398,18 +403,22 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 7. ~~Add HTTP rate limiting~~ **DONE**
 8. ~~Make MCP gateway optional~~ **DONE**
 
+### Completed (2026-02-12)
+1. ~~Docker Hub image publishing~~ **DONE** — `dushidush/api`, `agents`, `ui` published via CI/CD
+2. ~~Setup script~~ **DONE** — `scripts/setup.sh` auto-generates .env with matched keys
+3. ~~Startup validation~~ **DONE** — `docker-entrypoint.sh` validates config before starting
+4. ~~.env.example overhaul~~ **DONE** — REQUIRED/OPTIONAL sections, cross-references
+5. ~~README dual quickstart~~ **DONE** — Docker Hub (recommended) + build from source
+
 ### Do Next (This Week)
-1. Fix `.env.example` OLLAMA_MODEL default (5 min)
-2. Purge coder-02 from agent registry (30 min)
-3. Write 8 more unit tests to hit 20+ (2 days)
-4. Create README with screenshots and quickstart (1 day)
+1. Purge coder-02 from agent registry (30 min)
+2. Add E2E tests (Playwright)
+3. UI component tests
 
 ### Do Before "Beta" Label
-5. Create CONTRIBUTING.md and SECURITY.md
-6. Add E2E tests (Playwright)
-7. UI component tests
-8. Add input validation (Zod) to all routes
-9. Fix `api_credits_used` placeholder
+4. Create CONTRIBUTING.md and SECURITY.md
+5. Add input validation (Zod) to all routes
+6. Fix `api_credits_used` placeholder
 
 ---
 
@@ -418,23 +427,30 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 ```
 Initial Assessment (Morning):  7.2 / 10 (Strong Alpha, Pre-MVP)
 Updated Assessment (Evening):  8.1 / 10 (MVP Ready)
+Docker Hub Update (Feb 12):    8.5 / 10 (Strong MVP)
                                ─────────
-                        Delta: +0.9 points
+                 Total Delta: +1.3 points
 
-Key Improvements:
+Key Improvements (cumulative):
+  Community:    4.0 → 7.0  (+3.0)  ███████████████
   Security:     5.0 → 7.5  (+2.5)  ████████████▌
   Testing:      3.0 → 5.0  (+2.0)  ██████████
-  Community:    4.0 → 5.5  (+1.5)  ███████▌
+  DevOps:       7.0 → 8.5  (+1.5)  ███████▌
   Architecture: 8.0 → 8.5  (+0.5)  ██▌
   Features:     7.0 → 7.5  (+0.5)  ██▌
   Code Quality: 6.5 → 7.0  (+0.5)  ██▌
   Documentation:7.0 → 7.5  (+0.5)  ██▌
-  DevOps:       7.0 → 7.5  (+0.5)  ██▌
+
+Feb 12 Improvements:
+  DevOps:       7.5 → 8.5  (+1.0)  Docker Hub CI/CD, startup validation
+  Community:    5.5 → 7.0  (+1.5)  Setup script, dual README quickstart, pre-built images
 ```
 
 ---
 
-*Assessment updated: 2026-02-06 (Evening)*
-*Project version: 1.0.0*
+*Assessment updated: 2026-02-12 (Docker Hub + Onboarding)*
+*Project version: v0.2.1*
+*Docker Hub: dushidush/api, dushidush/agents, dushidush/ui*
+*Clone traffic: 119 unique cloners (14-day), 20 unique cloners (24h)*
 *Total source files reviewed: ~130 across 5 packages*
 *Live system verified: All 7 services healthy, 35 Ollama tasks completed at 100% success*
