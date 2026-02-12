@@ -105,6 +105,7 @@ Pre-built images on Docker Hub. No cloning the full repo, no build step — just
    curl -O https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/.env.example
    curl -o scripts/setup.sh https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/scripts/setup.sh
    curl -o scripts/ollama-entrypoint.sh https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/scripts/ollama-entrypoint.sh
+   curl -o scripts/nginx-hub.conf https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/scripts/nginx-hub.conf
    ```
 
 2. **Run setup** (auto-generates all keys, prompts for Anthropic key)
