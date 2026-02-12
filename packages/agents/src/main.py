@@ -158,6 +158,23 @@ def get_model_tier(model: str) -> str:
     return "sonnet"  # Default to sonnet tier
 
 
+# Cost rates per million tokens (USD) - mirrors costCalculator.ts
+COST_RATES = {
+    "ollama": {"input": 0, "output": 0},
+    "haiku": {"input": 1, "output": 5},
+    "sonnet": {"input": 3, "output": 15},
+    "opus": {"input": 5, "output": 25},
+}
+
+
+def calculate_api_credits(model_tier: str, input_tokens: int, output_tokens: int) -> float:
+    """Calculate API cost in USD from token usage and model tier."""
+    rates = COST_RATES.get(model_tier, COST_RATES["sonnet"])
+    input_cost = (input_tokens / 1_000_000) * rates["input"]
+    output_cost = (output_tokens / 1_000_000) * rates["output"]
+    return round(input_cost + output_cost, 6)
+
+
 @app.post("/execute", response_model=ExecuteResponse)
 async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
     """Execute a task with the specified agent."""
@@ -372,14 +389,19 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         # Use structured output as the main output
         final_output = structured_output.model_dump_json(indent=2)
 
+        total_input, total_output = token_tracker.get_total_tokens()
+        api_credits = calculate_api_credits(llm_model_tier, total_input, total_output)
+
         return ExecuteResponse(
             success=structured_output.success,
             execution_id=execution_id,
             output=final_output,
             metrics={
                 "time_spent_ms": elapsed_ms,
-                "api_credits_used": 0.1,  # Placeholder - would need proper tracking
+                "api_credits_used": api_credits,
                 "iterations": 1,
+                "input_tokens": total_input,
+                "output_tokens": total_output,
             },
         )
 

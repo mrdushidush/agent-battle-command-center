@@ -66,7 +66,8 @@ async function main() {
     },
   });
 
-  // coder-02 removed - single Ollama agent is sufficient with 1 resource slot
+  // Clean up ghost agent coder-02 if it exists from old seed runs
+  await prisma.agent.deleteMany({ where: { id: 'coder-02' } });
 
   await prisma.agent.upsert({
     where: { id: 'qa-01' },

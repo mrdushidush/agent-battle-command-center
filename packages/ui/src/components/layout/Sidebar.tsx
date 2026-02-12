@@ -3,7 +3,7 @@ import { AgentCard } from '../shared/AgentCard';
 import { useUIStore } from '../../store/uiState';
 
 // Agents to hide from UI (unused/test agents)
-const HIDDEN_AGENTS = ['coder-02'];
+const HIDDEN_AGENTS: string[] = [];
 
 export function Sidebar() {
   const { agents, sidebarCollapsed, toggleSidebar, alerts } = useUIStore();
