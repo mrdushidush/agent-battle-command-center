@@ -1,4 +1,5 @@
 """Structured output schemas for agent execution results."""
+import os
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
@@ -166,6 +167,7 @@ def _parse_from_execution_logs(logs: List[dict], raw_output: str) -> AgentOutput
     what_failed = []
     test_results = None
     actual_test_output = None
+    parsed_test_result = None
 
     # Process each logged action
     for log in logs:
@@ -227,6 +229,7 @@ def _parse_from_execution_logs(logs: List[dict], raw_output: str) -> AgentOutput
                     actual_test_output = observation
                     # Parse test results
                     parsed = parse_test_output(observation)
+                    parsed_test_result = parsed  # Keep TestResult reference for status check
                     if parsed.tests_run > 0:
                         test_results = parsed.summary
                     else:
@@ -287,11 +290,21 @@ def _parse_from_execution_logs(logs: List[dict], raw_output: str) -> AgentOutput
         suggestions.append("Check test file location and naming")
         suggestions.append("Verify test functions start with 'test_'")
     elif has_meaningful_output:
-        # FILES WERE CREATED = SUCCESS (even if iteration limit was hit)
-        status = "SUCCESS"
-        confidence = max(0.7, success_ratio)  # At least 0.7 if files were created
+        # Files were created - but check if tests FAILED
+        if parsed_test_result and parsed_test_result.tests_run > 0 and not parsed_test_result.is_valid_success:
+            # Tests ran and FAILED - this is NOT success even if files exist
+            status = "SOFT_FAILURE"
+            confidence = parsed_test_result.success_rate
+            failure_reason = f"Tests failed: {parsed_test_result.summary}"
+            if parsed_test_result.tests_failed > 0:
+                suggestions.append(f"{parsed_test_result.tests_failed} test(s) failed - review test output")
+            if parsed_test_result.tests_errors > 0:
+                suggestions.append(f"{parsed_test_result.tests_errors} test error(s) - check for exceptions")
+        else:
+            # No tests ran or all tests passed = SUCCESS
+            status = "SUCCESS"
+            confidence = max(0.7, success_ratio)
         if hit_iteration_limit:
-            # Note: hit limit but still completed - add suggestion for efficiency
             suggestions.append("Task completed but hit iteration limit - consider optimizing")
         if hit_loop:
             suggestions.append("Some loops detected but task completed")
@@ -350,12 +363,15 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
     what_failed = []
     test_results = None
     actual_test_output = None
+    parsed_test_result = None
 
     # Try to fetch execution logs from API if task_id provided
     if task_id:
         try:
             import requests
-            response = requests.get(f"{api_url}/api/execution-logs/task/{task_id}", timeout=5)
+            api_key = os.environ.get("API_KEY", "")
+            headers = {"X-API-Key": api_key} if api_key else {}
+            response = requests.get(f"{api_url}/api/execution-logs/task/{task_id}", headers=headers, timeout=5)
             if response.status_code == 200:
                 logs = response.json()
                 return _parse_from_execution_logs(logs, raw_output)
@@ -447,6 +463,7 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
                     actual_test_output = observation
                     # Parse test results
                     parsed = parse_test_output(observation)
+                    parsed_test_result = parsed  # Keep TestResult reference for status check
                     if parsed.tests_run > 0:
                         test_results = parsed.summary
                     else:
@@ -507,11 +524,21 @@ def parse_agent_output(raw_output: str, task_id: Optional[str] = None, api_url: 
         suggestions.append("Check test file location and naming")
         suggestions.append("Verify test functions start with 'test_'")
     elif has_meaningful_output:
-        # FILES WERE CREATED = SUCCESS (even if iteration limit was hit)
-        status = "SUCCESS"
-        confidence = max(0.7, success_ratio)  # At least 0.7 if files were created
+        # Files were created - but check if tests FAILED
+        if parsed_test_result and parsed_test_result.tests_run > 0 and not parsed_test_result.is_valid_success:
+            # Tests ran and FAILED - this is NOT success even if files exist
+            status = "SOFT_FAILURE"
+            confidence = parsed_test_result.success_rate
+            failure_reason = f"Tests failed: {parsed_test_result.summary}"
+            if parsed_test_result.tests_failed > 0:
+                suggestions.append(f"{parsed_test_result.tests_failed} test(s) failed - review test output")
+            if parsed_test_result.tests_errors > 0:
+                suggestions.append(f"{parsed_test_result.tests_errors} test error(s) - check for exceptions")
+        else:
+            # No tests ran or all tests passed = SUCCESS
+            status = "SUCCESS"
+            confidence = max(0.7, success_ratio)
         if hit_iteration_limit:
-            # Note: hit limit but still completed - add suggestion for efficiency
             suggestions.append("Task completed but hit iteration limit - consider optimizing")
         if hit_loop:
             suggestions.append("Some loops detected but task completed")

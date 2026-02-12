@@ -221,5 +221,22 @@ def parse_test_output(output: str) -> TestResult:
     if result.tests_run > 0:
         return result
 
+    # Fallback: detect failures from partial/truncated unittest output
+    # Even if "Ran X tests" line is truncated, we can count FAIL: occurrences
+    fail_lines = re.findall(r'^FAIL:\s+\w+', output, re.MULTILINE)
+    error_lines = re.findall(r'^ERROR:\s+\w+', output, re.MULTILINE)
+    if fail_lines or error_lines:
+        result = TestResult(framework="unittest-partial", raw_output=output)
+        result.tests_failed = len(fail_lines)
+        result.tests_errors = len(error_lines)
+        # Try to get total from truncated "Ran X t..." pattern
+        ran_partial = re.search(r'Ran\s+(\d+)\s+t', output)
+        if ran_partial:
+            result.tests_run = int(ran_partial.group(1))
+        else:
+            result.tests_run = result.tests_failed + result.tests_errors
+        result.tests_passed = max(0, result.tests_run - result.tests_failed - result.tests_errors)
+        return result
+
     # No tests found - return empty result
     return TestResult(raw_output=output)

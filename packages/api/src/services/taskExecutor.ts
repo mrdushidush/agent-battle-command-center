@@ -82,6 +82,25 @@ export class TaskExecutor {
       throw new Error(`Task ${taskId} not found`);
     }
 
+    // === SAFETY NET: Validate test results from agent output ===
+    if (result.output && typeof result.output === 'string') {
+      try {
+        const agentOutput = JSON.parse(result.output as string);
+        if (this.detectTestFailures(agentOutput)) {
+          console.warn(
+            `[TaskExecutor] Task ${taskId} reported success but has test failures - redirecting to failure handler`
+          );
+          const failureReason = agentOutput.failure_reason
+            || agentOutput.test_results
+            || 'Tests failed but task was reported as successful';
+          await this.handleTaskFailure(taskId, failureReason);
+          return;
+        }
+      } catch {
+        // If output isn't valid JSON, skip validation
+      }
+    }
+
     // Release file locks
     await this.taskAssigner.releaseFileLocks(taskId);
 
@@ -418,6 +437,28 @@ export class TaskExecutor {
     this.codeReviewService.triggerReview(taskId, executedByModel).catch((error) => {
       console.error('Failed to trigger code review:', error);
     });
+  }
+
+  /**
+   * Detect test failures in agent output JSON.
+   * Returns true if tests were run and failed.
+   * Returns false if no tests ran or all tests passed.
+   */
+  private detectTestFailures(agentOutput: Record<string, unknown>): boolean {
+    // Check 1: success field is explicitly false
+    if (agentOutput.success === false) {
+      return true;
+    }
+
+    // Check 2: test_results string contains FAILURE indicator
+    if (typeof agentOutput.test_results === 'string') {
+      const tr = agentOutput.test_results.toUpperCase();
+      if (tr.includes('FAILURE -') && (tr.includes('FAILED') || tr.includes('ERRORS'))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private calculateSuccessRate(completed: number, failed: number): number {

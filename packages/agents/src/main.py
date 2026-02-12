@@ -373,7 +373,7 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         final_output = structured_output.model_dump_json(indent=2)
 
         return ExecuteResponse(
-            success=True,
+            success=structured_output.success,
             execution_id=execution_id,
             output=final_output,
             metrics={

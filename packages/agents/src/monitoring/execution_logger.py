@@ -242,7 +242,7 @@ def create_tool_wrapper(tool, logger: ExecutionLogger):
             # Estimate token usage from input/output sizes
             # Most tool calls don't use LLM tokens, so these will be 0 or small estimates
             input_str = json.dumps(action_input) if isinstance(action_input, dict) else str(action_input)
-            output_str = str(result)[:1000]
+            output_str = str(result)[:4000]
 
             estimated_input_tokens = ExecutionLogger.estimate_tokens(input_str)
             estimated_output_tokens = ExecutionLogger.estimate_tokens(output_str)
