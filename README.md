@@ -39,6 +39,10 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
 
 ## 📸 Screenshots
 
+### Live Demo
+![Command Center in Action](docs/screenshots/CommandCenter1.gif)
+*The full command center running live — agent minimap, task queue, and real-time tool execution log.*
+
 ### Main Command Center (Overseer Mode)
 ![Command Center Overview](docs/screenshots/command-center-overview.png)
 *The main view showing task queue (bounty board), active missions strip, and real-time tool log with C&C Red Alert aesthetic.*
