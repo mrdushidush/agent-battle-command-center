@@ -330,6 +330,6 @@ See full documentation:
 
 ## Support
 
-- Issues: https://github.com/yourusername/agent-battle-command-center/issues
+- Issues: https://github.com/mrdushidush/agent-battle-command-center/issues
 - Docs: docs/
 - README: README.md

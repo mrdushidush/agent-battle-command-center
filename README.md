@@ -88,7 +88,7 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/agent-battle-command-center.git
+   git clone https://github.com/mrdushidush/agent-battle-command-center.git
    cd agent-battle-command-center
    ```
 
@@ -97,19 +97,17 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
    cp .env.example .env
    ```
 
-3. **Configure API keys** (edit `.env`)
+3. **Configure secrets** (edit `.env`)
    ```bash
-   # Required: Anthropic API key
-   ANTHROPIC_API_KEY=sk-ant-api03-...
+   # Generate 3 secure keys (run this 3 times, use each output below):
+   openssl rand -hex 32
 
-   # Required: Secure API key (generate with: openssl rand -hex 32)
-   API_KEY=your_secure_api_key_minimum_32_characters_here
-
-   # Required: Database password
-   POSTGRES_PASSWORD=your_secure_postgres_password_here
-
-   # Required: JWT secret (generate with: openssl rand -hex 32)
-   JWT_SECRET=your_secure_jwt_secret_minimum_32_characters_required
+   # Then edit .env and replace CHANGE_ME values:
+   POSTGRES_PASSWORD=<key1>          # Also update the password in DATABASE_URL!
+   API_KEY=<key2>                    # API authentication
+   VITE_API_KEY=<key2>              # Must match API_KEY (same value)
+   JWT_SECRET=<key3>                 # JWT signing
+   ANTHROPIC_API_KEY=sk-ant-api03-...  # From https://console.anthropic.com
    ```
 
 4. **Start all services**
@@ -687,8 +685,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Support
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/agent-battle-command-center/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/agent-battle-command-center/discussions)
+- **Issues:** [GitHub Issues](https://github.com/mrdushidush/agent-battle-command-center/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/mrdushidush/agent-battle-command-center/discussions)
 - **Documentation:** [docs/](docs/)
 
 ---
