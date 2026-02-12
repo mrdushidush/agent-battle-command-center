@@ -97,11 +97,13 @@ Pre-built images on Docker Hub. No cloning the full repo, no build step — just
 
 ### Installation
 
-1. **Download the compose file and env template**
+1. **Download the files**
    ```bash
    mkdir agent-battle-command-center && cd agent-battle-command-center
+   mkdir -p scripts
    curl -O https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/docker-compose.hub.yml
    curl -O https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/.env.example
+   curl -o scripts/setup.sh https://raw.githubusercontent.com/mrdushidush/agent-battle-command-center/main/scripts/setup.sh
    ```
 
 2. **Run setup** (auto-generates all keys, prompts for Anthropic key)
