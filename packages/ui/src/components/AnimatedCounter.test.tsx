@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '../../test/utils';
-import { AnimatedCounter } from './AnimatedCounter';
+import { render, screen } from '../test/utils';
+import { AnimatedCounter } from './shared/AnimatedCounter';
 
 describe('AnimatedCounter', () => {
   it('should render the value', () => {

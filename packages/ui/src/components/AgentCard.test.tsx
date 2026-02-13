@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '../../test/utils';
-import { mockAgent, mockTask } from '../../test/utils';
-import { AgentCard } from './AgentCard';
+import { render, screen } from '../test/utils';
+import { mockAgent, mockTask } from '../test/utils';
+import { AgentCard } from './shared/AgentCard';
 
 // Mock the store and hooks
 vi.mock('../../store/uiState', () => ({

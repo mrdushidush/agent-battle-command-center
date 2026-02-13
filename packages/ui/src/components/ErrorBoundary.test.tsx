@@ -38,7 +38,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText('System Error Detected')).toBeInTheDocument();
   });
 
   it('should display error message', () => {
@@ -48,16 +48,20 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Test error/)).toBeInTheDocument();
+    // The error message appears in the Message section
+    expect(screen.getByText('Message')).toBeInTheDocument();
+    // Use getAllByText since "Test error" appears in both message and stack trace
+    expect(screen.getAllByText(/Test error/).length).toBeGreaterThan(0);
   });
 
-  it('should show reload button', () => {
+  it('should show action buttons', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Reload')).toBeInTheDocument();
+    expect(screen.getByText('Try Again')).toBeInTheDocument();
+    expect(screen.getByText('Reload Page')).toBeInTheDocument();
   });
 });
