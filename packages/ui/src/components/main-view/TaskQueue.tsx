@@ -1,6 +1,7 @@
 import { Plus, CheckCircle, Clock, Archive } from 'lucide-react';
 import { useState } from 'react';
 import { TaskCard } from '../shared/TaskCard';
+import { TaskQueueSkeleton } from '../shared/Skeleton';
 import { useUIStore } from '../../store/uiState';
 import { CreateTaskModal } from './CreateTaskModal';
 
@@ -13,7 +14,7 @@ function isToday(date: Date | string | null | undefined): boolean {
 }
 
 export function TaskQueue() {
-  const { tasks } = useUIStore();
+  const { tasks, isLoading } = useUIStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'coder' | 'qa'>('all');
   const [showCompleted, setShowCompleted] = useState(false);
@@ -106,7 +107,9 @@ export function TaskQueue() {
 
       {/* Task List - Full grid view */}
       <div className="flex-1 overflow-y-auto p-3">
-        {filteredTasks.length === 0 ? (
+        {isLoading.tasks ? (
+          <TaskQueueSkeleton count={6} />
+        ) : filteredTasks.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 text-sm">
             <div className="text-center">
               <p>{showCompleted

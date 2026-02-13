@@ -120,6 +120,13 @@ interface UIState {
     todayTasks: number;
   };
   updateBudget: (budget: Partial<UIState['budget']>) => void;
+
+  // Loading states
+  isLoading: {
+    tasks: boolean;
+    agents: boolean;
+  };
+  setLoading: (key: keyof UIState['isLoading'], value: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -288,5 +295,15 @@ export const useUIStore = create<UIState>((set) => ({
   updateBudget: (budget) =>
     set((state) => ({
       budget: { ...state.budget, ...budget },
+    })),
+
+  // Loading states
+  isLoading: {
+    tasks: true,
+    agents: true,
+  },
+  setLoading: (key, value) =>
+    set((state) => ({
+      isLoading: { ...state.isLoading, [key]: value },
     })),
 }));

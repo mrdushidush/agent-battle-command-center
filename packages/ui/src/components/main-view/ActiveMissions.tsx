@@ -1,5 +1,6 @@
 import { ArrowRight, AlertTriangle, Loader, Zap, Activity } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
+import { ActiveMissionsSkeleton } from '../shared/Skeleton';
 import type { Agent, Task } from '@abcc/shared';
 import { useEffect, useState } from 'react';
 
@@ -113,7 +114,7 @@ function CompactMission({ agent, task }: CompactMissionProps) {
 }
 
 export function ActiveMissions() {
-  const { tasks, agents } = useUIStore();
+  const { tasks, agents, isLoading } = useUIStore();
 
   const activeTasks = tasks.filter(t =>
     ['assigned', 'in_progress', 'needs_human'].includes(t.status)
@@ -154,7 +155,9 @@ export function ActiveMissions() {
 
       {/* Horizontal scrolling mission strip */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-3 pb-2">
-        {missions.length === 0 ? (
+        {isLoading.agents || isLoading.tasks ? (
+          <ActiveMissionsSkeleton count={3} />
+        ) : missions.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-600 text-xs">
             No active tasks - agents idle
           </div>

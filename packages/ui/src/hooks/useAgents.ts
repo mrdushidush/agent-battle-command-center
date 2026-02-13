@@ -4,12 +4,13 @@ import { useUIStore } from '../store/uiState';
 import type { AgentConfig } from '@abcc/shared';
 
 export function useAgents() {
-  const { agents, setAgents, updateAgent, selectAgent, selectedAgentId } = useUIStore();
-  const [loading, setLoading] = useState(false);
+  const { agents, setAgents, updateAgent, selectAgent, selectedAgentId, setLoading } = useUIStore();
+  const [loading, setLoadingLocal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAgents = useCallback(async (filters?: { type?: string; status?: string }) => {
-    setLoading(true);
+    setLoadingLocal(true);
+    setLoading('agents', true);
     setError(null);
     try {
       const data = await agentsApi.list(filters);
@@ -17,12 +18,13 @@ export function useAgents() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch agents');
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
+      setLoading('agents', false);
     }
-  }, [setAgents]);
+  }, [setAgents, setLoading]);
 
   const getAgent = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const data = await agentsApi.get(id);
@@ -31,12 +33,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to fetch agent');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, []);
 
   const updateAgentConfig = useCallback(async (id: string, config: Partial<AgentConfig>) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.update(id, config);
@@ -46,12 +48,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to update agent');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const pauseAgent = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.pause(id);
@@ -61,12 +63,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to pause agent');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const resumeAgent = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.resume(id);
@@ -76,12 +78,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to resume agent');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const abortAgentTask = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.abort(id);
@@ -91,12 +93,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to abort agent task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const setAgentOffline = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.setOffline(id);
@@ -106,12 +108,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to set agent offline');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const setAgentOnline = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const agent = await agentsApi.setOnline(id);
@@ -121,12 +123,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to set agent online');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateAgent]);
 
   const assignTaskToAgent = useCallback(async (taskId: string, agentId: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       await queueApi.assign(taskId, agentId);
@@ -136,12 +138,12 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to assign task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [fetchAgents]);
 
   const autoAssignTask = useCallback(async (agentId: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const result = await queueApi.autoAssign(agentId);
@@ -153,7 +155,7 @@ export function useAgents() {
       setError(err instanceof Error ? err.message : 'Failed to auto-assign task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [fetchAgents]);
 

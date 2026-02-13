@@ -4,12 +4,13 @@ import { useUIStore } from '../store/uiState';
 import type { TaskType, TaskPriority, AgentType } from '@abcc/shared';
 
 export function useTasks() {
-  const { tasks, setTasks, updateTask, selectTask, selectedTaskId } = useUIStore();
-  const [loading, setLoading] = useState(false);
+  const { tasks, setTasks, updateTask, selectTask, selectedTaskId, setLoading } = useUIStore();
+  const [loading, setLoadingLocal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async (filters?: { status?: string; requiredAgent?: string }) => {
-    setLoading(true);
+    setLoadingLocal(true);
+    setLoading('tasks', true);
     setError(null);
     try {
       const data = await tasksApi.list(filters);
@@ -17,9 +18,10 @@ export function useTasks() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
+      setLoading('tasks', false);
     }
-  }, [setTasks]);
+  }, [setTasks, setLoading]);
 
   const createTask = useCallback(async (data: {
     title: string;
@@ -30,7 +32,7 @@ export function useTasks() {
     maxIterations?: number;
     lockedFiles?: string[];
   }) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const task = await tasksApi.create(data);
@@ -40,7 +42,7 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to create task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateTask]);
 
@@ -50,7 +52,7 @@ export function useTasks() {
     priority?: TaskPriority;
     maxIterations?: number;
   }) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const task = await tasksApi.update(id, data);
@@ -60,12 +62,12 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to update task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateTask]);
 
   const deleteTask = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       await tasksApi.delete(id);
@@ -76,12 +78,12 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to delete task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [selectedTaskId, selectTask]);
 
   const retryTask = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const task = await tasksApi.retry(id);
@@ -91,12 +93,12 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to retry task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateTask]);
 
   const abortTask = useCallback(async (id: string) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const task = await tasksApi.abort(id);
@@ -106,7 +108,7 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to abort task');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateTask]);
 
@@ -116,7 +118,7 @@ export function useTasks() {
     action: 'approve' | 'reject' | 'modify',
     modifiedContent?: string
   ) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const task = await tasksApi.submitHumanInput(id, { input, action, modifiedContent });
@@ -126,7 +128,7 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to submit human input');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, [updateTask]);
 
@@ -138,7 +140,7 @@ export function useTasks() {
       allowFallback?: boolean;
     }
   ) => {
-    setLoading(true);
+    setLoadingLocal(true);
     setError(null);
     try {
       const result = await executeApi.start(taskId, options);
@@ -147,7 +149,7 @@ export function useTasks() {
       setError(err instanceof Error ? err.message : 'Failed to start execution');
       throw err;
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   }, []);
 
