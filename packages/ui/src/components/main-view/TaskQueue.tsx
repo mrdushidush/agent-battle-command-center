@@ -36,14 +36,14 @@ export function TaskQueue() {
     : displayTasks.filter(t => t.requiredAgent === filter || t.requiredAgent === null);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" role="region" aria-label="Task queue">
       {/* Header */}
       <div className="p-3 border-b border-command-border flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="font-display text-sm uppercase tracking-wider text-gray-400">
+          <h2 className="font-display text-sm uppercase tracking-wider text-gray-400" id="task-queue-heading">
             Task Queue
           </h2>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500" aria-live="polite">
             {showCompleted
               ? showArchive
                 ? `${completedTasks.length} total completed`
@@ -52,16 +52,17 @@ export function TaskQueue() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" role="toolbar" aria-label="Task queue controls">
           {/* Pending/Completed Toggle */}
           <button
             onClick={() => { setShowCompleted(!showCompleted); setShowArchive(false); }}
             className={`p-1.5 rounded transition-colors ${
               showCompleted ? 'bg-hud-green/20 text-hud-green' : 'bg-command-accent text-gray-400'
             }`}
-            title={showCompleted ? 'Show pending tasks' : 'Show completed tasks'}
+            aria-label={showCompleted ? 'Show pending tasks' : 'Show completed tasks'}
+            aria-pressed={showCompleted}
           >
-            {showCompleted ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+            {showCompleted ? <CheckCircle className="w-4 h-4" aria-hidden="true" /> : <Clock className="w-4 h-4" aria-hidden="true" />}
           </button>
           {/* Archive Toggle (only visible when showing completed) */}
           {showCompleted && archivedCount > 0 && (
@@ -70,14 +71,15 @@ export function TaskQueue() {
               className={`p-1.5 rounded transition-colors flex items-center gap-1 text-xs ${
                 showArchive ? 'bg-hud-orange/20 text-hud-orange' : 'bg-command-accent text-gray-400'
               }`}
-              title={showArchive ? 'Show today only' : `Show all (${archivedCount} archived)`}
+              aria-label={showArchive ? 'Show today only' : `Show all archived tasks (${archivedCount})`}
+              aria-pressed={showArchive}
             >
-              <Archive className="w-4 h-4" />
+              <Archive className="w-4 h-4" aria-hidden="true" />
               {showArchive ? 'Today' : `+${archivedCount}`}
             </button>
           )}
           {/* Filter */}
-          <div className="flex items-center gap-1 bg-command-accent rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-command-accent rounded-lg p-1" role="group" aria-label="Filter by agent type">
             {['all', 'coder', 'qa'].map((f) => (
               <button
                 key={f}
@@ -89,6 +91,8 @@ export function TaskQueue() {
                     : 'bg-command-panel text-white'
                     : 'text-gray-500'
                 }`}
+                aria-label={`Filter by ${f === 'all' ? 'all agents' : f}`}
+                aria-pressed={filter === f}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
@@ -98,19 +102,20 @@ export function TaskQueue() {
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary text-xs py-1.5"
+            aria-label="Create new task"
           >
-            <Plus className="w-3 h-3 inline mr-1" />
+            <Plus className="w-3 h-3 inline mr-1" aria-hidden="true" />
             Add Task
           </button>
         </div>
       </div>
 
       {/* Task List - Full grid view */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3" role="list" aria-labelledby="task-queue-heading">
         {isLoading.tasks ? (
           <TaskQueueSkeleton count={6} />
         ) : filteredTasks.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          <div className="h-full flex items-center justify-center text-gray-500 text-sm" role="status">
             <div className="text-center">
               <p>{showCompleted
                 ? showArchive
@@ -142,7 +147,9 @@ export function TaskQueue() {
             {filteredTasks
               .sort((a, b) => b.priority - a.priority)
               .map(task => (
-                <TaskCard key={task.id} task={task} />
+                <div key={task.id} role="listitem">
+                  <TaskCard task={task} />
+                </div>
               ))}
           </div>
         )}

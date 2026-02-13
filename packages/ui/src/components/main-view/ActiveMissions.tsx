@@ -50,28 +50,38 @@ function CompactMission({ agent, task }: CompactMissionProps) {
       isStuck || loopDetected
         ? 'border-hud-amber/50 bg-hud-amber/5 animate-pulse'
         : 'border-command-border bg-command-panel'
-    }`}>
+    }`} role="article" aria-label={`${agent.name} working on ${task.title}`}>
       {/* Top row: Agent + Task */}
       <div className="flex items-center gap-2">
         {/* Agent indicator */}
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-          agent.type === 'coder' ? 'bg-agent-coder' :
-          agent.type === 'qa' ? 'bg-agent-qa' : 'bg-agent-cto'
-        }`} />
+        <div 
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            agent.type === 'coder' ? 'bg-agent-coder' :
+            agent.type === 'qa' ? 'bg-agent-qa' : 'bg-agent-cto'
+          }`}
+          aria-hidden="true"
+        />
+        <span className="sr-only">{agent.type} agent</span>
 
         {/* Agent name */}
         <span className="text-[10px] text-gray-500 w-16 truncate">{agent.name}</span>
 
-        <ArrowRight className="w-3 h-3 text-gray-600 flex-shrink-0" />
+        <ArrowRight className="w-3 h-3 text-gray-600 flex-shrink-0" aria-hidden="true" />
 
         {/* Task title */}
         <span className="text-xs truncate flex-1 min-w-0">{task.title}</span>
 
         {/* Status */}
         {isStuck || loopDetected ? (
-          <AlertTriangle className="w-3 h-3 text-hud-amber flex-shrink-0" />
+          <>
+            <AlertTriangle className="w-3 h-3 text-hud-amber flex-shrink-0" aria-hidden="true" />
+            <span className="sr-only">Needs attention</span>
+          </>
         ) : (
-          <Loader className="w-3 h-3 text-hud-blue flex-shrink-0 animate-spin" style={{ animationDuration: '2s' }} />
+          <>
+            <Loader className="w-3 h-3 text-hud-blue flex-shrink-0 animate-spin" style={{ animationDuration: '2s' }} aria-hidden="true" />
+            <span className="sr-only">In progress</span>
+          </>
         )}
       </div>
 
@@ -79,9 +89,9 @@ function CompactMission({ agent, task }: CompactMissionProps) {
       <div className="flex items-center gap-3 text-[10px]">
         {/* Iteration progress */}
         <div className="flex items-center gap-1">
-          <Activity className="w-3 h-3 text-gray-500" />
+          <Activity className="w-3 h-3 text-gray-500" aria-hidden="true" />
           <span className="text-gray-500">{task.currentIteration}/{task.maxIterations}</span>
-          <div className="w-8 h-1 bg-command-accent rounded-full overflow-hidden ml-1">
+          <div className="w-8 h-1 bg-command-accent rounded-full overflow-hidden ml-1" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Iteration progress">
             <div
               className={`h-full ${isStuck || loopDetected ? 'bg-hud-amber' : 'bg-hud-blue'}`}
               style={{ width: `${progress}%` }}
@@ -92,10 +102,11 @@ function CompactMission({ agent, task }: CompactMissionProps) {
         {/* Token usage */}
         {health && (
           <div className="flex items-center gap-1">
-            <Zap className="w-3 h-3 text-gray-500" />
+            <Zap className="w-3 h-3 text-gray-500" aria-hidden="true" />
             <span className={`font-mono ${tokenUsagePercent > 80 ? 'text-hud-red' : 'text-gray-500'}`}>
               {Math.round(tokenUsagePercent)}%
             </span>
+            <span className="sr-only">token usage</span>
           </div>
         )}
 
@@ -106,7 +117,9 @@ function CompactMission({ agent, task }: CompactMissionProps) {
 
         {/* Loop warning */}
         {loopDetected && (
-          <span className="text-hud-amber uppercase font-semibold">LOOP</span>
+          <span className="text-hud-amber uppercase font-semibold" role="status" aria-label="Loop detected">
+            LOOP
+          </span>
         )}
       </div>
     </div>
@@ -133,38 +146,38 @@ export function ActiveMissions() {
   const stuckTasks = activeTasks.filter(t => t.status === 'needs_human');
 
   return (
-    <div className="h-full flex flex-col bg-command-bg">
+    <div className="h-full flex flex-col bg-command-bg" role="region" aria-label="Active missions">
       {/* Compact Header */}
       <div className="px-3 py-2 border-t border-command-border flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-display text-xs uppercase tracking-wider text-gray-400">
+          <h2 className="font-display text-xs uppercase tracking-wider text-gray-400" id="active-missions-heading">
             Running
           </h2>
-          <span className="text-[10px] text-gray-500">
+          <span className="text-[10px] text-gray-500" aria-live="polite">
             {missions.length} active
           </span>
         </div>
 
         {stuckTasks.length > 0 && (
-          <div className="flex items-center gap-1 text-hud-amber text-[10px]">
-            <AlertTriangle className="w-3 h-3" />
-            {stuckTasks.length} stuck
+          <div className="flex items-center gap-1 text-hud-amber text-[10px]" role="status" aria-label={`${stuckTasks.length} tasks need attention`}>
+            <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+            <span>{stuckTasks.length} stuck</span>
           </div>
         )}
       </div>
 
       {/* Horizontal scrolling mission strip */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-3 pb-2">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-3 pb-2" role="list" aria-labelledby="active-missions-heading">
         {isLoading.agents || isLoading.tasks ? (
           <ActiveMissionsSkeleton count={3} />
         ) : missions.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-600 text-xs">
+          <div className="h-full flex items-center justify-center text-gray-600 text-xs" role="status">
             No active tasks - agents idle
           </div>
         ) : (
           <div className="flex gap-2 h-full items-center">
             {missions.map(({ agent, task }) => (
-              <div key={task.id} className="flex-shrink-0">
+              <div key={task.id} className="flex-shrink-0" role="listitem">
                 <CompactMission agent={agent} task={task} />
               </div>
             ))}

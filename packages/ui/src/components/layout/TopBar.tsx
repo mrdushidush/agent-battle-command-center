@@ -86,16 +86,20 @@ export function TopBar() {
       {/* Resource Bars */}
       <div className="flex-1 flex items-center gap-6">
         {/* Budget Display */}
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
-          budget.isOverBudget
-            ? 'bg-red-500/10 border-red-500/30'
-            : budget.isWarning
-              ? 'bg-amber-500/10 border-amber-500/30'
-              : 'bg-green-500/10 border-green-500/30'
-        }`}>
+        <div 
+          className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
+            budget.isOverBudget
+              ? 'bg-red-500/10 border-red-500/30'
+              : budget.isWarning
+                ? 'bg-amber-500/10 border-amber-500/30'
+                : 'bg-green-500/10 border-green-500/30'
+          }`}
+          role="status"
+          aria-label={`Budget: $${(budget.dailySpentCents / 100).toFixed(2)} spent of $${(budget.dailyLimitCents / 100).toFixed(2)} daily limit${budget.isOverBudget ? ', over budget' : budget.isWarning ? ', warning' : ''}`}
+        >
           <DollarSign className={`w-4 h-4 ${
             budget.isOverBudget ? 'text-red-400' : budget.isWarning ? 'text-amber-400' : 'text-green-400'
-          }`} />
+          }`} aria-hidden="true" />
           <div className="flex flex-col">
             <span className={`text-sm font-mono font-bold ${
               budget.isOverBudget ? 'text-red-400' : budget.isWarning ? 'text-amber-400' : 'text-green-400'
@@ -107,7 +111,7 @@ export function TopBar() {
             </span>
           </div>
           {/* Progress bar */}
-          <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={budget.percentUsed * 100} aria-valuemin={0} aria-valuemax={100} aria-label="Budget usage">
             <div
               className={`h-full transition-all ${
                 budget.isOverBudget ? 'bg-red-500' : budget.isWarning ? 'bg-amber-500' : 'bg-green-500'
@@ -163,48 +167,54 @@ export function TopBar() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" role="toolbar" aria-label="Main controls">
         <button
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
             audioSettings.muted ? '' : 'bg-hud-green/10'
           }`}
           onClick={toggleMute}
-          title={audioSettings.muted ? 'Unmute audio' : 'Mute audio'}
+          aria-label={audioSettings.muted ? 'Unmute audio' : 'Mute audio'}
+          aria-pressed={!audioSettings.muted}
         >
           {audioSettings.muted ? (
-            <VolumeX className="w-5 h-5 text-gray-400" />
+            <VolumeX className="w-5 h-5 text-gray-400" aria-hidden="true" />
           ) : (
-            <Volume2 className="w-5 h-5 text-hud-green" />
+            <Volume2 className="w-5 h-5 text-hud-green" aria-hidden="true" />
           )}
+          <span className="sr-only">{audioSettings.muted ? 'Unmute' : 'Mute'} audio</span>
         </button>
         <button
           className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
             toolLogOpen ? 'bg-hud-blue/20' : ''
           }`}
           onClick={toggleToolLog}
-          title="Tool execution log"
+          aria-label="Tool execution log"
+          aria-pressed={toolLogOpen}
         >
-          <Terminal className={`w-5 h-5 ${toolLogOpen ? 'text-hud-blue' : 'text-gray-400'}`} />
+          <Terminal className={`w-5 h-5 ${toolLogOpen ? 'text-hud-blue' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
         <button
           className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
             chatPanelOpen ? 'bg-hud-green/20' : ''
           }`}
           onClick={toggleChatPanel}
-          title="Chat with agents"
+          aria-label="Chat with agents"
+          aria-pressed={chatPanelOpen}
         >
-          <MessageSquare className={`w-5 h-5 ${chatPanelOpen ? 'text-hud-green' : 'text-gray-400'}`} />
+          <MessageSquare className={`w-5 h-5 ${chatPanelOpen ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
         <button
           className="relative p-2 hover:bg-command-accent rounded transition-colors"
           onClick={toggleAlertsPanel}
+          aria-label={`Alerts${unacknowledgedAlerts > 0 ? `, ${unacknowledgedAlerts} unacknowledged` : ''}`}
         >
-          <Bell className="w-5 h-5 text-gray-400" />
+          <Bell className="w-5 h-5 text-gray-400" aria-hidden="true" />
           {unacknowledgedAlerts > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-hud-red text-white text-xs rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-hud-red text-white text-xs rounded-full flex items-center justify-center" aria-hidden="true">
               {unacknowledgedAlerts}
             </span>
           )}
+          <span className="sr-only">{unacknowledgedAlerts > 0 ? `${unacknowledgedAlerts} unacknowledged alerts` : 'No alerts'}</span>
         </button>
         <button
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
@@ -212,18 +222,19 @@ export function TopBar() {
           }`}
           onClick={handleResetAgents}
           disabled={resetting}
-          title="DEBUG: Reset all agents (clears stuck states)"
+          aria-label="Reset all agents"
         >
-          <RefreshCcw className={`w-5 h-5 text-hud-red ${resetting ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`w-5 h-5 text-hud-red ${resetting ? 'animate-spin' : ''}`} aria-hidden="true" />
         </button>
         <button
           onClick={toggleSettingsModal}
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
             settingsModalOpen ? 'bg-hud-green/20' : ''
           }`}
-          title="Settings"
+          aria-label="Settings"
+          aria-pressed={settingsModalOpen}
         >
-          <Settings className={`w-5 h-5 ${settingsModalOpen ? 'text-hud-green' : 'text-gray-400'}`} />
+          <Settings className={`w-5 h-5 ${settingsModalOpen ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
       </div>
 
