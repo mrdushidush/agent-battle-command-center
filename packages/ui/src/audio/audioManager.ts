@@ -3,7 +3,7 @@
  * Prevents audio overlap and manages volume/mute state
  */
 
-import { VoiceEvent, getVoiceLine, AgentVoiceType } from './voicePacks';
+import { VoiceEvent, getVoiceLineFromPack, AgentVoiceType, VoicePackId } from './voicePacks';
 
 // Use window object to persist singleton across HMR and React.StrictMode
 declare global {
@@ -26,6 +26,7 @@ class AudioManager {
   private isPlaying = false;
   private volume = 0.7;
   private muted = false;
+  private selectedPack: VoicePackId = 'red-alert';
 
   private constructor() {
     // Initialize AudioContext on first user interaction
@@ -79,11 +80,29 @@ class AudioManager {
     return this.volume;
   }
 
+  public setVoicePack(packId: VoicePackId) {
+    this.selectedPack = packId;
+  }
+
+  public getVoicePack(): VoicePackId {
+    return this.selectedPack;
+  }
+
   /**
    * Play a voice line for a specific event
+   * Note: agentType reserved for future agent-specific voice packs
    */
-  public playEvent(event: VoiceEvent, agentType: AgentVoiceType = 'default', priority: number = 5) {
-    const voiceLine = getVoiceLine(event, agentType);
+  public playEvent(event: VoiceEvent, _agentType: AgentVoiceType = 'default', priority: number = 5) {
+    const voiceLine = getVoiceLineFromPack(this.selectedPack, event);
+    this.playSound(voiceLine.audioFile, voiceLine.text, priority);
+  }
+
+  /**
+   * Play a voice line from a specific pack
+   * Note: agentType reserved for future agent-specific voice packs
+   */
+  public playEventWithPack(packId: VoicePackId, event: VoiceEvent, _agentType: AgentVoiceType = 'default', priority: number = 5) {
+    const voiceLine = getVoiceLineFromPack(packId, event);
     this.playSound(voiceLine.audioFile, voiceLine.text, priority);
   }
 

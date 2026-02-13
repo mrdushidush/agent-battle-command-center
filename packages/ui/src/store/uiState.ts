@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Task, Agent, Alert, UIMode } from '@abcc/shared';
+import type { VoicePackId } from '../audio/voicePacks';
 
 interface Settings {
   toolLogOpenByDefault: boolean;
@@ -85,9 +86,11 @@ interface UIState {
   audioSettings: {
     muted: boolean;
     volume: number;
+    selectedPack: VoicePackId;
   };
   setMuted: (muted: boolean) => void;
   setVolume: (volume: number) => void;
+  setVoicePack: (packId: VoicePackId) => void;
 
   // Agent health tracking
   agentHealth: {
@@ -238,6 +241,7 @@ export const useUIStore = create<UIState>((set) => ({
   audioSettings: {
     muted: false,
     volume: 0.7,
+    selectedPack: 'red-alert',
   },
   setMuted: (muted) =>
     set((state) => ({
@@ -246,6 +250,10 @@ export const useUIStore = create<UIState>((set) => ({
   setVolume: (volume) =>
     set((state) => ({
       audioSettings: { ...state.audioSettings, volume },
+    })),
+  setVoicePack: (selectedPack) =>
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, selectedPack },
     })),
 
   // Agent health tracking

@@ -1,10 +1,11 @@
-import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign } from 'lucide-react';
+import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { audioManager } from '../../audio/audioManager';
 import { SettingsModal } from '../modals/SettingsModal';
 import { AnimatedCurrency } from '../shared/AnimatedCounter';
 import { apiGet, apiPost } from '../../lib/api';
+import { getAvailableVoicePacks, VoicePackId } from '../../audio/voicePacks';
 
 export function TopBar() {
   const {
@@ -18,6 +19,7 @@ export function TopBar() {
     toggleToolLog,
     audioSettings,
     setMuted,
+    setVoicePack,
     budget,
     updateBudget,
     settingsModalOpen,
@@ -25,6 +27,8 @@ export function TopBar() {
   } = useUIStore();
   const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
   const [resetting, setResetting] = useState(false);
+  const [voicePackOpen, setVoicePackOpen] = useState(false);
+  const voicePackDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch initial budget status
   useEffect(() => {
@@ -50,6 +54,23 @@ export function TopBar() {
     setMuted(newMuted);
     audioManager.setMuted(newMuted);
   };
+
+  const handleVoicePackChange = (packId: VoicePackId) => {
+    setVoicePack(packId);
+    audioManager.setVoicePack(packId);
+    setVoicePackOpen(false);
+  };
+
+  // Close voice pack dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (voicePackDropdownRef.current && !voicePackDropdownRef.current.contains(event.target as Node)) {
+        setVoicePackOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleResetAgents = async () => {
     if (!confirm('Reset all agents to idle? This will clear any stuck states.')) {
@@ -163,67 +184,123 @@ export function TopBar() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" role="toolbar" aria-label="Main controls">
+        {/* Voice Pack Selector */}
+        <div className="relative" ref={voicePackDropdownRef}>
+          <button
+            className="flex items-center gap-1 px-2 py-1.5 hover:bg-command-accent rounded transition-colors text-sm text-gray-300"
+            onClick={() => setVoicePackOpen(!voicePackOpen)}
+            aria-label={`Voice pack: ${getAvailableVoicePacks().find(p => p.id === audioSettings.selectedPack)?.name || 'Voice'}`}
+            aria-expanded={voicePackOpen}
+            aria-haspopup="listbox"
+          >
+            <span className="text-xs hidden lg:inline">{getAvailableVoicePacks().find(p => p.id === audioSettings.selectedPack)?.name || 'Voice'}</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${voicePackOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+
+          {voicePackOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-command-panel border border-command-border rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+              <div className="px-3 py-1 text-[10px] text-gray-500 uppercase tracking-wider border-b border-command-border">
+                Voice Packs
+              </div>
+              {getAvailableVoicePacks().map((pack) => (
+                <button
+                  key={pack.id}
+                  onClick={() => handleVoicePackChange(pack.id)}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-command-accent transition-colors flex items-center gap-2 ${
+                    audioSettings.selectedPack === pack.id ? 'text-hud-green bg-hud-green/10' : 'text-gray-300'
+                  }`}
+                  role="option"
+                  aria-selected={audioSettings.selectedPack === pack.id}
+                >
+                  <span className="flex-1">{pack.name}</span>
+                  {audioSettings.selectedPack === pack.id && (
+                    <span className="text-hud-green">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mute Button */}
         <button
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
             audioSettings.muted ? '' : 'bg-hud-green/10'
           }`}
           onClick={toggleMute}
-          title={audioSettings.muted ? 'Unmute audio' : 'Mute audio'}
+          aria-label={audioSettings.muted ? 'Unmute audio' : 'Mute audio'}
+          aria-pressed={!audioSettings.muted}
         >
           {audioSettings.muted ? (
-            <VolumeX className="w-5 h-5 text-gray-400" />
+            <VolumeX className="w-5 h-5 text-gray-400" aria-hidden="true" />
           ) : (
-            <Volume2 className="w-5 h-5 text-hud-green" />
+            <Volume2 className="w-5 h-5 text-hud-green" aria-hidden="true" />
           )}
+          <span className="sr-only">{audioSettings.muted ? 'Unmute' : 'Mute'} audio</span>
         </button>
+
+        {/* Tool Log Button */}
         <button
           className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
             toolLogOpen ? 'bg-hud-blue/20' : ''
           }`}
           onClick={toggleToolLog}
-          title="Tool execution log"
+          aria-label="Tool execution log"
+          aria-pressed={toolLogOpen}
         >
-          <Terminal className={`w-5 h-5 ${toolLogOpen ? 'text-hud-blue' : 'text-gray-400'}`} />
+          <Terminal className={`w-5 h-5 ${toolLogOpen ? 'text-hud-blue' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
+
+        {/* Chat Panel Button */}
         <button
           className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
             chatPanelOpen ? 'bg-hud-green/20' : ''
           }`}
           onClick={toggleChatPanel}
-          title="Chat with agents"
+          aria-label="Chat with agents"
+          aria-pressed={chatPanelOpen}
         >
-          <MessageSquare className={`w-5 h-5 ${chatPanelOpen ? 'text-hud-green' : 'text-gray-400'}`} />
+          <MessageSquare className={`w-5 h-5 ${chatPanelOpen ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
+
+        {/* Alerts Button */}
         <button
           className="relative p-2 hover:bg-command-accent rounded transition-colors"
           onClick={toggleAlertsPanel}
+          aria-label={`Alerts${unacknowledgedAlerts > 0 ? `, ${unacknowledgedAlerts} unacknowledged` : ''}`}
         >
-          <Bell className="w-5 h-5 text-gray-400" />
+          <Bell className="w-5 h-5 text-gray-400" aria-hidden="true" />
           {unacknowledgedAlerts > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-hud-red text-white text-xs rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-hud-red text-white text-xs rounded-full flex items-center justify-center" aria-hidden="true">
               {unacknowledgedAlerts}
             </span>
           )}
+          <span className="sr-only">{unacknowledgedAlerts > 0 ? `${unacknowledgedAlerts} unacknowledged alerts` : 'No alerts'}</span>
         </button>
+
+        {/* Reset Agents Button */}
         <button
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
             resetting ? 'opacity-50 cursor-not-allowed' : ''
           }`}
           onClick={handleResetAgents}
           disabled={resetting}
-          title="DEBUG: Reset all agents (clears stuck states)"
+          aria-label="Reset all agents"
         >
-          <RefreshCcw className={`w-5 h-5 text-hud-red ${resetting ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`w-5 h-5 text-hud-red ${resetting ? 'animate-spin' : ''}`} aria-hidden="true" />
         </button>
+
+        {/* Settings Button */}
         <button
           onClick={toggleSettingsModal}
           className={`p-2 hover:bg-command-accent rounded transition-colors ${
             settingsModalOpen ? 'bg-hud-green/20' : ''
           }`}
-          title="Settings"
+          aria-label="Settings"
+          aria-pressed={settingsModalOpen}
         >
-          <Settings className={`w-5 h-5 ${settingsModalOpen ? 'text-hud-green' : 'text-gray-400'}`} />
+          <Settings className={`w-5 h-5 ${settingsModalOpen ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
       </div>
 
