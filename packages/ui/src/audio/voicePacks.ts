@@ -1,6 +1,7 @@
 /**
  * RTS-style voice packs for agent events
- * Supports multiple voice packs: C&C Red Alert, StarCraft, Age of Empires
+ * Original TTS-generated military voice lines (no copyrighted game audio)
+ * Voices: Tactical Ops (US male), Mission Control (US female), Field Command (UK male)
  */
 
 export type VoiceEvent =
@@ -16,7 +17,7 @@ export type VoiceEvent =
 
 export type AgentVoiceType = 'coder' | 'qa' | 'cto' | 'default';
 
-export type VoicePackId = 'red-alert' | 'starcraft' | 'age-of-empires';
+export type VoicePackId = 'tactical' | 'mission-control' | 'field-command';
 
 export interface VoiceLine {
   event: VoiceEvent;
@@ -32,182 +33,184 @@ export interface VoicePack {
 }
 
 /**
- * C&C Red Alert voice pack (default)
+ * Tactical Ops voice pack (default) — US male, commanding
  */
-export const redAlertVoicePack: VoicePack = {
-  id: 'red-alert',
-  name: 'C&C Red Alert',
-  description: 'Classic Command & Conquer: Red Alert unit responses',
+export const tacticalVoicePack: VoicePack = {
+  id: 'tactical',
+  name: 'Tactical Ops',
+  description: 'Commanding US military operator',
   lines: {
     task_assigned: [
-      { event: 'task_assigned', audioFile: '/audio/aye-commander.mp3', text: 'Aye commander' },
-      { event: 'task_assigned', audioFile: '/audio/conscript-reporting.mp3', text: 'Conscript reporting' },
-      { event: 'task_assigned', audioFile: '/audio/acknowledged.mp3', text: 'Acknowledged' },
-      { event: 'task_assigned', audioFile: '/audio/mission-sir.mp3', text: 'Mission sir' },
-      { event: 'task_assigned', audioFile: '/audio/can-do.mp3', text: 'Can do' },
-      { event: 'task_assigned', audioFile: '/audio/i-hear-and-obey.mp3', text: 'I hear and obey' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/acknowledged.mp3', text: 'Acknowledged' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/standing-by.mp3', text: 'Standing by for orders' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/ready-to-deploy.mp3', text: 'Ready to deploy' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/orders-received.mp3', text: 'Orders received' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/on-it.mp3', text: 'On it, commander' },
+      { event: 'task_assigned', audioFile: '/audio/tactical/locked-in.mp3', text: 'Locked in' },
     ],
     task_in_progress: [
-      { event: 'task_in_progress', audioFile: '/audio/operation-underway.mp3', text: 'Operation underway' },
-      { event: 'task_in_progress', audioFile: '/audio/main-engines-engaged.mp3', text: 'Main engines engaged' },
-      { event: 'task_in_progress', audioFile: '/audio/course-set.mp3', text: 'Course set' },
-      { event: 'task_in_progress', audioFile: '/audio/battle-stations.mp3', text: 'Battle stations' },
-      { event: 'task_in_progress', audioFile: '/audio/engineering.mp3', text: 'Engineering' },
-      { event: 'task_in_progress', audioFile: '/audio/closing-in.mp3', text: 'Closing in' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/moving-out.mp3', text: 'Moving out' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/operation-underway.mp3', text: 'Operation underway' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/executing-now.mp3', text: 'Executing now' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/engaging-target.mp3', text: 'Engaging target' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/in-position.mp3', text: 'In position' },
+      { event: 'task_in_progress', audioFile: '/audio/tactical/proceeding.mp3', text: 'Proceeding to objective' },
     ],
     task_milestone: [
-      { event: 'task_milestone', audioFile: '/audio/shake-it-baby.mp3', text: 'Shake it baby!' },
-      { event: 'task_milestone', audioFile: '/audio/got-a-clear-view-sir.mp3', text: 'Got a clear view sir' },
-      { event: 'task_milestone', audioFile: '/audio/checking-designs.mp3', text: 'Checking designs' },
+      { event: 'task_milestone', audioFile: '/audio/tactical/making-progress.mp3', text: 'Making progress' },
+      { event: 'task_milestone', audioFile: '/audio/tactical/halfway-there.mp3', text: 'Halfway there' },
+      { event: 'task_milestone', audioFile: '/audio/tactical/on-track.mp3', text: 'On track, commander' },
     ],
     task_completed: [
-      { event: 'task_completed', audioFile: '/audio/adios-amigos.mp3', text: 'Adios amigos' },
-      { event: 'task_completed', audioFile: '/audio/already-there.mp3', text: 'Already there' },
-      { event: 'task_completed', audioFile: '/audio/commander.mp3', text: 'Commander' },
+      { event: 'task_completed', audioFile: '/audio/tactical/mission-complete.mp3', text: 'Mission complete' },
+      { event: 'task_completed', audioFile: '/audio/tactical/objective-secured.mp3', text: 'Objective secured' },
+      { event: 'task_completed', audioFile: '/audio/tactical/target-neutralized.mp3', text: 'Target neutralized' },
     ],
     task_failed: [
-      { event: 'task_failed', audioFile: '/audio/going-down.mp3', text: 'Going down' },
-      { event: 'task_failed', audioFile: '/audio/but-i-was-working.mp3', text: 'But I was working' },
+      { event: 'task_failed', audioFile: '/audio/tactical/mission-failed.mp3', text: 'Mission failed' },
+      { event: 'task_failed', audioFile: '/audio/tactical/pulling-back.mp3', text: 'Pulling back' },
     ],
     agent_stuck: [
-      { event: 'agent_stuck', audioFile: '/audio/eject-eject.mp3', text: 'Eject eject!' },
-      { event: 'agent_stuck', audioFile: '/audio/changing-vector.mp3', text: 'Changing vector' },
-      { event: 'agent_stuck', audioFile: '/audio/give-me-a-plan.mp3', text: 'Give me a plan' },
+      { event: 'agent_stuck', audioFile: '/audio/tactical/requesting-backup.mp3', text: 'Requesting backup' },
+      { event: 'agent_stuck', audioFile: '/audio/tactical/need-assistance.mp3', text: 'Need assistance' },
+      { event: 'agent_stuck', audioFile: '/audio/tactical/pinned-down.mp3', text: 'Pinned down' },
     ],
     loop_detected: [
-      { event: 'loop_detected', audioFile: '/audio/i-knew-this-would-happen.mp3', text: 'I knew this would happen' },
-      { event: 'loop_detected', audioFile: '/audio/are-you-kgb.mp3', text: 'Are you KGB?' },
-      { event: 'loop_detected', audioFile: '/audio/checking-connection.mp3', text: 'Checking connection' },
-      { event: 'loop_detected', audioFile: '/audio/da.mp3', text: 'Da' },
+      { event: 'loop_detected', audioFile: '/audio/tactical/going-in-circles.mp3', text: 'Going in circles' },
+      { event: 'loop_detected', audioFile: '/audio/tactical/something-wrong.mp3', text: "Something's not right" },
+      { event: 'loop_detected', audioFile: '/audio/tactical/abort-abort.mp3', text: 'Abort. Abort.' },
+      { event: 'loop_detected', audioFile: '/audio/tactical/recalibrating.mp3', text: 'Recalibrating' },
     ],
     opus_review: [
-      { event: 'opus_review', audioFile: '/audio/checking-designs.mp3', text: 'Checking designs' },
-      { event: 'opus_review', audioFile: '/audio/obtaining-intelligence.mp3', text: 'Obtaining intelligence' },
-      { event: 'opus_review', audioFile: '/audio/analyzing-schematics.mp3', text: 'Analyzing schematics' },
+      { event: 'opus_review', audioFile: '/audio/tactical/analyzing.mp3', text: 'Analyzing' },
+      { event: 'opus_review', audioFile: '/audio/tactical/running-diagnostics.mp3', text: 'Running diagnostics' },
+      { event: 'opus_review', audioFile: '/audio/tactical/checking-intel.mp3', text: 'Checking intel' },
     ],
     decomposition: [
-      { event: 'decomposition', audioFile: '/audio/deconstructing.mp3', text: 'Deconstructing' },
-      { event: 'decomposition', audioFile: '/audio/engineering.mp3', text: 'Engineering' },
+      { event: 'decomposition', audioFile: '/audio/tactical/breaking-it-down.mp3', text: 'Breaking it down' },
+      { event: 'decomposition', audioFile: '/audio/tactical/planning-approach.mp3', text: 'Planning approach' },
     ],
   },
 };
 
 /**
- * StarCraft voice pack
+ * Mission Control voice pack — US female, professional
  */
-export const starcraftVoicePack: VoicePack = {
-  id: 'starcraft',
-  name: 'StarCraft',
-  description: 'Terran unit responses from StarCraft',
+export const missionControlVoicePack: VoicePack = {
+  id: 'mission-control',
+  name: 'Mission Control',
+  description: 'Professional NASA-style mission controller',
   lines: {
     task_assigned: [
-      { event: 'task_assigned', audioFile: '/audio/starcraft/scv-ready.mp3', text: 'SCV ready' },
-      { event: 'task_assigned', audioFile: '/audio/starcraft/reportin.mp3', text: 'Reportin\'' },
-      { event: 'task_assigned', audioFile: '/audio/starcraft/go-ahead.mp3', text: 'Go ahead' },
-      { event: 'task_assigned', audioFile: '/audio/starcraft/affirmative.mp3', text: 'Affirmative' },
-      { event: 'task_assigned', audioFile: '/audio/starcraft/ready.mp3', text: 'Ready' },
-      { event: 'task_assigned', audioFile: '/audio/starcraft/say-the-word.mp3', text: 'Say the word' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/assignment-confirmed.mp3', text: 'Assignment confirmed' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/task-accepted.mp3', text: 'Task accepted' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/ready-for-tasking.mp3', text: 'Ready for tasking' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/copy-that.mp3', text: 'Copy that' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/roger-that.mp3', text: 'Roger that' },
+      { event: 'task_assigned', audioFile: '/audio/mission-control/affirmative.mp3', text: 'Affirmative' },
     ],
     task_in_progress: [
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/ill-take-care-of-it.mp3', text: 'I\'ll take care of it' },
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/ive-got-orders.mp3', text: 'I\'ve got orders' },
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/moving-out.mp3', text: 'Moving out' },
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/on-my-way.mp3', text: 'On my way' },
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/roger.mp3', text: 'Roger' },
-      { event: 'task_in_progress', audioFile: '/audio/starcraft/understood.mp3', text: 'Understood' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/commencing-operations.mp3', text: 'Commencing operations' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/systems-nominal.mp3', text: 'Systems nominal' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/on-approach.mp3', text: 'On approach' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/telemetry-is-good.mp3', text: 'Telemetry is good' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/all-systems-go.mp3', text: 'All systems go' },
+      { event: 'task_in_progress', audioFile: '/audio/mission-control/in-the-pipeline.mp3', text: 'In the pipeline' },
     ],
     task_milestone: [
-      { event: 'task_milestone', audioFile: '/audio/starcraft/excellent.mp3', text: 'Excellent' },
-      { event: 'task_milestone', audioFile: '/audio/starcraft/nice-work.mp3', text: 'Nice work' },
-      { event: 'task_milestone', audioFile: '/audio/starcraft/outstanding.mp3', text: 'Outstanding' },
+      { event: 'task_milestone', audioFile: '/audio/mission-control/checkpoint-reached.mp3', text: 'Checkpoint reached' },
+      { event: 'task_milestone', audioFile: '/audio/mission-control/looking-good.mp3', text: 'Looking good' },
+      { event: 'task_milestone', audioFile: '/audio/mission-control/steady-progress.mp3', text: 'Steady progress' },
     ],
     task_completed: [
-      { event: 'task_completed', audioFile: '/audio/starcraft/job-done.mp3', text: 'Job done' },
-      { event: 'task_completed', audioFile: '/audio/starcraft/complete.mp3', text: 'Complete' },
-      { event: 'task_completed', audioFile: '/audio/starcraft/work-complete.mp3', text: 'Work complete' },
+      { event: 'task_completed', audioFile: '/audio/mission-control/task-complete.mp3', text: 'Task complete' },
+      { event: 'task_completed', audioFile: '/audio/mission-control/well-done.mp3', text: 'Well done' },
+      { event: 'task_completed', audioFile: '/audio/mission-control/success-confirmed.mp3', text: 'Success confirmed' },
     ],
     task_failed: [
-      { event: 'task_failed', audioFile: '/audio/starcraft/abort-mission.mp3', text: 'Abort mission' },
-      { event: 'task_failed', audioFile: '/audio/starcraft/mission-failed.mp3', text: 'Mission failed' },
+      { event: 'task_failed', audioFile: '/audio/mission-control/task-unsuccessful.mp3', text: 'Task unsuccessful' },
+      { event: 'task_failed', audioFile: '/audio/mission-control/negative-result.mp3', text: 'Negative result' },
     ],
     agent_stuck: [
-      { event: 'agent_stuck', audioFile: '/audio/starcraft/nuclear-launch-detected.mp3', text: 'Nuclear launch detected' },
-      { event: 'agent_stuck', audioFile: '/audio/starcraft/we-cant-hold-it.mp3', text: 'We can\'t hold it!' },
-      { event: 'agent_stuck', audioFile: '/audio/starcraft/were-under-attack.mp3', text: 'We\'re under attack!' },
+      { event: 'agent_stuck', audioFile: '/audio/mission-control/anomaly-detected.mp3', text: 'Anomaly detected' },
+      { event: 'agent_stuck', audioFile: '/audio/mission-control/system-unresponsive.mp3', text: 'System unresponsive' },
+      { event: 'agent_stuck', audioFile: '/audio/mission-control/intervention-required.mp3', text: 'Intervention required' },
     ],
     loop_detected: [
-      { event: 'loop_detected', audioFile: '/audio/starcraft/you-want-a-piece-of-me.mp3', text: 'You want a piece of me, boy?' },
-      { event: 'loop_detected', audioFile: '/audio/starcraft/stop-poking-me.mp3', text: 'Stop poking me!' },
-      { event: 'loop_detected', audioFile: '/audio/starcraft/what-is-it.mp3', text: 'What is it?' },
+      { event: 'loop_detected', audioFile: '/audio/mission-control/pattern-detected.mp3', text: 'Repeating pattern detected' },
+      { event: 'loop_detected', audioFile: '/audio/mission-control/loop-identified.mp3', text: 'Loop identified' },
+      { event: 'loop_detected', audioFile: '/audio/mission-control/cycle-detected.mp3', text: 'Cycle detected' },
+      { event: 'loop_detected', audioFile: '/audio/mission-control/breaking-loop.mp3', text: 'Breaking the loop' },
     ],
     opus_review: [
-      { event: 'opus_review', audioFile: '/audio/starcraft/scanning.mp3', text: 'Scanning' },
-      { event: 'opus_review', audioFile: '/audio/starcraft/sensors-online.mp3', text: 'Sensors online' },
-      { event: 'opus_review', audioFile: '/audio/starcraft/analysis-complete.mp3', text: 'Analysis complete' },
+      { event: 'opus_review', audioFile: '/audio/mission-control/initiating-review.mp3', text: 'Initiating review' },
+      { event: 'opus_review', audioFile: '/audio/mission-control/quality-check.mp3', text: 'Quality check in progress' },
+      { event: 'opus_review', audioFile: '/audio/mission-control/scanning-output.mp3', text: 'Scanning output' },
     ],
     decomposition: [
-      { event: 'decomposition', audioFile: '/audio/starcraft/construction-complete.mp3', text: 'Construction complete' },
-      { event: 'decomposition', audioFile: '/audio/starcraft/building.mp3', text: 'Building' },
+      { event: 'decomposition', audioFile: '/audio/mission-control/decomposing-task.mp3', text: 'Decomposing task' },
+      { event: 'decomposition', audioFile: '/audio/mission-control/analyzing-structure.mp3', text: 'Analyzing structure' },
     ],
   },
 };
 
 /**
- * Age of Empires voice pack
+ * Field Command voice pack — UK male, authoritative
  */
-export const ageOfEmpiresVoicePack: VoicePack = {
-  id: 'age-of-empires',
-  name: 'Age of Empires',
-  description: 'Classic AoE unit responses and priest sounds',
+export const fieldCommandVoicePack: VoicePack = {
+  id: 'field-command',
+  name: 'Field Command',
+  description: 'British field operations commander',
   lines: {
     task_assigned: [
-      { event: 'task_assigned', audioFile: '/audio/aoe/wololo.mp3', text: 'Wololo' },
-      { event: 'task_assigned', audioFile: '/audio/aoe/yes.mp3', text: 'Yes?' },
-      { event: 'task_assigned', audioFile: '/audio/aoe/my-liege.mp3', text: 'My liege?' },
-      { event: 'task_assigned', audioFile: '/audio/aoe/your-command.mp3', text: 'Your command?' },
-      { event: 'task_assigned', audioFile: '/audio/aoe/how-may-i-serve.mp3', text: 'How may I serve?' },
-      { event: 'task_assigned', audioFile: '/audio/aoe/at-your-service.mp3', text: 'At your service' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/understood.mp3', text: 'Understood' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/right-away.mp3', text: 'Right away' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/consider-it-done.mp3', text: 'Consider it done' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/at-once.mp3', text: 'At once' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/straight-away.mp3', text: 'Straight away, sir' },
+      { event: 'task_assigned', audioFile: '/audio/field-command/on-the-case.mp3', text: 'On the case' },
     ],
     task_in_progress: [
-      { event: 'task_in_progress', audioFile: '/audio/aoe/i-will-do-it.mp3', text: 'I will do it' },
-      { event: 'task_in_progress', audioFile: '/audio/aoe/as-you-wish.mp3', text: 'As you wish' },
-      { event: 'task_in_progress', audioFile: '/audio/aoe/im-going.mp3', text: 'I\'m going' },
-      { event: 'task_in_progress', audioFile: '/audio/aoe/moving.mp3', text: 'Moving' },
-      { event: 'task_in_progress', audioFile: '/audio/aoe/very-well.mp3', text: 'Very well' },
-      { event: 'task_in_progress', audioFile: '/audio/aoe/starting-task.mp3', text: 'Starting task' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/pressing-forward.mp3', text: 'Pressing forward' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/boots-on-ground.mp3', text: 'Boots on the ground' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/operational.mp3', text: 'Operational' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/en-route.mp3', text: 'En route' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/making-headway.mp3', text: 'Making headway' },
+      { event: 'task_in_progress', audioFile: '/audio/field-command/underway.mp3', text: 'Underway' },
     ],
     task_milestone: [
-      { event: 'task_milestone', audioFile: '/audio/aoe/excellent.mp3', text: 'Excellent' },
-      { event: 'task_milestone', audioFile: '/audio/aoe/well-done.mp3', text: 'Well done' },
-      { event: 'task_milestone', audioFile: '/audio/aoe/victory.mp3', text: 'Victory' },
+      { event: 'task_milestone', audioFile: '/audio/field-command/solid-progress.mp3', text: 'Solid progress' },
+      { event: 'task_milestone', audioFile: '/audio/field-command/getting-there.mp3', text: 'Getting there' },
+      { event: 'task_milestone', audioFile: '/audio/field-command/phase-complete.mp3', text: 'Phase complete' },
     ],
     task_completed: [
-      { event: 'task_completed', audioFile: '/audio/aoe/job-done.mp3', text: 'Job done' },
-      { event: 'task_completed', audioFile: '/audio/aoe/complete.mp3', text: 'Complete' },
-      { event: 'task_completed', audioFile: '/audio/aoe/finished.mp3', text: 'Finished' },
+      { event: 'task_completed', audioFile: '/audio/field-command/job-done.mp3', text: 'Job done' },
+      { event: 'task_completed', audioFile: '/audio/field-command/mission-accomplished.mp3', text: 'Mission accomplished' },
+      { event: 'task_completed', audioFile: '/audio/field-command/all-clear.mp3', text: 'All clear' },
     ],
     task_failed: [
-      { event: 'task_failed', audioFile: '/audio/aoe/retreat.mp3', text: 'Retreat!' },
-      { event: 'task_failed', audioFile: '/audio/aoe/defeated.mp3', text: 'Defeated' },
+      { event: 'task_failed', audioFile: '/audio/field-command/no-joy.mp3', text: 'No joy' },
+      { event: 'task_failed', audioFile: '/audio/field-command/falling-back.mp3', text: 'Falling back' },
     ],
     agent_stuck: [
-      { event: 'agent_stuck', audioFile: '/audio/aoe/i-cannot-reach-there.mp3', text: 'I cannot reach there' },
-      { event: 'agent_stuck', audioFile: '/audio/aoe/i-need-help.mp3', text: 'I need help' },
-      { event: 'agent_stuck', audioFile: '/audio/aoe/under-attack.mp3', text: 'We are under attack!' },
+      { event: 'agent_stuck', audioFile: '/audio/field-command/bogged-down.mp3', text: 'Bogged down' },
+      { event: 'agent_stuck', audioFile: '/audio/field-command/need-reinforcements.mp3', text: 'Need reinforcements' },
+      { event: 'agent_stuck', audioFile: '/audio/field-command/taking-fire.mp3', text: 'Taking fire' },
     ],
     loop_detected: [
-      { event: 'loop_detected', audioFile: '/audio/aoe/what-is-it-now.mp3', text: 'What is it now?' },
-      { event: 'loop_detected', audioFile: '/audio/aoe/yes-yes.mp3', text: 'Yes, yes?' },
-      { event: 'loop_detected', audioFile: '/audio/aoe/wololo.mp3', text: 'Wololo' },
+      { event: 'loop_detected', audioFile: '/audio/field-command/deja-vu.mp3', text: 'Bit of deja vu here' },
+      { event: 'loop_detected', audioFile: '/audio/field-command/stuck-in-a-rut.mp3', text: 'Stuck in a rut' },
+      { event: 'loop_detected', audioFile: '/audio/field-command/not-again.mp3', text: 'Not again' },
+      { event: 'loop_detected', audioFile: '/audio/field-command/change-of-plan.mp3', text: 'Change of plan' },
     ],
     opus_review: [
-      { event: 'opus_review', audioFile: '/audio/aoe/gathering-resources.mp3', text: 'Gathering resources' },
-      { event: 'opus_review', audioFile: '/audio/aoe/researching.mp3', text: 'Researching' },
-      { event: 'opus_review', audioFile: '/audio/aoe/studying.mp3', text: 'Studying' },
+      { event: 'opus_review', audioFile: '/audio/field-command/under-review.mp3', text: 'Under review' },
+      { event: 'opus_review', audioFile: '/audio/field-command/inspecting.mp3', text: 'Inspecting' },
+      { event: 'opus_review', audioFile: '/audio/field-command/double-checking.mp3', text: 'Double checking' },
     ],
     decomposition: [
-      { event: 'decomposition', audioFile: '/audio/aoe/building.mp3', text: 'Building' },
-      { event: 'decomposition', audioFile: '/audio/aoe/constructing.mp3', text: 'Constructing' },
+      { event: 'decomposition', audioFile: '/audio/field-command/splitting-up.mp3', text: 'Splitting it up' },
+      { event: 'decomposition', audioFile: '/audio/field-command/dividing-forces.mp3', text: 'Dividing forces' },
     ],
   },
 };
@@ -216,16 +219,16 @@ export const ageOfEmpiresVoicePack: VoicePack = {
  * Voice pack registry
  */
 export const voicePacks: Record<VoicePackId, VoicePack> = {
-  'red-alert': redAlertVoicePack,
-  'starcraft': starcraftVoicePack,
-  'age-of-empires': ageOfEmpiresVoicePack,
+  'tactical': tacticalVoicePack,
+  'mission-control': missionControlVoicePack,
+  'field-command': fieldCommandVoicePack,
 };
 
 /**
  * Get voice pack by ID
  */
 export function getVoicePack(packId: VoicePackId): VoicePack {
-  return voicePacks[packId] || redAlertVoicePack;
+  return voicePacks[packId] || tacticalVoicePack;
 }
 
 /**
@@ -238,7 +241,7 @@ export function getAvailableVoicePacks(): VoicePack[] {
 /**
  * Legacy default voice pack (for backward compatibility)
  */
-export const defaultVoicePack = redAlertVoicePack.lines;
+export const defaultVoicePack = tacticalVoicePack.lines;
 
 /**
  * Agent-specific voice packs (can be customized per agent type)

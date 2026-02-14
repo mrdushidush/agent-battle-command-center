@@ -405,16 +405,18 @@ Every tool call is captured to database with:
 
 **Note:** When tasks are deleted from the UI, their execution logs and training data remain in the database for future model training. Task deletion only removes the task record, not the associated logs.
 
-### Audio System (C&C Red Alert Style)
+### Audio System (Military Voice Packs)
 Voice feedback for agent events via `packages/ui/src/audio/`:
-- **Task assigned** → "Conscript reporting!", "Aye commander!", etc.
-- **Task in progress** → "Operation underway!", "Analyzing schematics!"
-- **Milestone** (every 2 iterations) → "Got the plans right here!"
-- **Task completed** → "Shake it baby!", "Commander"
-- **Task failed/stuck** → "Give me a job"
-- **Loop detected** → Warning + pulse animation
+- **3 original voice packs**: Tactical Ops (US male), Mission Control (US female), Field Command (UK male)
+- **Task assigned** → "Acknowledged", "Standing by for orders", etc.
+- **Task in progress** → "Operation underway", "Executing now"
+- **Milestone** (every 2 iterations) → "Making progress", "Halfway there"
+- **Task completed** → "Mission complete", "Objective secured"
+- **Task failed/stuck** → "Requesting backup", "Need assistance"
+- **Loop detected** → "Going in circles" + pulse animation
 
-Audio controls in TopBar (mute toggle). Files in `packages/ui/public/audio/`.
+Audio controls in TopBar (mute toggle, voice pack selector). Files in `packages/ui/public/audio/`.
+Voice lines generated with `edge-tts` via `scripts/generate-voice-packs.py`.
 
 ## Package Structure
 
@@ -447,7 +449,7 @@ packages/
 ├── ui/src/
 │   ├── audio/
 │   │   ├── audioManager.ts    # Audio playback singleton with queue
-│   │   └── voicePacks.ts      # C&C Red Alert voice event mappings
+│   │   └── voicePacks.ts      # Military voice pack definitions
 │   ├── components/
 │   │   ├── layout/
 │   │   │   ├── CommandCenter.tsx  # Main layout with ToolLog panel

@@ -1,148 +1,189 @@
-# 🔊 Audio Event Mapping - C&C Red Alert Edition
+# Audio Event Mapping - Military Voice Packs
 
 ## When You'll Hear Each Sound
 
-### 🎯 Task Assignment (When you create/assign a task)
+### Task Assignment (When you create/assign a task)
 **Trigger:** Task status changes to `assigned`
 
-**Sounds (random selection):**
-1. **conscript-reporting.mp3** - "Conscript reporting"
-2. **agent-ready.mp3** - "Agent ready"
-3. **aye-commander.mp3** - "Aye commander"
-4. **assignment-sir.mp3** - "Assignment sir"
-5. **order-received.mp3** - "Order received"
-6. **mission-sir.mp3** - "Mission sir"
-7. **anytime-boss.mp3** - "Anytime boss"
-8. **good-to-go.mp3** - "Good to go"
+**Tactical Ops sounds (random selection):**
+1. **acknowledged.mp3** - "Acknowledged"
+2. **standing-by.mp3** - "Standing by for orders"
+3. **ready-to-deploy.mp3** - "Ready to deploy"
+4. **orders-received.mp3** - "Orders received"
+5. **on-it.mp3** - "On it, commander"
+6. **locked-in.mp3** - "Locked in"
 
 **Example Flow:**
 ```
 You: Create task "Fix calculator"
 → System assigns to coder-01
-→ 🔊 "Conscript reporting!" or "Aye commander!"
+→ "Acknowledged!" or "Orders received!"
 ```
 
 ---
 
-### ⚙️ Task In Progress (When agent starts working)
+### Task In Progress (When agent starts working)
 **Trigger:** Task status changes to `in_progress`
 
-**Sounds (random selection):**
-1. **operation-underway.mp3** - "Operation underway"
-2. **analyzing-schematics.mp3** - "Analyzing schematics"
-3. **obtaining-intelligence.mp3** - "Obtaining intelligence"
-4. **on-our-way-sir.mp3** - "On our way sir"
-5. **main-engines-engaged.mp3** - "Main engines engaged"
+**Tactical Ops sounds (random selection):**
+1. **moving-out.mp3** - "Moving out"
+2. **operation-underway.mp3** - "Operation underway"
+3. **executing-now.mp3** - "Executing now"
+4. **engaging-target.mp3** - "Engaging target"
+5. **in-position.mp3** - "In position"
+6. **proceeding.mp3** - "Proceeding to objective"
 
 **Example Flow:**
 ```
 Task assigned → Agent starts execution
-→ 🔊 "Operation underway!" or "Analyzing schematics!"
+→ "Moving out!" or "Operation underway!"
 ```
 
 ---
 
-### 🎖️ Milestone Reached (Every 2 iterations)
-**Trigger:** Agent completes an iteration, and `currentIteration % 2 === 0`
+### Milestone Reached (Progress checkpoint)
+**Trigger:** Agent completes a progress checkpoint
 
-**Sounds (random selection):**
-1. **got-the-plans-right-here.mp3** - "Got the plans right here"
-2. **good-to-go.mp3** - "Good to go"
+**Tactical Ops sounds (random selection):**
+1. **making-progress.mp3** - "Making progress"
+2. **halfway-there.mp3** - "Halfway there"
+3. **on-track.mp3** - "On track, commander"
 
 **Example Flow:**
 ```
-Iteration 1 complete → (no sound)
-Iteration 2 complete → 🔊 "Got the plans right here!"
-Iteration 3 complete → (no sound)
-Iteration 4 complete → 🔊 "Good to go!"
+Progress checkpoint reached
+→ "Making progress!" or "On track, commander!"
 ```
 
 ---
 
-### ✅ Task Completed (Success!)
+### Task Completed (Success!)
 **Trigger:** Task status changes to `completed`
 
-**Sounds (random selection):**
-1. **shake-it-baby.mp3** - "Shake it baby!" (CLASSIC C&C!)
-2. **commander.mp3** - "Commander"
+**Tactical Ops sounds (random selection):**
+1. **mission-complete.mp3** - "Mission complete"
+2. **objective-secured.mp3** - "Objective secured"
+3. **target-neutralized.mp3** - "Target neutralized"
 
 **Example Flow:**
 ```
 Agent finishes successfully
-→ 🔊 "Shake it baby!" ← You'll love this one!
+→ "Mission complete!"
 ```
 
 ---
 
-### ❌ Task Failed (Uh oh...)
+### Task Failed
 **Trigger:** Task status changes to `failed`
 
-**Sounds (random selection):**
-1. **give-me-a-job.mp3** - "Give me a job"
-2. **agent-ready.mp3** - "Agent ready"
+**Tactical Ops sounds (random selection):**
+1. **mission-failed.mp3** - "Mission failed"
+2. **pulling-back.mp3** - "Pulling back"
 
 **Example Flow:**
 ```
 Agent hits error and fails
-→ 🔊 "Give me a job" (agent wants to try again)
+→ "Mission failed" or "Pulling back"
 ```
 
 ---
 
-### ⚠️ Agent Stuck (Needs human help)
+### Agent Stuck (Needs help)
 **Trigger:** Task status changes to `needs_human`
 
-**Sounds:**
-1. **give-me-a-job.mp3** - "Give me a job"
+**Tactical Ops sounds:**
+1. **requesting-backup.mp3** - "Requesting backup"
+2. **need-assistance.mp3** - "Need assistance"
+3. **pinned-down.mp3** - "Pinned down"
 
 **Example Flow:**
 ```
 Agent needs human approval
-→ 🔊 "Give me a job"
+→ "Requesting backup"
 ```
 
 ---
 
-### 🔁 Loop Detected (Agent repeating itself)
+### Loop Detected (Agent repeating itself)
 **Trigger:** Execution step event with `isLoop: true`
 
-**Sounds:**
-1. **give-me-a-job.mp3** - "Give me a job"
+**Tactical Ops sounds:**
+1. **going-in-circles.mp3** - "Going in circles"
+2. **something-wrong.mp3** - "Something's not right"
+3. **abort-abort.mp3** - "Abort. Abort."
+4. **recalibrating.mp3** - "Recalibrating"
 
 **Example Flow:**
 ```
 Agent runs same command 3x in a row
-→ 🔊 "Give me a job"
+→ "Going in circles" or "Abort. Abort."
 → Visual: LOOP warning + pulse animation
 ```
 
 ---
 
-## 🎮 Testing the Audio System
+### Opus Review (Code review started)
+**Trigger:** Code review initiated
+
+**Tactical Ops sounds:**
+1. **analyzing.mp3** - "Analyzing"
+2. **running-diagnostics.mp3** - "Running diagnostics"
+3. **checking-intel.mp3** - "Checking intel"
+
+---
+
+### Decomposition (Task decomposition)
+**Trigger:** Task decomposition started
+
+**Tactical Ops sounds:**
+1. **breaking-it-down.mp3** - "Breaking it down"
+2. **planning-approach.mp3** - "Planning approach"
+
+---
+
+## Voice Pack Comparison
+
+Each pack has 32 lines covering the same 9 events with different voices:
+
+| Event | Tactical Ops | Mission Control | Field Command |
+|-------|-------------|-----------------|---------------|
+| Assigned | "Acknowledged" | "Assignment confirmed" | "Understood" |
+| In Progress | "Moving out" | "Commencing operations" | "Pressing forward" |
+| Milestone | "Making progress" | "Checkpoint reached" | "Solid progress" |
+| Completed | "Mission complete" | "Task complete" | "Job done" |
+| Failed | "Mission failed" | "Task unsuccessful" | "No joy" |
+| Stuck | "Requesting backup" | "Anomaly detected" | "Bogged down" |
+| Loop | "Going in circles" | "Pattern detected" | "Bit of deja vu" |
+| Review | "Analyzing" | "Initiating review" | "Under review" |
+| Decompose | "Breaking it down" | "Decomposing task" | "Splitting it up" |
+
+---
+
+## Testing the Audio System
 
 ### Quick Test Sequence
 
 1. **Create a simple task** (complexity 0)
    ```
    Title: "Add 2+2 function"
-   → Hear: "Conscript reporting!" or similar
+   → Hear: "Acknowledged!" or similar
    ```
 
 2. **Watch it execute**
    ```
-   Agent starts → "Operation underway!"
-   Iteration 2 → "Got the plans right here!"
+   Agent starts → "Moving out!"
+   Milestone → "Making progress!"
    ```
 
 3. **Task completes**
    ```
-   Success! → "SHAKE IT BABY!" 🎉
+   Success! → "Mission complete!"
    ```
 
 ### Mute Controls
 
 **Toggle Mute:**
-- Click the 🔊 icon in TopBar
+- Click the speaker icon in TopBar
 - Muted = VolumeX icon (gray)
 - Unmuted = Volume2 icon (green)
 
@@ -158,64 +199,35 @@ audioSettings: {
 
 ---
 
-## 🎯 Pro Tips for Maximum Fun
-
-### 1. Create Multiple Tasks Quickly
-Create 3-5 simple tasks at once to hear different assignment sounds back-to-back!
-
-### 2. Watch the Active Missions Strip
-You'll see:
-- Token usage updating
-- Iteration progress bars moving
-- Response time ticking up
-- AND hear sounds as agents work!
-
-### 3. Enable Tool Log
-Click the Terminal icon (⌨️) to see what agents do while hearing the sounds
-
-### 4. Test the "Shake it baby!" Sound
-This is the BEST sound - the classic C&C construction complete!
-- Create a super easy task
-- Watch it succeed
-- 🔊 "SHAKE IT BABY!"
-
-### 5. Trigger Loop Detection
-Create a task that might make the agent repeat itself:
-- "Write an impossible function"
-- Agent will retry same thing
-- 🔊 "Give me a job" + LOOP warning
-
----
-
-## 🔧 Sound Mapping Summary
+## Sound Mapping Summary
 
 | Event | When | Example Sound | Frequency |
 |-------|------|---------------|-----------|
-| **Task Assigned** | You create/assign task | "Conscript reporting!" | Once per task |
-| **In Progress** | Agent starts work | "Operation underway!" | Once per task |
-| **Milestone** | Every 2 iterations | "Got the plans!" | Every 2 iters |
-| **Completed** | Task succeeds | "Shake it baby!" ⭐ | Once per task |
-| **Failed** | Task fails | "Give me a job" | Once per task |
-| **Stuck** | Needs human | "Give me a job" | Once when stuck |
-| **Loop** | Agent repeating | "Give me a job" | Once when detected |
+| **Task Assigned** | You create/assign task | "Acknowledged!" | Once per task |
+| **In Progress** | Agent starts work | "Moving out!" | Once per task |
+| **Milestone** | Progress checkpoint | "Making progress!" | Per checkpoint |
+| **Completed** | Task succeeds | "Mission complete!" | Once per task |
+| **Failed** | Task fails | "Mission failed" | Once per task |
+| **Stuck** | Needs human | "Requesting backup" | Once when stuck |
+| **Loop** | Agent repeating | "Going in circles" | Once when detected |
+| **Review** | Code review starts | "Analyzing" | Once per review |
+| **Decompose** | Task split | "Breaking it down" | Once per decomposition |
 
 ---
 
-## 🎬 Sample Audio Timeline
+## Sample Audio Timeline
 
 ```
 00:00 - User creates task "Add numbers"
-00:01 - 🔊 "Aye commander!"
+00:01 - "Acknowledged!"
 00:02 - Agent assigned, starts execution
-00:03 - 🔊 "Analyzing schematics!"
-00:05 - Iteration 1 complete (silent)
-00:08 - Iteration 2 complete
-00:09 - 🔊 "Got the plans right here!"
+00:03 - "Moving out!"
+00:08 - Progress checkpoint
+00:09 - "Making progress!"
 00:12 - Task completes successfully
-00:13 - 🔊 "SHAKE IT BABY!" 🎉
-00:14 - You smile :)
+00:13 - "Mission complete!"
 ```
 
 ---
 
-Enjoy your C&C Red Alert command center! The audio makes it feel like you're really commanding a team of elite coding agents! 🎖️
+Enjoy commanding your team of elite coding agents with military voice feedback!

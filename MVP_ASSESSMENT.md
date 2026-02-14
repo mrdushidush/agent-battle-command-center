@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platform** that routes coding tasks to tiered LLM backends (Ollama local, Claude Haiku/Sonnet/Opus cloud) with a C&C Red Alert-inspired React UI. The system is **functional and impressive for a solo developer project**, with a working end-to-end pipeline proven by 40-task stress tests at 88% success rate.
+The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platform** that routes coding tasks to tiered LLM backends (Ollama local, Claude Haiku/Sonnet/Opus cloud) with an RTS-inspired React UI. The system is **functional and impressive for a solo developer project**, with a working end-to-end pipeline proven by 40-task stress tests at 88% success rate.
 
 Since the initial assessment earlier today, **significant improvements** have been made across security, testing, error handling, and infrastructure. Multiple critical and high-severity items from the original assessment have been addressed.
 
@@ -291,7 +291,7 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 
 3. **Battle-tested Ollama config** — CodeX-7 backstory, temperature=0, rest delays, periodic reset = production-grade tuning.
 
-4. **C&C audio system** — Red Alert voice pack with full sound library cycling, volume control, and event-driven playback.
+4. **Military voice system** — Original TTS voice packs (3 packs, 96 lines) with sound library cycling, volume control, and event-driven playback.
 
 5. **Comprehensive observability** — Every tool call logged with timing, tokens, cost, and loop detection.
 

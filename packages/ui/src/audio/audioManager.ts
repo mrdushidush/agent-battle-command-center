@@ -26,7 +26,7 @@ class AudioManager {
   private isPlaying = false;
   private volume = 0.7;
   private muted = false;
-  private selectedPack: VoicePackId = 'red-alert';
+  private selectedPack: VoicePackId = 'tactical';
 
   private constructor() {
     // Initialize AudioContext on first user interaction

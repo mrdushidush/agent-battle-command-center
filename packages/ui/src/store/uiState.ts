@@ -248,7 +248,7 @@ export const useUIStore = create<UIState>((set) => ({
   audioSettings: {
     muted: false,
     volume: 0.7,
-    selectedPack: 'red-alert',
+    selectedPack: 'tactical',
   },
   setMuted: (muted) =>
     set((state) => ({

@@ -1,4 +1,4 @@
-# 🎮 Audio Testing Guide - Have Some Fun!
+# Audio Testing Guide
 
 ## Quick Start - Hear the Sounds!
 
@@ -22,19 +22,19 @@ node scripts/create-easy-test-tasks.js
 This creates 7 super easy tasks (complexity ~0) that will:
 - Complete quickly (30 seconds - 2 minutes each)
 - Trigger ALL the audio events
-- Let you hear the C&C Red Alert sounds!
+- Let you hear the military voice packs!
 
-### Step 3: Watch and Listen! 🔊
+### Step 3: Watch and Listen!
 
 **What to expect:**
-1. **Task assigned** → 🔊 "Conscript reporting!" or "Aye commander!"
-2. **Agent starts** → 🔊 "Operation underway!" or "Analyzing schematics!"
-3. **Iteration 2** → 🔊 "Got the plans right here!"
-4. **Task completes** → 🔊 **"SHAKE IT BABY!"** ⭐ (The best one!)
+1. **Task assigned** → "Acknowledged!" or "Orders received!"
+2. **Agent starts** → "Moving out!" or "Operation underway!"
+3. **Milestone** → "Making progress!" or "Halfway there!"
+4. **Task completes** → "Mission complete!" or "Objective secured!"
 
 ---
 
-## 🎯 The 7 Easy Test Tasks
+## The 7 Easy Test Tasks
 
 All these tasks are ridiculously simple - perfect for testing!
 
@@ -75,45 +75,41 @@ All these tasks are ridiculously simple - perfect for testing!
 
 ---
 
-## 🎵 Audio Event Testing Checklist
+## Audio Event Testing Checklist
 
-### ✅ Sounds You Should Hear
+### Sounds You Should Hear
 
 - [ ] **Task Assignment** (when tasks are created)
-  - "Conscript reporting!"
-  - "Aye commander!"
-  - "Order received!"
-  - "Mission sir!"
-  - etc. (random from 8 options)
+  - "Acknowledged" / "Standing by for orders" / "Ready to deploy"
+  - "Orders received" / "On it, commander" / "Locked in"
+  - (random from 6 options per voice pack)
 
 - [ ] **Task In Progress** (when agent starts)
-  - "Operation underway!"
-  - "Analyzing schematics!"
-  - "Main engines engaged!"
-  - etc. (random from 5 options)
+  - "Moving out" / "Operation underway" / "Executing now"
+  - "Engaging target" / "In position" / "Proceeding to objective"
 
-- [ ] **Milestone** (every 2 iterations)
-  - "Got the plans right here!"
-  - "Good to go!"
+- [ ] **Milestone** (progress checkpoint)
+  - "Making progress" / "Halfway there" / "On track, commander"
 
-- [ ] **Task Completed** (THE BEST ONE!)
-  - **"Shake it baby!"** ← Classic C&C sound! 🎉
-  - "Commander"
+- [ ] **Task Completed**
+  - "Mission complete" / "Objective secured" / "Target neutralized"
 
-### 🎚️ Audio Controls to Test
+### Audio Controls to Test
 
-- [ ] **Mute Toggle** (🔊 icon in TopBar)
+- [ ] **Mute Toggle** (speaker icon in TopBar)
   - Click to mute → Icon changes to VolumeX (gray)
   - Click to unmute → Icon changes to Volume2 (green)
   - Sounds stop/start accordingly
 
+- [ ] **Voice Pack Selector** - Switch between Tactical Ops, Mission Control, Field Command
+
 - [ ] **Audio Persists** across UI interactions
   - Sounds don't interrupt each other
-  - Queue system works (max 5 sounds queued)
+  - Queue system works (priority-based)
 
 ---
 
-## 🖥️ UI Features to Watch
+## UI Features to Watch
 
 While testing audio, also check out:
 
@@ -131,7 +127,7 @@ Watch these update in real-time:
 - **⏱️8s** - Response time counter
 
 ### 2. Tool Log Panel
-Click the **Terminal icon (⌨️)** in TopBar to see:
+Click the **Terminal icon** in TopBar to see:
 ```
 [14:32:05] coder-01   ✓ file_write: tasks/add_numbers.py    234ms
 [14:32:07] coder-01   ⏱ shell_command: python -c "from...   1.2s
@@ -146,14 +142,14 @@ Watch these update as tasks execute:
 
 ---
 
-## 🎬 Perfect Testing Sequence
+## Perfect Testing Sequence
 
 ### The Ultimate Audio Experience
 
 1. **Start fresh**
    ```bash
    # Make sure UI is open at http://localhost:5173
-   # Make sure audio is unmuted (🔊 icon should be green)
+   # Make sure audio is unmuted (speaker icon should be green)
    ```
 
 2. **Create all 7 tasks at once**
@@ -161,29 +157,28 @@ Watch these update as tasks execute:
    node scripts/create-easy-test-tasks.js
    ```
    → You'll hear: **7 assignment sounds back-to-back!**
-   - "Conscript reporting!"
-   - "Aye commander!"
-   - "Order received!"
+   - "Acknowledged!"
+   - "Standing by for orders!"
+   - "Ready to deploy!"
    - etc.
 
 3. **Watch the show**
-   - Open Tool Log (⌨️ icon)
+   - Open Tool Log (terminal icon)
    - Watch Active Missions strip
-   - Listen to the symphony of C&C sounds!
+   - Listen to the military voice callouts!
 
 4. **Wait for the finale**
    - As each task completes...
-   - 🔊 "SHAKE IT BABY!" 🎉
-   - Multiple tasks = Multiple shake-it-babies!
+   - "Mission complete!" / "Objective secured!"
 
 ---
 
-## 🐛 Troubleshooting Audio
+## Troubleshooting Audio
 
 ### No Sound?
 
 **Check 1: Is mute off?**
-- Look at TopBar - is the volume icon green (🔊)?
+- Look at TopBar - is the volume icon green?
 - If gray (VolumeX), click to unmute
 
 **Check 2: Browser audio**
@@ -203,8 +198,10 @@ Watch these update as tasks execute:
 **Check 5: Audio files**
 ```bash
 # Verify files exist
-ls -la packages/ui/public/audio/
-# Should show all .mp3 files
+ls packages/ui/public/audio/tactical/
+ls packages/ui/public/audio/mission-control/
+ls packages/ui/public/audio/field-command/
+# Should show 32 .mp3 files per directory
 ```
 
 ### Wrong Sounds Playing?
@@ -222,7 +219,7 @@ This shouldn't happen (queue system), but if it does:
 
 ---
 
-## 🎯 Advanced: Create Your Own Test Task
+## Advanced: Create Your Own Test Task
 
 Want to create a custom task? Here's the API call:
 
@@ -243,66 +240,60 @@ curl -X POST http://localhost:3001/api/tasks \
 1. Click "Create Task" button
 2. Fill in the form
 3. Submit
-4. 🔊 "Aye commander!"
+4. "Acknowledged!" plays
 
 ---
 
-## 🎊 Expected Audio Timeline
+## Expected Audio Timeline
 
 ```
 00:00 - Run create-easy-test-tasks.js
-00:01 - 🔊 "Conscript reporting!"
-00:02 - 🔊 "Aye commander!"
-00:03 - 🔊 "Order received!"
-00:04 - 🔊 "Mission sir!"
-00:05 - 🔊 "Good to go!"
-00:06 - 🔊 "Agent ready!"
-00:07 - 🔊 "Anytime boss!"
+00:01 - "Acknowledged!"
+00:02 - "Standing by for orders!"
+00:03 - "Ready to deploy!"
+00:04 - "Orders received!"
+00:05 - "On it, commander!"
+00:06 - "Locked in!"
 
 00:10 - First agent starts
-00:11 - 🔊 "Operation underway!"
+00:11 - "Moving out!"
 
 00:15 - Another agent starts
-00:16 - 🔊 "Analyzing schematics!"
+00:16 - "Operation underway!"
 
-00:30 - First task iteration 2
-00:31 - 🔊 "Got the plans right here!"
+00:30 - Milestone reached
+00:31 - "Making progress!"
 
 00:45 - First task completes
-00:46 - 🔊 "SHAKE IT BABY!" 🎉
+00:46 - "Mission complete!"
 
 01:00 - Second task completes
-01:01 - 🔊 "SHAKE IT BABY!" 🎉
+01:01 - "Objective secured!"
 
-... more shake-it-babies as tasks complete ...
+... more completions ...
 
 02:00 - All tasks done
-       You: 😄 "This is awesome!"
 ```
 
 ---
 
-## 🎮 Pro Tips for Maximum Fun
+## Voice Packs
 
-1. **Create all 7 tasks at once** - Hear a barrage of assignment sounds!
+Three voice packs are included, each with 32 original TTS-generated lines:
 
-2. **Watch the Active Missions** - See them light up with activity
+| Pack | Voice | Style |
+|------|-------|-------|
+| **Tactical Ops** (default) | US male (Guy) | Commanding military operator |
+| **Mission Control** | US female (Jenny) | NASA-style mission controller |
+| **Field Command** | UK male (Ryan) | British field operations commander |
 
-3. **Open the Tool Log** - Watch the terminal-style action feed
-
-4. **Test the mute toggle** - Turn audio on/off during execution
-
-5. **Create more tasks** - The more tasks, the more sounds!
-
-6. **Try different agents** - Coder vs QA agents (same sounds for now, but could customize)
-
-7. **Celebrate each "Shake it baby!"** - It's the best sound! 🎉
+Switch between packs in the audio settings.
 
 ---
 
-## 🎵 Sound Quality Tips
+## Sound Quality Tips
 
-All your audio files are C&C Red Alert originals! They should sound crisp and nostalgic.
+All audio files are original TTS-generated military voice lines.
 
 **If a sound is too loud/quiet:**
 ```typescript
@@ -314,17 +305,15 @@ audioSettings: {
 ```
 
 **If you want different sounds:**
-1. Replace files in `packages/ui/public/audio/`
+1. Replace files in `packages/ui/public/audio/<pack-name>/`
 2. Keep same filenames (or update voicePacks.ts)
 3. Refresh page
 
----
-
-## 🏆 Achievement Unlocked
-
-When you hear your first "Shake it baby!" you'll know the system is working perfectly! 🎉
-
-Enjoy commanding your elite team of coding agents with authentic C&C Red Alert audio! 🎖️
+**To regenerate voice lines:**
+```bash
+pip install edge-tts
+python scripts/generate-voice-packs.py
+```
 
 ---
 

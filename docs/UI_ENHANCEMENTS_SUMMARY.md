@@ -25,7 +25,7 @@ Added new state management for:
 - **UI Toggles**
   - Added `toolLogOpen` and `toggleToolLog()` for tool log panel
 
-### 2. C&C Red Alert Voice System
+### 2. Military Voice System
 **Files:**
 - `packages/ui/src/audio/audioManager.ts`
 - `packages/ui/src/audio/voicePacks.ts`
@@ -275,7 +275,7 @@ The implementation assumes these backend endpoints exist:
 
 All planned features from Sprints 3 & 4 have been successfully implemented:
 - ✅ Real-time agent health monitoring
-- ✅ C&C Red Alert voice system
+- ✅ Military voice system
 - ✅ Terminal-style tool log
 - ✅ TopBar real metrics
 - ✅ Audio controls

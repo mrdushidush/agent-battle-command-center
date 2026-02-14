@@ -248,7 +248,7 @@ Added `CLAUDE.md` section documenting critical test requirements:
 | Active Missions | ✅ Complete | Real-time agent strip |
 | Cost Dashboard | ✅ Complete | Charts, breakdowns |
 | Code Review Panel | ✅ Complete | Findings display |
-| Audio System | ✅ Complete | C&C Red Alert style |
+| Audio System | ✅ Complete | Military voice packs |
 | Real-time Updates | ✅ Complete | WebSocket |
 
 **Gaps (unchanged):**

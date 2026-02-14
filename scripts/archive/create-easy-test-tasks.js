@@ -139,7 +139,7 @@ async function createTasks() {
       if (response.ok) {
         console.log(`✅ Created: ${task.title}`);
         console.log(`   ID: ${result.id}`);
-        console.log(`   Listen for: "Conscript reporting!" or similar\n`);
+        console.log(`   Listen for: "Acknowledged!" or similar\n`);
       } else {
         console.error(`❌ Failed to create "${task.title}":`, result);
       }
@@ -149,12 +149,12 @@ async function createTasks() {
   }
 
   console.log('\n🎉 All tasks created!');
-  console.log('🔊 Now watch the UI and listen for C&C sounds!');
+  console.log('🔊 Now watch the UI and listen for voice feedback!');
   console.log('\n📋 Expected audio sequence:');
-  console.log('1. Task assigned → "Aye commander!" or similar');
-  console.log('2. Agent starts → "Operation underway!"');
-  console.log('3. Iteration 2 → "Got the plans right here!"');
-  console.log('4. Task done → "SHAKE IT BABY!" 🎉');
+  console.log('1. Task assigned → "Acknowledged!" or similar');
+  console.log('2. Agent starts → "Moving out!"');
+  console.log('3. Milestone → "Making progress!"');
+  console.log('4. Task done → "Mission complete!" 🎉');
   console.log('\n💡 Tip: Open the Tool Log (⌨️ icon) to see agent actions!');
 }
 

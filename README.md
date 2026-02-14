@@ -2,7 +2,7 @@
 
 > **Run 88% of coding tasks for FREE on a $300 GPU, with Claude handling the rest at ~$0.002/task average.**
 
-A Command & Conquer Red Alert-inspired control center for orchestrating AI coding agents with intelligent tiered routing. Watch your AI agents work in real-time with a retro RTS-style interface.
+An RTS-inspired control center for orchestrating AI coding agents with intelligent tiered routing. Watch your AI agents work in real-time with a retro strategy game-style interface.
 
 [![Strong MVP](https://img.shields.io/badge/status-Strong%20MVP%20(8.5%2F10)-brightgreen)](./MVP_ASSESSMENT.md)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-dushidush-blue?logo=docker)](https://hub.docker.com/u/dushidush)
@@ -32,9 +32,9 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
 - Dual assessment: rule-based + Haiku AI semantic analysis
 - Automatic escalation: Ollama (1-6) → Haiku (7-8) → Sonnet (9-10)
 
-**🎵 C&C Red Alert Audio System**
-- Voice feedback for every agent action ("Conscript reporting!", "Shake it baby!")
-- Nostalgic RTS-style command center experience
+**🎵 Military Voice Pack Audio**
+- 3 original voice packs: Tactical Ops, Mission Control, Field Command
+- Voice feedback for every agent action ("Mission complete!", "Engaging target!")
 - Real-time agent status with sound effects
 
 **📊 Full Observability**
@@ -52,7 +52,7 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
 
 ### Main Command Center (Overseer Mode)
 ![Command Center Overview](docs/screenshots/command-center-overview.png)
-*The main view showing task queue (bounty board), active missions strip, and real-time tool log with C&C Red Alert aesthetic.*
+*The main view showing task queue (bounty board), active missions strip, and real-time tool log with RTS-inspired aesthetic.*
 
 ### Task Queue (Bounty Board)
 ![Task Queue](docs/screenshots/task-queue.png)
@@ -77,9 +77,9 @@ A Command & Conquer Red Alert-inspired control center for orchestrating AI codin
 ---
 
 **UI Features:**
-- 🎮 Command & Conquer Red Alert-inspired design
+- 🎮 RTS nostalgia-inspired design
 - 🎨 Teal/amber HUD colors with terminal-style panels
-- 🔊 Voice feedback for agent actions ("Conscript reporting!", "Shake it baby!")
+- 🔊 Military voice feedback for agent actions ("Acknowledged!", "Mission complete!")
 - ⚡ Real-time WebSocket updates (no polling)
 - 📊 Live metrics and health indicators
 
@@ -187,7 +187,7 @@ For contributors and developers who want to modify the code.
 │                          UI (React + Vite)                          │
 │                         localhost:5173                              │
 │  • Task queue (bounty board)  • Active missions  • Tool log        │
-│  • Dashboard  • Minimap  • C&C audio system                        │
+│  • Dashboard  • Minimap  • Voice pack audio                        │
 └────────────────────────────┬────────────────────────────────────────┘
                              │ HTTP/WebSocket (authenticated)
 ┌────────────────────────────▼─────────────────────────────────────────┐
@@ -693,7 +693,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ### Current (Alpha - v0.1.x)
 - ✅ Tiered task routing (Ollama/Haiku/Sonnet/Opus)
-- ✅ Real-time UI with C&C Red Alert audio
+- ✅ Real-time UI with military voice pack audio
 - ✅ API authentication and rate limiting
 - ✅ Parallel execution and file locking
 - ✅ Cost tracking and budget limits
@@ -728,7 +728,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Anthropic** - Claude API powering the intelligent agents
 - **Ollama** - Local LLM runtime enabling free execution
 - **CrewAI** - Agent orchestration framework
-- **Command & Conquer Red Alert** - Inspiration for the UI/UX
+- **Classic RTS games** - Inspiration for the UI/UX
 
 ---
 

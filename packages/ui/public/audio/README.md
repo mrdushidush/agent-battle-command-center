@@ -1,57 +1,38 @@
-# Audio Files for C&C Red Alert Voice System
+# Voice Packs for Agent Battle Command Center
 
-This directory contains voice samples for the Agent Battle Command Center.
+Original TTS-generated military voice lines. No copyrighted game audio.
 
-## Required Audio Files
+## Voice Packs
 
-Place MP3 or WAV files (1-2 seconds each) with the following names:
+| Pack | Voice | Description |
+|------|-------|-------------|
+| **Tactical Ops** (default) | US male (Guy) | Commanding military operator |
+| **Mission Control** | US female (Jenny) | NASA-style mission controller |
+| **Field Command** | UK male (Ryan) | British field operations commander |
 
-### Task Assignment
-- `affirmative.mp3` - "Affirmative"
-- `acknowledged.mp3` - "Acknowledged"
-- `on-it.mp3` - "On it"
-- `moving-out.mp3` - "Moving out"
+Each pack has 32 voice lines covering 9 events:
+- `task_assigned` (6 lines) - Agent receives a task
+- `task_in_progress` (6 lines) - Execution starts
+- `task_milestone` (3 lines) - Progress checkpoint
+- `task_completed` (3 lines) - Task succeeds
+- `task_failed` (2 lines) - Task fails
+- `agent_stuck` (3 lines) - Agent hangs
+- `loop_detected` (4 lines) - Infinite loop
+- `opus_review` (3 lines) - Code review started
+- `decomposition` (2 lines) - Task decomposition
 
-### Task In Progress
-- `building.mp3` - "Building in progress"
-- `working.mp3` - "Working on it"
+## Regenerating Voice Lines
 
-### Milestones
-- `cha-ching.mp3` - "Cha-ching!"
-- `target-acquired.mp3` - "Target acquired"
+Voice lines are generated using `edge-tts` (Microsoft Edge TTS, free):
 
-### Task Completion
-- `mission-complete.mp3` - "Mission complete"
-- `job-done.mp3` - "Job done"
-- `target-eliminated.mp3` - "Target eliminated"
+```bash
+pip install edge-tts
+python scripts/generate-voice-packs.py
+```
 
-### Task Failure
-- `problem.mp3` - "We have a problem"
-- `need-backup.mp3` - "Need backup"
-- `unable.mp3` - "Unable to comply"
+## Creating Custom Voice Packs
 
-### Agent Issues
-- `pinned-down.mp3` - "We're pinned down"
-- `taking-fire.mp3` - "Taking fire"
-
-## How to Add Custom Audio
-
-1. Record or download C&C Red Alert style voice samples
-2. Convert to MP3 or WAV format
-3. Keep file size small (1-2 seconds, ~50-200KB each)
-4. Place files in this directory with the exact names above
-5. Restart the development server
-
-## Sources for C&C Audio
-
-You can extract audio from:
-- Command & Conquer: Red Alert game files
-- Sound effects libraries (royalty-free)
-- Text-to-speech with military/radio voice effect
-- Custom recordings with audio processing
-
-## Legal Note
-
-Ensure you have the rights to use any audio files. C&C Red Alert audio is
-copyrighted by EA Games. For production use, create original audio or use
-royalty-free alternatives.
+1. Create a new directory under `packages/ui/public/audio/your-pack-name/`
+2. Add 32 `.mp3` files matching the event structure above
+3. Add your pack to `packages/ui/src/audio/voicePacks.ts`
+4. Community voice pack contributions are welcome!
