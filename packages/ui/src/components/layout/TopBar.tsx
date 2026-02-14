@@ -1,4 +1,4 @@
-import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown } from 'lucide-react';
+import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { useState, useEffect, useRef } from 'react';
 import { audioManager } from '../../audio/audioManager';
@@ -305,6 +305,15 @@ export function TopBar() {
           aria-pressed={settingsModalOpen}
         >
           <Settings className={`w-5 h-5 ${settingsModalOpen ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
+        </button>
+
+        Keyboard shortcuts
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('show-shortcuts-help'))}
+          className="p-2 hover:bg-command-accent rounded transition-colors"
+          aria-label="Keyboard shortcuts"
+        >
+          <HelpCircle className="w-5 h-5 text-gray-400" aria-hidden="true" />
         </button>
       </div>
 
