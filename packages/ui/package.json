@@ -14,11 +14,15 @@
   },
   "dependencies": {
     "@abcc/shared": "workspace:*",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@react-three/postprocessing": "^2.19.1",
     "clsx": "^2.1.0",
     "lucide-react": "^0.312.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "socket.io-client": "^4.7.4",
+    "three": "^0.160.1",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
@@ -27,6 +31,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
+    "@types/three": "^0.160.0",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.17",

@@ -1,4 +1,4 @@
-import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle } from 'lucide-react';
+import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle, Crosshair } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { useState, useEffect, useRef } from 'react';
 import { audioManager } from '../../audio/audioManager';
@@ -24,6 +24,8 @@ export function TopBar() {
     updateBudget,
     settingsModalOpen,
     toggleSettingsModal,
+    battlefieldEnabled,
+    toggleBattlefield,
   } = useUIStore();
   const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
   const [resetting, setResetting] = useState(false);
@@ -242,6 +244,19 @@ export function TopBar() {
             <Volume2 className="w-5 h-5 text-hud-green" aria-hidden="true" />
           )}
           <span className="sr-only">{audioSettings.muted ? 'Unmute' : 'Mute'} audio</span>
+        </button>
+
+        {/* Battlefield Toggle */}
+        <button
+          className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
+            battlefieldEnabled ? 'bg-hud-green/20' : ''
+          }`}
+          onClick={toggleBattlefield}
+          aria-label={battlefieldEnabled ? 'Disable 3D battlefield' : 'Enable 3D battlefield'}
+          aria-pressed={battlefieldEnabled}
+          title={battlefieldEnabled ? '3D Battlefield ON' : '3D Battlefield OFF'}
+        >
+          <Crosshair className={`w-5 h-5 ${battlefieldEnabled ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
         </button>
 
         {/* Tool Log Button */}

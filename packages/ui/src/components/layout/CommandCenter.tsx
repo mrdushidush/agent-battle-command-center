@@ -2,6 +2,7 @@ import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { Minimap } from '../minimap/Minimap';
 import { TaskQueue } from '../main-view/TaskQueue';
+import { BattlefieldView } from '../battlefield/BattlefieldView';
 import { ActiveMissions } from '../main-view/ActiveMissions';
 import { ToolLog } from '../main-view/ToolLog';
 import { TokenBurnLog } from '../main-view/TokenBurnLog';
@@ -12,7 +13,7 @@ import { useUIStore } from '../../store/uiState';
 import { ComponentErrorBoundary } from '../ComponentErrorBoundary';
 
 export function CommandCenter() {
-  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, toolLogOpen, toggleChatPanel, agents } = useUIStore();
+  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, toolLogOpen, toggleChatPanel, agents, battlefieldEnabled } = useUIStore();
 
   return (
     <div className="h-full flex flex-col command-bg-enhanced">
@@ -48,10 +49,10 @@ export function CommandCenter() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {mode === 'overseer' ? (
             <>
-              {/* Task Queue (Bounty Board) - Large area for task cards */}
+              {/* Task Queue / 3D Battlefield - Large area for task cards or holographic view */}
               <div className="flex-1 border-b border-command-border overflow-hidden">
                 <ComponentErrorBoundary componentName="Task Queue">
-                  <TaskQueue />
+                  {battlefieldEnabled ? <BattlefieldView /> : <TaskQueue />}
                 </ComponentErrorBoundary>
               </div>
 

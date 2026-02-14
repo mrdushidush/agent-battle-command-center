@@ -30,6 +30,8 @@ interface UIState {
   toggleToolLog: () => void;
   settingsModalOpen: boolean;
   toggleSettingsModal: () => void;
+  battlefieldEnabled: boolean;
+  toggleBattlefield: () => void;
 
   // Settings
   settings: Settings;
@@ -154,6 +156,8 @@ export const useUIStore = create<UIState>((set) => ({
   toggleToolLog: () => set((state) => ({ toolLogOpen: !state.toolLogOpen })),
   settingsModalOpen: false,
   toggleSettingsModal: () => set((state) => ({ settingsModalOpen: !state.settingsModalOpen })),
+  battlefieldEnabled: true,
+  toggleBattlefield: () => set((state) => ({ battlefieldEnabled: !state.battlefieldEnabled })),
 
   // Settings
   settings: {
