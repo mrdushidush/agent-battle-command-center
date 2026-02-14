@@ -1,4 +1,4 @@
-import { Clock, AlertTriangle, CheckCircle, XCircle, Code, TestTube, Eye, Bug, RefreshCw, Play, Edit, Trash2 } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, XCircle, Code, TestTube, Eye, Bug, RefreshCw, Play, Edit, Trash2, Copy, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import type { Task } from '@abcc/shared';
@@ -47,7 +47,19 @@ export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [animation, setAnimation] = useState<AnimationState>('enter');
+  const [copied, setCopied] = useState(false);
   const prevStatusRef = useRef(task.status);
+
+  const handleCopyId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(task.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   const TaskIcon = taskTypeIcons[task.taskType as keyof typeof taskTypeIcons] || Code;
   const priorityLevel = task.priority >= 8 ? 'high' : task.priority >= 5 ? 'medium' : 'low';
@@ -184,6 +196,15 @@ export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
             task.requiredAgent === 'qa' ? 'text-agent-qa' : 'text-gray-400'
           )} aria-hidden="true" />
           <span className="text-[10px] truncate flex-1 font-medium">{task.title}</span>
+          <button
+            type="button"
+            onClick={handleCopyId}
+            className="p-0.5 hover:bg-command-accent rounded flex-shrink-0 text-gray-400 hover:text-hud-amber"
+            aria-label={copied ? 'Copied' : 'Copy task ID'}
+            title={task.id}
+          >
+            {copied ? <Check className="w-2.5 h-2.5 text-hud-green" aria-hidden="true" /> : <Copy className="w-2.5 h-2.5" aria-hidden="true" />}
+          </button>
         </div>
         <div className="flex items-center justify-between mt-auto">
           <span className={clsx(
@@ -265,7 +286,25 @@ export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
           </div>
           <div>
             <h3 className="text-xs font-medium truncate">{task.title}</h3>
-            <span className="text-[10px] text-gray-500 capitalize">{task.taskType}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-gray-500 capitalize">{task.taskType}</span>
+              <span className="text-[9px] text-gray-500/80 font-mono" title={task.id}>
+                {task.id.slice(0, 8)}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyId}
+                className="p-0.5 hover:bg-command-accent rounded transition-colors text-gray-400 hover:text-hud-amber"
+                aria-label={copied ? 'Copied' : 'Copy task ID'}
+                title={copied ? 'Copied' : 'Copy task ID'}
+              >
+                {copied ? (
+                  <Check className="w-3 h-3 text-hud-green" aria-hidden="true" />
+                ) : (
+                  <Copy className="w-3 h-3" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
