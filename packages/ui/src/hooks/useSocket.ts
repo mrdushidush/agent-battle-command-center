@@ -39,6 +39,10 @@ const AUDIO_DISABLED = false;
 const getLastSoundTime = (): number => window.__ABCC_LAST_SOUND_TIME__ ?? 0;
 const setLastSoundTime = (time: number) => { window.__ABCC_LAST_SOUND_TIME__ = time; };
 
+// Track pending audio timeouts to prevent accumulation (OOM fix)
+const MAX_PENDING_TIMEOUTS = 5;
+const pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
 // Play sound with delay if needed to prevent overlap
 const playWithDelay = (playFn: () => void) => {
   // Skip if audio disabled for debugging
@@ -49,12 +53,18 @@ const playWithDelay = (playFn: () => void) => {
   const timeSinceLastSound = now - lastSound;
 
   if (timeSinceLastSound < SOUND_DELAY_MS) {
-    // Delay this sound to prevent overlap
+    // Drop sound if too many pending (prevents timeout accumulation)
+    if (pendingTimeouts.length >= MAX_PENDING_TIMEOUTS) return;
+
     const delay = SOUND_DELAY_MS - timeSinceLastSound;
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      // Remove from tracking
+      const idx = pendingTimeouts.indexOf(timeoutId);
+      if (idx >= 0) pendingTimeouts.splice(idx, 1);
       setLastSoundTime(Date.now());
       playFn();
     }, delay);
+    pendingTimeouts.push(timeoutId);
   } else {
     setLastSoundTime(now);
     playFn();

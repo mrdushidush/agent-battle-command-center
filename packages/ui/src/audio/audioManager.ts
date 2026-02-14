@@ -110,6 +110,12 @@ class AudioManager {
    * Play a sound file directly
    */
   public playSound(audioFile: string, text: string = '', priority: number = 5) {
+    // Cap queue size to prevent unbounded growth (OOM fix)
+    if (this.queue.length >= 10) {
+      // Drop lowest priority item
+      this.queue.pop();
+    }
+
     // Add to queue
     this.queue.push({ audioFile, text, priority });
 

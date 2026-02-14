@@ -132,7 +132,7 @@ export function TokenBurnLog() {
     };
 
     fetchLogs();
-    const interval = setInterval(fetchLogs, 2000);
+    const interval = setInterval(fetchLogs, 10000); // Poll every 10 seconds (was 2s - caused OOM)
     return () => clearInterval(interval);
   }, [useMockData]);
 

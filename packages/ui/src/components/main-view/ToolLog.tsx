@@ -46,7 +46,7 @@ export function ToolLog() {
     };
 
     fetchLogs();
-    const interval = setInterval(fetchLogs, 2000); // Poll every 2 seconds
+    const interval = setInterval(fetchLogs, 10000); // Poll every 10 seconds (was 2s - caused OOM)
     return () => clearInterval(interval);
   }, []);
 
