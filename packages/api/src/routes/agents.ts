@@ -328,76 +328,22 @@ agentsRouter.get('/:id/stats', asyncHandler(async (req, res) => {
 
   res.json({ stats, executions });
 }));
+
 // DEBUG: Reset all agents (clear stuck states)
 agentsRouter.post('/reset-all', asyncHandler(async (req, res) => {
-  const io = req.app.get('io') as SocketIOServer;
+  const stuckTaskRecovery = req.app.get('stuckTaskRecovery') as StuckTaskRecoveryService;
 
-  // Find all tasks that are stuck (assigned or in_progress, regardless of error)
-  const stuckTasks = await prisma.task.findMany({
-    where: {
-      OR: [
-        { status: 'assigned' },
-        { status: 'in_progress' },
-      ],
-    },
-  });
+  if (!stuckTaskRecovery) {
+    res.status(500).json({ error: 'StuckTaskRecovery service not initialized' });
+    return;
+  }
 
-  // Mark all stuck tasks as failed
-  const failedTasksResult = await prisma.task.updateMany({
-    where: {
-      OR: [
-        { status: 'assigned' },
-        { status: 'in_progress' },
-      ],
-    },
-    data: {
-      status: 'failed',
-      error: 'Task was stuck and reset by user',
-      completedAt: new Date(),
-    },
-  });
-
-  // Update all agents to idle with no current task
-  const agentsResult = await prisma.agent.updateMany({
-    data: {
-      status: 'idle',
-      currentTaskId: null,
-    },
-  });
-
-  // Emit agent status change events
-  const agents = await prisma.agent.findMany({
-    include: { agentType: true },
-  });
-
-  agents.forEach(agent => {
-    io.emit('agent_status_changed', {
-      type: 'agent_status_changed',
-      payload: agent,
-      timestamp: new Date(),
-    });
-  });
-
-  // Emit task status changes for failed tasks
-  stuckTasks.forEach(task => {
-    // Update task object to reflect the changes made by updateMany
-    const updatedTask = {
-      ...task,
-      status: 'failed',
-      error: 'Task was stuck and reset by user',
-      completedAt: new Date(),
-    };
-    io.emit('task_updated', {
-      type: 'task_updated',
-      payload: updatedTask,
-      timestamp: new Date(),
-    });
-  });
+  const results = await stuckTaskRecovery.forceRecoverAll();
 
   res.json({
     success: true,
-    message: `Reset ${agentsResult.count} agents to idle, marked ${failedTasksResult.count} stuck tasks as failed`,
-    agentsReset: agentsResult.count,
-    tasksFixed: failedTasksResult.count,
+    message: `Force recovered ${results.length} stuck tasks`,
+    recoveredCount: results.length,
+    recovered: results,
   });
 }));

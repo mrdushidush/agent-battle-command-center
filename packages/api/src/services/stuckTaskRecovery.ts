@@ -118,6 +118,45 @@ export class StuckTaskRecoveryService {
     }
   }
 
+//  Recover ALL assigned or in_progress tasks (used by reset button)
+ 
+async forceRecoverAll(): Promise<RecoveryResult[]> {
+  const stuckTasks = await this.prisma.task.findMany({
+    where: {
+      OR: [
+        { status: 'assigned' },
+        { status: 'in_progress' },
+      ],
+    },
+    include: {
+      assignedAgent: {
+        include: { agentType: true },
+      },
+    },
+  });
+
+  if (stuckTasks.length === 0) {
+    return [];
+  }
+
+  console.log(`StuckTaskRecoveryService: Force recovering ${stuckTasks.length} task(s)`);
+
+  const results: RecoveryResult[] = [];
+
+  for (const task of stuckTasks) {
+    try {
+      const result = await this.recoverStuckTask(task);
+      results.push(result);
+      this.addToHistory(result);
+    } catch (error) {
+      console.error(`Force recovery failed for task ${task.id}:`, error);
+    }
+  }
+
+  return results;
+}
+
+
   /**
    * Check for and recover stuck tasks
    */
@@ -395,3 +434,5 @@ export class StuckTaskRecoveryService {
     }
   }
 }
+
+
