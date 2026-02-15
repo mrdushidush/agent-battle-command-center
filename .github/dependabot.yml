@@ -9,6 +9,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps-actions)"
 
@@ -21,6 +24,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       python-dependencies:
         update-types:
@@ -38,6 +44,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: "development"
@@ -61,6 +70,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       api-dev-dependencies:
         dependency-type: "development"
@@ -84,6 +96,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       ui-dev-dependencies:
         dependency-type: "development"
@@ -107,6 +122,9 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       shared-dev-dependencies:
         dependency-type: "development"
