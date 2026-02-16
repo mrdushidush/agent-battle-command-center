@@ -55,19 +55,11 @@ def create_base_agent(
 
 # Default tool sets for different agent types (HTTP mode)
 CODER_TOOLS_HTTP = [file_read, file_write, file_edit, file_list, shell_run, code_search, find_file]
-QA_TOOLS_HTTP = [file_read, file_write, file_list, shell_run, code_search, find_file]
+QA_TOOLS_HTTP = [file_read, file_write, file_list, shell_run]
 CTO_TOOLS_HTTP = [
-    review_code,
-    query_logs,
-    assign_task,
-    escalate_task,
-    get_task_info,
-    list_agents,
     create_subtask,  # CTO can decompose tasks
     complete_decomposition,  # CTO can mark decomposition complete
     file_read,  # CTO can read files for review
-    file_list,  # CTO can list files
-    code_search,  # CTO can search codebase
 ]
 
 # MCP tool sets (HTTP file tools + memory tools for learning)

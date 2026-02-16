@@ -26,7 +26,7 @@ def _is_test_file(path: str) -> bool:
 
 class FileReadTool(BaseTool):
     name: str = "file_read"
-    description: str = "Read the contents of a file. Args: path (str): file path to read"
+    description: str = "Read a file. Args: path (str)"
 
     def _run(self, path: str) -> str:
         try:
@@ -52,7 +52,7 @@ class FileReadTool(BaseTool):
 
 class FileWriteTool(BaseTool):
     name: str = "file_write"
-    description: str = "Write content to a file. Args: path (str): file path, content (str): file content"
+    description: str = "Write a file. Args: path (str), content (str)"
 
     def _run(self, path: str, content: str) -> str:
         try:
@@ -91,7 +91,7 @@ class FileWriteTool(BaseTool):
 
 class FileEditTool(BaseTool):
     name: str = "file_edit"
-    description: str = "Edit a file by replacing text. Args: path (str): file path, old_text (str): text to replace, new_text (str): replacement text"
+    description: str = "Replace text in a file. Args: path (str), old_text (str), new_text (str)"
 
     def _run(self, path: str, old_text: str, new_text: str) -> str:
         try:
@@ -135,7 +135,7 @@ class FileEditTool(BaseTool):
 
 class FileListTool(BaseTool):
     name: str = "file_list"
-    description: str = "List files in a directory. Args: path (str, optional): directory path (empty or '.' for workspace root)"
+    description: str = "List directory contents. Args: path (str, optional)"
 
     def _run(self, path: str = "") -> str:
         try:

@@ -8,7 +8,7 @@ from src.monitoring import ActionHistory, ActionLoopDetected
 
 class CodeSearchTool(BaseTool):
     name: str = "code_search"
-    description: str = "Search for text/pattern in code files. Args: pattern (str): text or regex to search, file_pattern (str, optional): file glob pattern like '*.py'"
+    description: str = "Search for text in files. Args: pattern (str), file_pattern (str, optional)"
 
     def _run(self, pattern: str, file_pattern: str = "*") -> str:
         try:
@@ -84,7 +84,7 @@ class CodeSearchTool(BaseTool):
 
 class FindFileTool(BaseTool):
     name: str = "find_file"
-    description: str = "Find files by name pattern. Args: pattern (str): filename pattern (e.g., '*.test.ts' or 'config.json')"
+    description: str = "Find files by name. Args: pattern (str) e.g. '*.py'"
 
     def _run(self, pattern: str) -> str:
         try:

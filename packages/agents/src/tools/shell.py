@@ -190,7 +190,7 @@ def _validate_php_code(args: list[str]) -> str | None:
 
 class ShellRunTool(BaseTool):
     name: str = "shell_run"
-    description: str = "Run a shell command. Args: command (str): the shell command to execute. Only certain safe commands are allowed. Shell operators (|, &&, ;) are blocked."
+    description: str = "Run a shell command. Args: command (str). Allowed: python, node, go, php, pytest, ls, grep, find, mkdir."
 
     def _run(self, command: str) -> str:
         try:

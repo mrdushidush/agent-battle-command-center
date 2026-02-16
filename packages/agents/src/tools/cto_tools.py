@@ -16,24 +16,20 @@ from crewai_tools import tool
 
 from src.config import settings
 
+API_URL = "http://api:3001"
+
+
+def _api_headers():
+    """Get headers with API key for internal API calls."""
+    h = {"Content-Type": "application/json"}
+    if settings.API_KEY:
+        h["X-API-Key"] = settings.API_KEY
+    return h
+
 
 @tool("Review Code Quality")
 def review_code(file_path: str) -> str:
-    """
-    Analyze code quality and provide suggestions.
-
-    Args:
-        file_path: Path to the file to review (relative to workspace)
-
-    Returns:
-        JSON string with review results:
-        {
-            "quality_score": 1-10,
-            "issues": ["issue1", "issue2"],
-            "suggestions": ["suggestion1", "suggestion2"],
-            "positive_aspects": ["good1", "good2"]
-        }
-    """
+    """Review code quality. Args: file_path (str) relative to workspace."""
     try:
         # Read the file content
         import os
@@ -107,20 +103,11 @@ def review_code(file_path: str) -> str:
 
 @tool("Query Execution Logs")
 def query_logs(task_id: str) -> str:
-    """
-    Retrieve execution logs for a task to analyze what happened.
-
-    Args:
-        task_id: UUID of the task to query
-
-    Returns:
-        JSON string with execution logs showing all actions, inputs, and observations
-    """
+    """Get execution logs for a task. Args: task_id (str)."""
     try:
-        # Call the API to get execution logs
-        api_url = "http://api:3001"
         response = requests.get(
-            f"{api_url}/api/execution-logs/task/{task_id}",
+            f"{API_URL}/api/execution-logs/task/{task_id}",
+            headers=_api_headers(),
             timeout=10
         )
 
@@ -159,27 +146,12 @@ def query_logs(task_id: str) -> str:
 
 @tool("Assign Task to Agent")
 def assign_task(task_id: str, agent_id: str, reason: str = "") -> str:
-    """
-    Assign a task to a specific agent.
-
-    Args:
-        task_id: UUID of the task
-        agent_id: ID of the agent (e.g., 'coder-01', 'qa-01')
-        reason: Optional reason for this assignment
-
-    Returns:
-        JSON string with assignment result
-    """
+    """Assign task to agent. Args: task_id (str), agent_id (str), reason (str, optional)."""
     try:
-        api_url = "http://api:3001"
-
-        # Update task assignment
         response = requests.patch(
-            f"{api_url}/api/tasks/{task_id}",
-            json={
-                "assignedAgentId": agent_id,
-                "status": "assigned"
-            },
+            f"{API_URL}/api/tasks/{task_id}",
+            json={"assignedAgentId": agent_id, "status": "assigned"},
+            headers=_api_headers(),
             timeout=10
         )
 
@@ -204,27 +176,12 @@ def assign_task(task_id: str, agent_id: str, reason: str = "") -> str:
 
 @tool("Escalate Task for Human Review")
 def escalate_task(task_id: str, reason: str, urgency: str = "normal") -> str:
-    """
-    Mark a task as needing human review.
-
-    Args:
-        task_id: UUID of the task
-        reason: Explanation of why human review is needed
-        urgency: 'low', 'normal', 'high', 'critical'
-
-    Returns:
-        JSON string with escalation result
-    """
+    """Escalate task for human review. Args: task_id (str), reason (str), urgency (str)."""
     try:
-        api_url = "http://api:3001"
-
-        # Update task to needs_human status
         response = requests.patch(
-            f"{api_url}/api/tasks/{task_id}",
-            json={
-                "status": "needs_human",
-                "error": f"[{urgency.upper()}] {reason}"
-            },
+            f"{API_URL}/api/tasks/{task_id}",
+            json={"status": "needs_human", "error": f"[{urgency.upper()}] {reason}"},
+            headers=_api_headers(),
             timeout=10
         )
 
@@ -249,19 +206,11 @@ def escalate_task(task_id: str, reason: str, urgency: str = "normal") -> str:
 
 @tool("Get Task Details")
 def get_task_info(task_id: str) -> str:
-    """
-    Retrieve detailed information about a task.
-
-    Args:
-        task_id: UUID of the task
-
-    Returns:
-        JSON string with task details
-    """
+    """Get task details. Args: task_id (str)."""
     try:
-        api_url = "http://api:3001"
         response = requests.get(
-            f"{api_url}/api/tasks/{task_id}",
+            f"{API_URL}/api/tasks/{task_id}",
+            headers=_api_headers(),
             timeout=10
         )
 
@@ -291,16 +240,11 @@ def get_task_info(task_id: str) -> str:
 
 @tool("List Available Agents")
 def list_agents() -> str:
-    """
-    Get a list of all available agents and their current status.
-
-    Returns:
-        JSON string with agent information
-    """
+    """List all agents and their status."""
     try:
-        api_url = "http://api:3001"
         response = requests.get(
-            f"{api_url}/api/agents",
+            f"{API_URL}/api/agents",
+            headers=_api_headers(),
             timeout=10
         )
 
@@ -337,40 +281,9 @@ def create_subtask(
     suggested_agent: str = "coder",
     priority: int = 5
 ) -> str:
-    """
-    Create an ATOMIC subtask linked to a parent task.
-    Each subtask should do ONE thing (one function, one file).
-
-    Args:
-        parent_task_id: UUID of the parent task being decomposed
-        title: Short title. Format: "Create [function] in [file.py]"
-        description: Step-by-step numbered instructions (1. Create file, 2. Add function, 3. Run validation)
-        acceptance_criteria: What must be true for success (e.g., "add(2,3) returns 5")
-        validation_command: Python command to verify success. REQUIRED!
-                           Example: 'python -c "from tasks.calc import add; print(add(2,3))"'
-        context_notes: Optional context about codebase patterns
-        suggested_agent: "coder" or "qa"
-        priority: 1-10, higher = more urgent
-
-    Returns:
-        JSON string with created subtask details
-
-    IMPORTANT: Always include validation_command! Agent will run this to verify success.
-
-    Example:
-        create_subtask(
-            parent_task_id="abc-123",
-            title="Create add function in calculator.py",
-            description="1. Create file tasks/calculator.py\\n2. Add: def add(a, b): return a + b\\n3. Run validation command",
-            acceptance_criteria="add(2,3) returns 5",
-            validation_command='python -c "from tasks.calculator import add; print(add(2,3))"',
-            suggested_agent="coder",
-            priority=5
-        )
-    """
+    """Create an atomic subtask for a parent task. One subtask = one file/function.
+    Args: parent_task_id, title, description, acceptance_criteria, validation_command, context_notes, suggested_agent, priority."""
     try:
-        api_url = "http://api:3001"
-
         # Map suggested_agent to requiredAgent
         agent_type_map = {
             "coder": "coder",
@@ -397,7 +310,8 @@ def create_subtask(
 
         # Create the subtask
         response = requests.post(
-            f"{api_url}/api/tasks",
+            f"{API_URL}/api/tasks",
+            headers=_api_headers(),
             json={
                 "title": title[:200],  # Enforce max length
                 "description": full_description,
@@ -439,24 +353,11 @@ def create_subtask(
 
 @tool("Mark Task Decomposition Complete")
 def complete_decomposition(parent_task_id: str, summary: str, subtask_count: int) -> str:
-    """
-    Mark that a parent task has been successfully decomposed into subtasks.
-    Call this after creating all subtasks for a complex task.
-
-    Args:
-        parent_task_id: UUID of the parent task that was decomposed
-        summary: Brief summary of the decomposition strategy
-        subtask_count: Number of subtasks created
-
-    Returns:
-        JSON string confirming decomposition is complete
-    """
+    """Mark decomposition done. Args: parent_task_id, summary, subtask_count."""
     try:
-        api_url = "http://api:3001"
-
-        # Update parent task with decomposition info
         response = requests.patch(
-            f"{api_url}/api/tasks/{parent_task_id}",
+            f"{API_URL}/api/tasks/{parent_task_id}",
+            headers=_api_headers(),
             json={
                 "status": "completed",
                 "result": json.dumps({
