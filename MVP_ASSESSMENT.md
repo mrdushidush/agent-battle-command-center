@@ -1,6 +1,6 @@
 # Agent Battle Command Center - Full Architecture Assessment
 
-**Date:** 2026-02-06 (Updated: 2026-02-12 — Docker Hub + Onboarding)
+**Date:** 2026-02-06 (Updated: 2026-02-18 — Dynamic Context Routing)
 **Assessor:** Software Architecture Review (Claude Opus 4.6)
 **Codebase Snapshot:** main branch, clean working tree
 **Previous Score:** 7.2 / 10 (Strong Alpha, Pre-MVP)
@@ -9,15 +9,15 @@
 
 ## 1. Executive Summary
 
-The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platform** that routes coding tasks to tiered LLM backends (Ollama local, Claude Haiku/Sonnet/Opus cloud) with an RTS-inspired React UI. The system is **functional and impressive for a solo developer project**, with a working end-to-end pipeline proven by 40-task stress tests at 88% success rate.
+The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platform** that routes coding tasks to tiered LLM backends (Ollama local, Claude Sonnet/Opus cloud) with an RTS-inspired React UI. The system is **functional and impressive for a solo developer project**, with a working end-to-end pipeline proven by 40-task stress tests at 90% success rate.
 
 Since the initial assessment earlier today, **significant improvements** have been made across security, testing, error handling, and infrastructure. Multiple critical and high-severity items from the original assessment have been addressed.
 
-### Overall Score: **8.5 / 10** (Strong MVP)
+### Overall Score: **8.7 / 10** (Strong MVP)
 
 | Category | Previous | Current | Delta | Status |
 |----------|----------|---------|-------|--------|
-| Core Architecture | 8/10 | 8.5/10 | +0.5 | MCP truly optional, migrations added |
+| Core Architecture | 8/10 | 9/10 | +1.0 | Dynamic context routing, C9→Ollama |
 | Feature Completeness | 7/10 | 7.5/10 | +0.5 | Settings modal fixed, Flow minimap |
 | Code Quality | 6.5/10 | 7/10 | +0.5 | Auth middleware, error boundaries |
 | Test Coverage | 3/10 | 5/10 | +2.0 | 10 API tests + 2 Python test suites |
@@ -26,17 +26,18 @@ Since the initial assessment earlier today, **significant improvements** have be
 | DevOps / CI | 7/10 | 8.5/10 | +1.5 | Docker Hub publishing, CI/CD, backup healthy |
 | Community Readiness | 4/10 | 7/10 | +3.0 | Docker Hub, setup script, README, LICENSE |
 
-**Score improvement: +1.3 points (7.2 -> 8.5)**
+**Score improvement: +1.5 points (7.2 -> 8.7)**
 
 ---
 
 ## 2. Architecture Review
 
-### 2.1 System Design (8.5/10, was 8/10)
+### 2.1 System Design (9/10, was 8/10)
 
 **Strengths (unchanged + new):**
 - Clean separation into 7 Docker services (postgres, redis, ollama, api, agents, ui, backup)
 - Well-designed tiered routing based on academic complexity theory (Campbell's)
+- **NEW: Dynamic context sizing** — 3 Ollama model variants (8K/16K/32K) selected per-task by complexity
 - Smart resource pool for parallel execution (Ollama GPU + Claude API simultaneously)
 - Shared TypeScript types package (`@abcc/shared`) prevents API contract drift
 - WebSocket-driven real-time updates for agent status, task progress, alerts
@@ -146,7 +147,7 @@ Since the initial assessment earlier today, **significant improvements** have be
 - **NEW: `test_file_ops.py`** (402 lines) — File read/write/edit operations
 
 **Stress Tests (integration/performance):**
-- 40-task Ollama stress test: 88% pass rate (C1-C9)
+- 40-task Ollama stress test: 90% pass rate (C1-C9, dynamic context routing)
 - 20-task Ollama stress test: 100% pass rate (C1-C8)
 - Parallel execution test (Ollama + Claude): validated
 
@@ -206,9 +207,9 @@ For ABCC, an MVP means: **A user can deploy the system, submit coding tasks thro
 | Requirement | Previous | Current | Notes |
 |-------------|----------|---------|-------|
 | Task creation via UI | DONE | DONE | CreateTaskModal works |
-| Task complexity routing | DONE | DONE | Dual assessment (router + Haiku) |
-| Ollama execution (C1-6) | DONE | DONE | 100% success rate proven |
-| Claude execution (C7-10) | DONE | DONE | Haiku/Sonnet/Opus routing works |
+| Task complexity routing | DONE | DONE | Dual assessment (router + Haiku), dynamic context sizing |
+| Ollama execution (C1-9) | DONE | DONE | 90% success rate, dynamic 8K/16K/32K context |
+| Claude execution (C10) | DONE | DONE | Sonnet for decomposition, Opus for reviews |
 | Real-time task monitoring | DONE | DONE | WebSocket + ToolLog |
 | Task completion/failure | DONE | DONE | Full lifecycle |
 | Agent status tracking | DONE | DONE | Active, idle, stuck states |
@@ -255,7 +256,7 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 |---------|--------|--------|-------|
 | abcc-postgres | Up 29 min | healthy | PostgreSQL with data persistence |
 | abcc-redis | Up 29 min | healthy | Session/cache store |
-| abcc-ollama | Up 29 min | healthy | qwen2.5-coder:7b loaded |
+| abcc-ollama | Up 29 min | healthy | qwen2.5-coder:8k/16k/32k loaded |
 | abcc-api | Up 29 min | running | Express + WebSocket on :3001 |
 | abcc-agents | Up 29 min | running | FastAPI on :8000, Ollama + Claude connected |
 | abcc-ui | Up 29 min | running | Vite/Nginx on :5173 |
@@ -277,7 +278,7 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 |--------|--------|---------------|
 | Resource Pool | operational | Ollama: 1 slot, Claude: 2 slots |
 | Stuck Task Recovery | enabled, running | 10-min timeout, 60s check interval |
-| Ollama Optimization | active | 3s rest, 8s extended, reset every 5 tasks |
+| Ollama Optimization | active | 3s rest, 8s extended, reset every 5 tasks, dynamic context (8K/16K/32K) |
 | Budget Tracking | active | $5.00/day limit, $0.00 spent today |
 | Backup System | healthy | Last backup successful, 30-min cycle |
 
@@ -287,9 +288,9 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 
 1. **Novel tiered routing** — Campbell's Complexity Theory-based routing with dual assessment (rule-based + AI) is genuinely innovative.
 
-2. **Cost optimization** — Free Ollama tier handling 88% of tasks = ~$0.002/task average vs $0.04+ for all-cloud. 20x cost advantage.
+2. **Cost optimization** — Free Ollama tier handling C1-C9 (90% of tasks) = ~$0.001/task average vs $0.04+ for all-cloud. 40x cost advantage. Dynamic context routing saves VRAM on simple tasks while providing maximum context for extreme ones.
 
-3. **Battle-tested Ollama config** — CodeX-7 backstory, temperature=0, rest delays, periodic reset = production-grade tuning.
+3. **Battle-tested Ollama config** — CodeX-7 backstory, temperature=0, rest delays, periodic reset, dynamic context sizing (8K/16K/32K) = production-grade tuning.
 
 4. **Military voice system** — Original TTS voice packs (3 packs, 96 lines) with sound library cycling, volume control, and event-driven playback.
 
@@ -315,7 +316,7 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 
 3. **No proper error recovery** — Agent crash mid-task still waits for 10-min timeout. No checkpoint/resume.
 
-4. **Monolingual workspace** — Agents only write Python. No JS/TS support.
+4. **~~Monolingual workspace~~** — **RESOLVED**: Agents support Python, JavaScript, TypeScript, Go, and PHP.
 
 5. **Single-user design** — No multi-tenancy, no per-user workspace isolation.
 
@@ -410,6 +411,12 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 4. ~~.env.example overhaul~~ **DONE** — REQUIRED/OPTIONAL sections, cross-references
 5. ~~README dual quickstart~~ **DONE** — Docker Hub (recommended) + build from source
 
+### Completed (2026-02-18)
+1. ~~Dynamic context routing~~ **DONE** — 3 Ollama model variants (8K/16K/32K) routed by complexity
+2. ~~C9 tasks moved to Ollama~~ **DONE** — Saves ~$0.005/task, 80% C9 success rate on Ollama
+3. ~~Entrypoint creates all variants~~ **DONE** — `ollama-entrypoint.sh` auto-creates 8k/16k/32k on startup
+4. ~~Per-task model override~~ **DONE** — `main.py` accepts `model` param to select context size
+
 ### Do Next (This Week)
 1. Purge coder-02 from agent registry (30 min)
 2. Add E2E tests (Playwright)
@@ -428,29 +435,36 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 Initial Assessment (Morning):  7.2 / 10 (Strong Alpha, Pre-MVP)
 Updated Assessment (Evening):  8.1 / 10 (MVP Ready)
 Docker Hub Update (Feb 12):    8.5 / 10 (Strong MVP)
+Dynamic Context (Feb 18):      8.7 / 10 (Strong MVP)
                                ─────────
-                 Total Delta: +1.3 points
+                 Total Delta: +1.5 points
 
 Key Improvements (cumulative):
   Community:    4.0 → 7.0  (+3.0)  ███████████████
   Security:     5.0 → 7.5  (+2.5)  ████████████▌
   Testing:      3.0 → 5.0  (+2.0)  ██████████
   DevOps:       7.0 → 8.5  (+1.5)  ███████▌
-  Architecture: 8.0 → 8.5  (+0.5)  ██▌
+  Architecture: 8.0 → 9.0  (+1.0)  █████
   Features:     7.0 → 7.5  (+0.5)  ██▌
   Code Quality: 6.5 → 7.0  (+0.5)  ██▌
   Documentation:7.0 → 7.5  (+0.5)  ██▌
 
-Feb 12 Improvements:
-  DevOps:       7.5 → 8.5  (+1.0)  Docker Hub CI/CD, startup validation
-  Community:    5.5 → 7.0  (+1.5)  Setup script, dual README quickstart, pre-built images
+Feb 18 Improvements:
+  Architecture: 8.5 → 9.0  (+0.5)  Dynamic context routing (8K/16K/32K by complexity)
+    - C1-C6 → 8K (fast, 6.6GB VRAM, ~9s avg)
+    - C7-C8 → 16K (93% GPU, 7.1GB VRAM, ~15s avg)
+    - C9    → 32K (extreme tasks, ~46s avg)
+    - C10   → Sonnet (decomposition only)
+    - C9 moved from Sonnet (~$0.005/task) to Ollama (FREE)
+    - 40-task stress test: 36/40 (90%) with dynamic routing
+    - 3 Modelfiles auto-created on container startup
 ```
 
 ---
 
-*Assessment updated: 2026-02-12 (Docker Hub + Onboarding)*
-*Project version: v0.2.1*
+*Assessment updated: 2026-02-18 (Dynamic Context Routing)*
+*Project version: v0.4.6+*
 *Docker Hub: dushidush/api, dushidush/agents, dushidush/ui*
-*Clone traffic: 119 unique cloners (14-day), 20 unique cloners (24h)*
+*Ollama models: qwen2.5-coder:8k, :16k, :32k (dynamic by complexity)*
 *Total source files reviewed: ~130 across 5 packages*
-*Live system verified: All 7 services healthy, 35 Ollama tasks completed at 100% success*
+*Live system verified: All 7 services healthy, 40-task stress test 90% with dynamic context routing*
