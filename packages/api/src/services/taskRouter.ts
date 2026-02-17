@@ -12,12 +12,15 @@
  * | 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama  |
  * | 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama  |
  * | 7-8   | Complex  | Multiple functions; algorithms; data structures          | Ollama  |
- * | 9-10  | Extreme  | Fuzzy goals; dynamic requirements; architectural scope   | Sonnet  |
+ * | 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | Ollama  |
+ * | 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Sonnet  |
  *
- * TIER ROUTING (Execution) - Updated Feb 2026 for 32K context:
+ * TIER ROUTING (Execution) - Updated Feb 2026 for dynamic context:
  * =============================================================
- * - Trivial/Complex (1-8)  → Ollama (FREE, 32K context, ~30s/task avg)
- * - Extreme (9-10)         → Sonnet (~$0.005/task)
+ * - Trivial (1-6)    → Ollama 8K context (FREE, ~12s/task)
+ * - Complex (7-8)    → Ollama 16K context (FREE, ~15s/task)
+ * - Extreme (9)      → Ollama 32K context (FREE, ~28s/task)
+ * - Decomposition(10)→ Sonnet (~$0.005/task)
  * - NOTE: Opus NEVER writes code - decomposition & reviews only
  *
  * DECOMPOSITION:
@@ -340,30 +343,31 @@ export class TaskRouter {
       console.log('💸 Budget exceeded - forcing task to Ollama (free)');
     }
 
-    // TRIVIAL/COMPLEX (1-8): All coding tasks → Ollama (FREE, 32K context)
-    // 32K context window enables complex algorithms, data structures, multi-file tasks
+    // TRIVIAL → EXTREME (1-9): All coding tasks → Ollama (FREE, dynamic context)
+    // Context size adapts to complexity: 8K (C1-C6), 16K (C7-C8), 32K (C9)
     // Also route here if Claude is blocked due to budget
-    if (!selectedAgent && (complexity < 9 || claudeBlocked)) {
+    if (!selectedAgent && (complexity < 10 || claudeBlocked)) {
       selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
       if (selectedAgent) {
-        if (claudeBlocked && complexity >= 9) {
+        if (claudeBlocked && complexity >= 10) {
           reason = `⚠️ Budget exceeded - routing ${complexity.toFixed(1)}/10 task to Ollama (free)`;
           confidence = 0.7; // Lower confidence for forced routing
         } else {
-          const level = complexity < 3 ? 'Trivial' : complexity < 5 ? 'Low' : complexity < 7 ? 'Moderate' : 'Complex';
-          reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, 32K context)`;
-          confidence = complexity < 7 ? 0.95 : 0.85;
+          const ctxSize = complexity >= 9 ? '32K' : complexity >= 7 ? '16K' : '8K';
+          const level = complexity < 3 ? 'Trivial' : complexity < 5 ? 'Low' : complexity < 7 ? 'Moderate' : complexity < 9 ? 'Complex' : 'Extreme';
+          reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, ${ctxSize} context)`;
+          confidence = complexity < 7 ? 0.95 : complexity < 9 ? 0.85 : 0.80;
         }
         modelTier = 'ollama';
         estimatedCost = 0;
       }
     }
 
-    // EXTREME (9-10): Fuzzy goals, architectural scope → Sonnet (Opus never codes)
-    if (!selectedAgent && complexity >= 9) {
+    // DECOMPOSITION (10): Multi-class, architectural scope → Sonnet (Opus never codes)
+    if (!selectedAgent && complexity >= 10) {
       selectedAgent = agents.find((a) => a.agentType.name === 'qa') || null;
       if (selectedAgent) {
-        reason = `Extreme complexity (${complexity.toFixed(1)}/10) → Sonnet (expert coding, ~$0.005)`;
+        reason = `Decomposition-level complexity (${complexity.toFixed(1)}/10) → Sonnet (expert coding, ~$0.005)`;
         confidence = 0.85;
         modelTier = 'sonnet';
         estimatedCost = 0.005;
@@ -372,22 +376,22 @@ export class TaskRouter {
 
     // FALLBACK: If no agent selected yet, handle based on complexity
     if (!selectedAgent) {
-      // For extreme tasks (9+), ONLY allow qa agent - don't fall back to coder
-      // C1-C8 can all go to Ollama with 32K context window
-      if (complexity >= 9) {
+      // For decomposition tasks (10), ONLY allow qa agent - don't fall back to coder
+      // C1-C9 can all go to Ollama with dynamic context sizing
+      if (complexity >= 10) {
         const qaAgent = agents.find((a) => a.agentType.name === 'qa');
         if (qaAgent) {
           selectedAgent = qaAgent;
-          reason = `Extreme (${complexity.toFixed(1)}/10) → Sonnet (qa agent available)`;
+          reason = `Decomposition (${complexity.toFixed(1)}/10) → Sonnet (qa agent available)`;
           modelTier = 'sonnet';
           estimatedCost = 0.005;
           confidence = 0.7;
         } else {
-          // No qa agent available for extreme task - throw error so task queues
-          throw new Error(`No suitable agent for extreme task (${complexity.toFixed(1)}/10). QA agent required but not idle.`);
+          // No qa agent available for decomposition task - throw error so task queues
+          throw new Error(`No suitable agent for decomposition task (${complexity.toFixed(1)}/10). QA agent required but not idle.`);
         }
       } else {
-        // For simple tasks (< 7), coder is fine
+        // For all other tasks (<10), coder is fine
         selectedAgent = agents.find((a) => a.agentType.name === 'coder')
           || agents.find((a) => a.agentType.name === 'qa')
           || agents[0];

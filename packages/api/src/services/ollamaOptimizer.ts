@@ -13,7 +13,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 export const OLLAMA_REST_DELAY_MS = 3000; // 3 seconds rest between Ollama tasks
 export const OLLAMA_EXTENDED_REST_MS = 8000; // 8 seconds every Nth task for context clearing
 export const OLLAMA_RESET_EVERY_N_TASKS = 5; // Extended rest every N Ollama tasks
-export const OLLAMA_COMPLEXITY_THRESHOLD = 7; // Tasks with complexity < 7 go to Ollama
+export const OLLAMA_COMPLEXITY_THRESHOLD = 10; // Tasks with complexity < 10 go to Ollama
 
 // Track Ollama task counts per agent for periodic extended rest
 const ollamaTaskCounts = new Map<string, number>();

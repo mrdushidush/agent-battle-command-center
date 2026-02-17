@@ -7,9 +7,8 @@
 ## Project Overview
 
 A command center for orchestrating AI coding agents with cost-optimized tiered routing:
-- **Ollama** - Simple/moderate task execution (1-6), free local model
-- **Haiku** - Complex task execution (7-8), ~$0.001/task
-- **Sonnet** - Extreme task execution (9-10), ~$0.005/task
+- **Ollama** - All coding tasks (C1-C9) with dynamic context sizing, free local model
+- **Sonnet** - Decomposition-level tasks (C10), ~$0.005/task
 - **Opus** - Decomposition (9+) and code reviews ONLY (never writes code)
 
 ## Architecture
@@ -29,19 +28,27 @@ The agents service uses **crewai 0.86.0** which internally uses **litellm** for 
 
 ### Ollama Configuration (Critical)
 
-**Model:** `qwen2.5-coder:32k` (custom Modelfile based on qwen2.5-coder:7b)
-- qwen2.5-coder has much better instruction following for code tasks
-- Custom Modelfile in `modelfiles/qwen2.5-coder-32k.Modelfile` sets 16K context window
-- Auto-created by `scripts/ollama-entrypoint.sh` on container startup if not present
-- Achieves **90% success rate** on 40-task C1-C9 stress test (up from 83% with 4K context)
+**Models:** 3 context-size variants of qwen2.5-coder:7b (dynamic routing by complexity)
+- `qwen2.5-coder:8k` — C1-C6 simple/moderate tasks (default, fastest)
+- `qwen2.5-coder:16k` — C7-C8 complex tasks (algorithms, data structures)
+- `qwen2.5-coder:32k` — C9 extreme tasks (single-class implementations)
+- All auto-created by `scripts/ollama-entrypoint.sh` on container startup
+- Modelfiles in `modelfiles/qwen2.5-coder-{8k,16k,32k}.Modelfile`
 
-**Context Window: 16K tokens (UPGRADED Feb 17, 2026):**
-- Increased from 4K default to 16,384 tokens via Modelfile `num_ctx` parameter
-- VRAM usage: ~7GB (model 4.7GB + KV cache 2.3GB) — fits in 8GB with headroom
-- GPU split: **93% GPU / 7% CPU** — nearly full GPU utilization
-- 32K tested and rejected: overflows VRAM → 65% CPU / 35% GPU → 3-4x slower
-- Performance: **4.5x faster** than 4K context (avg 12s vs 54s per task)
-- Enables complex multi-file tasks and full stack trace context
+**Dynamic Context Window (UPGRADED Feb 17, 2026):**
+- Context size routes by complexity: 8K (C1-C6) → 16K (C7-C8) → 32K (C9)
+- Benchmark results (5-task C8-C9 sweep on RTX 3060 Ti):
+
+| Context | Pass Rate | Avg Time | VRAM |
+|---------|-----------|----------|------|
+| **8K**  | **100%**  | **12s**  | 6.6GB |
+| **16K** | **100%**  | **17s**  | 7.1GB |
+| **32K** | **100%**  | **43s**  | 5.9GB* |
+
+*Lower VRAM = KV cache spilling to RAM → CPU offload → slower
+- C1-C6 get 8K (fast, minimal VRAM overhead)
+- C7-C8 get 16K (headroom for algorithms, 93% GPU utilization)
+- C9 get 32K (maximum context for extreme single-class tasks)
 
 **Temperature:** Must be `0` for reliable tool calling
 - Set in `packages/agents/src/models/ollama.py` and in Modelfile
@@ -70,12 +77,12 @@ The agents container includes **Python 3.11**, **Node.js 20 LTS** (`typescript`/
   - PHP: `system()`, `exec()`, `shell_exec()`, `fopen()`, `eval()` (checked in `-r` mode)
 
 **GPU Utilization (RTX 3060 Ti 8GB):**
-- VRAM usage: ~7GB with 16K context (model 4.7GB + KV cache 2.3GB)
-- GPU split: 93% GPU / 7% CPU — nearly all inference on GPU
-- **32K context rejected** (Feb 17, 2026): 8.7GB overflows VRAM → 65% CPU / 35% GPU → 3-4x slower
+- 8K context: ~6.6GB VRAM, fastest inference, ideal for simple tasks
+- 16K context: ~7.1GB VRAM, 93% GPU / 7% CPU, optimal for complex tasks
+- 32K context: ~5.9GB VRAM (KV cache spills to RAM), 65% GPU / 35% CPU, slower but 100% pass rate
 - **14B model rejected** (Feb 5, 2026): 9GB overflows VRAM → CPU offload → 40% pass rate
 - **30B MoE rejected** (Feb 17, 2026): 18.6GB, 30% GPU utilization, too slow despite 90% accuracy
-- Models in Ollama: qwen2.5-coder:32k (custom), qwen2.5-coder:7b (base), qwen3:30b-a3b (testing)
+- Models in Ollama: qwen2.5-coder:8k, :16k, :32k (custom), qwen2.5-coder:7b (base)
 
 ### Ollama Rest Optimization (IMPLEMENTED Feb 2026)
 
@@ -94,7 +101,7 @@ Rest delays between tasks prevent this issue.
 | `OLLAMA_REST_DELAY_MS` | 3000 | Rest between tasks |
 | `OLLAMA_EXTENDED_REST_MS` | 8000 | Extended rest every N tasks |
 | `OLLAMA_RESET_EVERY_N_TASKS` | 5 | Trigger extended rest interval |
-| `OLLAMA_COMPLEXITY_THRESHOLD` | 9 | Tasks < 9 go to Ollama |
+| `OLLAMA_COMPLEXITY_THRESHOLD` | 10 | Tasks < 10 go to Ollama |
 
 **Stress Test Results:**
 - Without rest: 85% success, C4-C6 had failures (20 tasks)
@@ -175,12 +182,13 @@ Official Anthropic pricing per million tokens:
 - **Opus:** `claude-opus-4-5-20251101` - $5/$25 per MTok (note: Opus 4.5 is cheaper than Opus 4!)
 
 **Estimated costs per task:**
-| Tier | Avg Tokens | Est. Cost |
-|------|------------|-----------|
-| Ollama | N/A | FREE |
-| Haiku | ~2K in/1K out | ~$0.007 |
-| Sonnet | ~3K in/2K out | ~$0.04 |
-| Opus (review) | ~5K in/2K out | ~$0.075 |
+| Tier | Context | Avg Tokens | Est. Cost |
+|------|---------|------------|-----------|
+| Ollama (C1-C6) | 8K | N/A | FREE |
+| Ollama (C7-C8) | 16K | N/A | FREE |
+| Ollama (C9) | 32K | N/A | FREE |
+| Sonnet (C10) | N/A | ~3K in/2K out | ~$0.04 |
+| Opus (review) | N/A | ~5K in/2K out | ~$0.075 |
 
 **Cost tracking:**
 - `packages/api/src/services/costCalculator.ts` - Per-log cost calculation
@@ -243,8 +251,10 @@ Task Arrives → calculateComplexity()
        │   └─ ≥9  → Opus (~$0.04)
        │
        ├─ EXECUTION (dual complexity assessment + parallel when possible)
-       │   ├─ 1-8  → Ollama (free, local, 16K ctx) ──┐
-       │   └─ 9-10 → Sonnet (~$0.005) ────────────────┘
+       │   ├─ 1-6  → Ollama 8K ctx (free, fast) ──────┐
+       │   ├─ 7-8  → Ollama 16K ctx (free, complex) ──┤
+       │   ├─ 9    → Ollama 32K ctx (free, extreme) ──┘
+       │   └─ 10   → Sonnet (~$0.005) ────────────────
        │   NOTE: Opus NEVER writes code
        │
        ├─ CODE REVIEW (tiered, scheduled)
@@ -350,14 +360,14 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
 
 **Academic Complexity Scale:**
 
-| Score | Level    | Characteristics                                          | Model  | Cost/Task | Ollama Rate (16K ctx) |
-|-------|----------|----------------------------------------------------------|--------|-----------|----------------------|
-| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama | FREE      | 100%                 |
-| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama | FREE      | 100%                 |
-| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama | FREE      | 60-100%              |
-| 7-8   | Complex  | Multiple functions; algorithms; data structures          | Ollama | FREE      | 100%                 |
-| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | Ollama | FREE      | 80%                  |
-| 9-10  | Extreme  | Multi-class; fuzzy goals; architectural scope            | Sonnet | ~$0.01   | N/A                  |
+| Score | Level    | Characteristics                                          | Model      | Context | Cost/Task | Ollama Rate |
+|-------|----------|----------------------------------------------------------|------------|---------|-----------|-------------|
+| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama     | 8K      | FREE      | 100%        |
+| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama     | 8K      | FREE      | 100%        |
+| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama     | 8K      | FREE      | 60-100%     |
+| 7-8   | Complex  | Multiple functions; algorithms; data structures          | Ollama     | 16K     | FREE      | 100%        |
+| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | Ollama     | 32K     | FREE      | 80%         |
+| 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Sonnet     | N/A     | ~$0.01    | N/A         |
 
 **Note:** Opus is reserved for decomposition (9+) and code reviews only - it never writes code.
 
@@ -385,12 +395,14 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
    - Task type (code < test < review < decomposition)
    - Failure history (retries indicate hidden complexity)
 
-**Routing tiers (Updated Feb 17, 2026 - 16K context upgrade):**
-- Trivial/Complex (1-8) → Coder (Ollama) - FREE, ~12s/task avg (16K context)
-- Extreme (9-10) → QA (Sonnet) - ~$0.01/task
+**Routing tiers (Updated Feb 18, 2026 - dynamic context routing):**
+- Trivial/Moderate (1-6) → Coder (Ollama 8K) - FREE, ~12s/task avg
+- Complex (7-8) → Coder (Ollama 16K) - FREE, ~15s/task avg
+- Extreme (9) → Coder (Ollama 32K) - FREE, ~28s/task avg
+- Decomposition (10) → QA (Sonnet) - ~$0.01/task
 - Decomposition (9+) → CTO (Opus) - ~$0.02/task (no coding)
 - Failed tasks use fix cycle (Ollama → Haiku → Human)
-- **Important:** Extreme tasks (9+) will queue if QA agent is busy - no fallback to Ollama
+- **Important:** Decomposition tasks (10) will queue if QA agent is busy - no fallback to Ollama
 
 **Task fields for complexity tracking:**
 - `routerComplexity` - Rule-based score
@@ -617,11 +629,12 @@ window, completing in just **11 minutes** (4.5x faster than 4K context). C6-C8 a
 - Better code quality on C7-C8 but impractical as primary model on 8GB VRAM
 - Full comparison: `scripts/QWEN3_30B_vs_7B_COMPARISON.md`
 
-**Routing Thresholds (Updated Feb 17, 2026 - 16K context):**
-- Ollama: Complexity 1-8 (all routed to Ollama with 16K context, 90-100%)
-- Ollama: Complexity 9 single-class tasks (80% success - Stack, LRU, RPN)
-- Sonnet: Complexity 9-10 (multi-class tasks, architectural scope)
-- Haiku eliminated from routing (Ollama handles C7-C8 at 100% now)
+**Routing Thresholds (Updated Feb 18, 2026 - dynamic context routing):**
+- Ollama 8K: Complexity 1-6 (simple/moderate tasks, 100% success, fastest)
+- Ollama 16K: Complexity 7-8 (complex tasks, 100% success, 93% GPU)
+- Ollama 32K: Complexity 9 (extreme single-class tasks, 80-100% success)
+- Sonnet: Complexity 10 (multi-class decomposition tasks)
+- Haiku eliminated from routing (Ollama handles C1-C9 now)
 
 **Test Scripts:**
 - `node scripts/ollama-stress-test.js` - 20 tasks C1-C8 (baseline)

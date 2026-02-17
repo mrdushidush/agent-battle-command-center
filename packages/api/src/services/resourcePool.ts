@@ -123,10 +123,10 @@ export class ResourcePoolService {
 
   /**
    * Get resource type based on complexity (for routing decisions)
-   * Simple tasks (<4) use Ollama, medium+ tasks (>=4) use Claude
+   * C1-C9 use Ollama (dynamic context), C10 uses Claude
    */
   getResourceForComplexity(complexity: number): ResourceType {
-    return complexity < 4 ? 'ollama' : 'claude';
+    return complexity < 10 ? 'ollama' : 'claude';
   }
 
   /**

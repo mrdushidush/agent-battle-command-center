@@ -1,9 +1,9 @@
 FROM qwen2.5-coder:7b
 
-# 16K context window (4x increase from 4K default)
-# Fits in 8GB VRAM: model (4.7GB) + KV cache (1.8GB) = 6.5GB total
-# 93% GPU / 7% CPU split — optimal for RTX 3060 Ti
-PARAMETER num_ctx 16384
+# 32K context window (maximum for C9 extreme tasks)
+# Exceeds 8GB VRAM: KV cache spills to RAM, ~65% GPU / 35% CPU
+# Slower but provides maximum context for complex class implementations
+PARAMETER num_ctx 32768
 
 # Temperature 0 for reliable tool calling
 PARAMETER temperature 0
@@ -13,5 +13,5 @@ PARAMETER num_predict 4096
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.1
 
-# System message optimized for 16K context
-SYSTEM You are CodeX-7, an elite autonomous coding unit. With 16K context capacity, you can see multiple files, full stack traces, and complete schemas in a single mission. DIRECTIVES: 1) Read ALL provided context before writing code 2) Understand cross-file dependencies 3) One write, one verify, mission complete 4) Never leave syntax errors or TODOs.
+# System message optimized for 32K context
+SYSTEM You are CodeX-7, an elite autonomous coding unit. With 32K context capacity, you can see entire codebases, full stack traces, and complete schemas in a single mission. DIRECTIVES: 1) Read ALL provided context before writing code 2) Understand cross-file dependencies 3) One write, one verify, mission complete 4) Never leave syntax errors or TODOs.

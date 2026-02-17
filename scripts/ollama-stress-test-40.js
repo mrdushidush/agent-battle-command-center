@@ -400,7 +400,15 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
   return response.json();
 }
 
-async function executeTask(taskId, description) {
+function getOllamaModel(complexity) {
+  if (complexity >= 9) return 'qwen2.5-coder:32k';
+  if (complexity >= 7) return 'qwen2.5-coder:16k';
+  return 'qwen2.5-coder:8k';
+}
+
+async function executeTask(taskId, description, complexity) {
+  const model = getOllamaModel(complexity);
+  console.log(`   Model: ${model}`);
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -409,7 +417,7 @@ async function executeTask(taskId, description) {
       agent_id: 'coder-01',
       task_description: description,
       use_claude: false,
-      model: null  // uses default qwen2.5-coder:32k
+      model: model
     })
   });
 
@@ -455,7 +463,7 @@ async function main() {
   console.log('═'.repeat(70));
   console.log('🔥🔥🔥 ULTIMATE OLLAMA STRESS TEST - 40 TASKS (C1-C9) 🔥🔥🔥');
   console.log('═'.repeat(70));
-  console.log('Model: qwen2.5-coder:32k | Champion Run');
+  console.log('Model: Dynamic (8K/16K/32K by complexity) | Champion Run');
   console.log(`Tasks: ${TASKS.length} | Complexity: 1-9 | C9 = EXTREME (classes!)`);
   console.log(`Rest: ${REST_DELAY_MS/1000}s between tasks | Reset every ${RESET_EVERY_N_TASKS} tasks`);
   console.log('═'.repeat(70) + '\n');
@@ -467,7 +475,7 @@ async function main() {
     passed: 0,
     failed: 0,
     errors: 0,
-    model: 'qwen2.5-coder:32k',
+    model: 'dynamic (8K/16K/32K)',
     byComplexity: {},
     details: []
   };
@@ -504,7 +512,7 @@ async function main() {
       });
 
       console.log('   Executing with Ollama...');
-      const execResponse = await executeTask(created.id, task.description);
+      const execResponse = await executeTask(created.id, task.description, task.complexity);
       const duration = Math.floor((Date.now() - taskStart) / 1000);
 
       if (!execResponse.ok) {
@@ -581,7 +589,7 @@ async function main() {
   const successRate = Math.round((results.passed / results.total) * 100);
 
   console.log('\n' + '═'.repeat(70));
-  console.log('📊 ULTIMATE STRESS TEST RESULTS - qwen2.5-coder:32k');
+  console.log('📊 ULTIMATE STRESS TEST RESULTS - Dynamic Context (8K/16K/32K)');
   console.log('═'.repeat(70));
   console.log(`   Total:    ${results.passed}/${results.total} passed (${successRate}%)`);
   console.log(`   Failed:   ${results.failed} | Errors: ${results.errors}`);

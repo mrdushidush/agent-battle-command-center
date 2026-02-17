@@ -664,12 +664,22 @@ export class TaskExecutor {
       const executor = new ExecutorService();
       const executeAsync = async () => {
         try {
+          // Map complexity to Ollama context-size variant
+          let ollamaModel: string | undefined;
+          if (decision.modelTier === 'ollama') {
+            const cx = decision.complexity || 0;
+            ollamaModel = cx >= 9 ? 'qwen2.5-coder:32k'
+                        : cx >= 7 ? 'qwen2.5-coder:16k'
+                        : 'qwen2.5-coder:8k';
+          }
+
           const result = await executor.executeTask({
             taskId: pendingTask.id,
             agentId: agentId,
             taskDescription: pendingTask.description || pendingTask.title,
             expectedOutput: `Successfully completed: ${pendingTask.title}`,
             useClaude: decision.modelTier !== 'ollama',
+            model: ollamaModel,
           });
 
           if (result.success) {

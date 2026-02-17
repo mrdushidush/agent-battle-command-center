@@ -3,7 +3,7 @@
   "passed": 36,
   "failed": 4,
   "errors": 0,
-  "model": "qwen2.5-coder:32k",
+  "model": "dynamic (8K/16K/32K)",
   "byComplexity": {
     "1": {
       "total": 3,
@@ -57,189 +57,189 @@
       "complexity": 1,
       "status": "passed",
       "error": null,
-      "duration": 11
+      "duration": 80
     },
     {
       "task": "negate",
       "complexity": 1,
       "status": "passed",
       "error": null,
-      "duration": 14
+      "duration": 7
     },
     {
       "task": "square",
       "complexity": 1,
       "status": "passed",
       "error": null,
-      "duration": 8
+      "duration": 7
     },
     {
       "task": "greet",
       "complexity": 2,
       "status": "failed",
       "error": null,
-      "duration": 10
+      "duration": 7
     },
     {
       "task": "is_even",
       "complexity": 2,
       "status": "passed",
       "error": null,
-      "duration": 9
+      "duration": 13
     },
     {
       "task": "to_upper",
       "complexity": 2,
       "status": "passed",
       "error": null,
-      "duration": 9
+      "duration": 7
     },
     {
       "task": "absolute",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 14
+      "duration": 8
     },
     {
       "task": "max_of_two",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 8
     },
     {
       "task": "min_of_three",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 12
+      "duration": 9
     },
     {
       "task": "is_leap_year",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 12
+      "duration": 14
     },
     {
       "task": "clamp",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 8
     },
     {
       "task": "count_vowels",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 8
     },
     {
       "task": "reverse_string",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 8
     },
     {
       "task": "factorial",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 11
+      "duration": 8
     },
     {
       "task": "title_case",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 13
     },
     {
       "task": "fizzbuzz_single",
       "complexity": 5,
       "status": "passed",
       "error": null,
-      "duration": 13
+      "duration": 10
     },
     {
       "task": "is_palindrome",
       "complexity": 5,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 8
     },
     {
       "task": "safe_divide",
       "complexity": 5,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 8
     },
     {
       "task": "flatten_list",
       "complexity": 5,
       "status": "failed",
       "error": null,
-      "duration": 9
+      "duration": 8
     },
     {
       "task": "truncate",
       "complexity": 5,
       "status": "failed",
       "error": null,
-      "duration": 11
+      "duration": 14
     },
     {
       "task": "sum_of_digits",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 8
     },
     {
       "task": "find_second_largest",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 16
+      "duration": 9
     },
     {
       "task": "is_prime",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 11
+      "duration": 9
     },
     {
       "task": "caesar_cipher",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 11
     },
     {
       "task": "unique_sorted",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 12
     },
     {
       "task": "fibonacci",
       "complexity": 7,
       "status": "passed",
       "error": null,
-      "duration": 13
+      "duration": 16
     },
     {
       "task": "word_frequency",
       "complexity": 7,
       "status": "passed",
       "error": null,
-      "duration": 17
+      "duration": 12
     },
     {
       "task": "matrix_transpose",
@@ -260,7 +260,7 @@
       "complexity": 7,
       "status": "passed",
       "error": null,
-      "duration": 17
+      "duration": 22
     },
     {
       "task": "merge_sorted",
@@ -274,7 +274,7 @@
       "complexity": 8,
       "status": "passed",
       "error": null,
-      "duration": 18
+      "duration": 14
     },
     {
       "task": "run_length_encode",
@@ -295,46 +295,46 @@
       "complexity": 8,
       "status": "passed",
       "error": null,
-      "duration": 14
+      "duration": 20
     },
     {
       "task": "stack_class",
       "complexity": 9,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 40
     },
     {
       "task": "lru_cache",
       "complexity": 9,
       "status": "passed",
       "error": null,
-      "duration": 28
+      "duration": 57
     },
     {
       "task": "rpn_calculator",
       "complexity": 9,
       "status": "passed",
       "error": null,
-      "duration": 16
+      "duration": 37
     },
     {
       "task": "text_stats",
       "complexity": 9,
       "status": "failed",
       "error": null,
-      "duration": 14
+      "duration": 32
     },
     {
       "task": "sorted_linked_list",
       "complexity": 9,
       "status": "passed",
       "error": null,
-      "duration": 18
+      "duration": 51
     }
   ],
-  "totalDuration": 670,
+  "totalDuration": 817,
   "successRate": 90,
   "recommendedThreshold": 9,
-  "timestamp": "2026-02-17T17:04:32.673Z"
+  "timestamp": "2026-02-17T22:51:57.916Z"
 }

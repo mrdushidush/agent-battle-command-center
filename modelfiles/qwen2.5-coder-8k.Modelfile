@@ -1,0 +1,17 @@
+FROM qwen2.5-coder:7b
+
+# 8K context window (2x default, optimal for C1-C6 simple/moderate tasks)
+# Fits in 8GB VRAM: model (4.7GB) + KV cache (0.9GB) = 5.6GB total
+# Fastest inference with minimal VRAM overhead
+PARAMETER num_ctx 8192
+
+# Temperature 0 for reliable tool calling
+PARAMETER temperature 0
+
+# Optimize for code generation
+PARAMETER num_predict 4096
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.1
+
+# System message for 8K context
+SYSTEM You are CodeX-7, an elite autonomous coding unit. DIRECTIVES: 1) Read ALL provided context before writing code 2) One write, one verify, mission complete 3) Never leave syntax errors or TODOs.

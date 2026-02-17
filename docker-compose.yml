@@ -42,9 +42,9 @@ services:
       - ./scripts/ollama-entrypoint.sh:/entrypoint.sh
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     environment:
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:8k}
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q '${OLLAMA_MODEL:-qwen2.5-coder:7b}' || exit 1"]
+      test: ["CMD-SHELL", "ollama list | grep -q 'qwen2.5-coder:8k' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -94,7 +94,7 @@ services:
     environment:
       OLLAMA_URL: http://ollama:11434
       OLLAMA_API_BASE: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:8k}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       API_KEY: ${API_KEY}
       USE_MCP: "false"

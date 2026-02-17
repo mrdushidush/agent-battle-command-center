@@ -117,7 +117,7 @@ def get_llm(use_claude: bool, model: str | None, allow_fallback: bool):
     elif check_ollama_available():
         # Return model string for litellm with ollama/ prefix
         # OLLAMA_API_BASE env var tells litellm where to connect
-        ollama_model = settings.OLLAMA_MODEL
+        ollama_model = model or settings.OLLAMA_MODEL
         if not ollama_model.startswith("ollama/"):
             ollama_model = f"ollama/{ollama_model}"
         return ollama_model
