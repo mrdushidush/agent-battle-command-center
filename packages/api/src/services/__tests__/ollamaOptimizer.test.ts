@@ -46,21 +46,21 @@ describe('OllamaOptimizer', () => {
       expect(config.restDelayMs).toBe(3000);
       expect(config.extendedRestMs).toBe(8000);
       expect(config.resetEveryNTasks).toBe(5);
-      expect(config.complexityThreshold).toBe(7);
+      expect(config.complexityThreshold).toBe(10);
     });
   });
 
   describe('isOllamaTask', () => {
-    it('should return true for complexity < 7 and coder agent', () => {
+    it('should return true for complexity < 10 and coder agent', () => {
       expect(optimizer.isOllamaTask(1, 'coder')).toBe(true);
       expect(optimizer.isOllamaTask(3, 'coder')).toBe(true);
       expect(optimizer.isOllamaTask(6, 'coder')).toBe(true);
-      expect(optimizer.isOllamaTask(6.9, 'coder')).toBe(true);
+      expect(optimizer.isOllamaTask(7, 'coder')).toBe(true);
+      expect(optimizer.isOllamaTask(9, 'coder')).toBe(true);
+      expect(optimizer.isOllamaTask(9.9, 'coder')).toBe(true);
     });
 
-    it('should return false for complexity >= 7', () => {
-      expect(optimizer.isOllamaTask(7, 'coder')).toBe(false);
-      expect(optimizer.isOllamaTask(8, 'coder')).toBe(false);
+    it('should return false for complexity >= 10', () => {
       expect(optimizer.isOllamaTask(10, 'coder')).toBe(false);
     });
 

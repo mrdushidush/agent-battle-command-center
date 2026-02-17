@@ -71,14 +71,15 @@ describe('ResourcePoolService', () => {
   });
 
   describe('getResourceForComplexity', () => {
-    it('should return ollama for low complexity', () => {
+    it('should return ollama for complexity < 10', () => {
       expect(pool.getResourceForComplexity(1)).toBe('ollama');
       expect(pool.getResourceForComplexity(3)).toBe('ollama');
+      expect(pool.getResourceForComplexity(4)).toBe('ollama');
+      expect(pool.getResourceForComplexity(9)).toBe('ollama');
     });
 
-    it('should return claude for high complexity', () => {
-      expect(pool.getResourceForComplexity(4)).toBe('claude');
-      expect(pool.getResourceForComplexity(9)).toBe('claude');
+    it('should return claude for complexity >= 10', () => {
+      expect(pool.getResourceForComplexity(10)).toBe('claude');
     });
   });
 
