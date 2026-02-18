@@ -266,12 +266,14 @@ async function main() {
         throw new Error(`Execution failed: ${(await execResponse.text()).substring(0, 100)}`);
       }
 
-      const execResult = await execResponse.json();
+      // Extract only success flag — avoids holding large crewAI response in heap
+      const execJson = await execResponse.json();
+      const execSuccess = Boolean(execJson.success);
 
       await fetch(`${API_BASE}/tasks/${created.id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: execResult.success, result: execResult })
+        body: JSON.stringify({ success: execSuccess })
       });
 
       console.log('   Validating...');

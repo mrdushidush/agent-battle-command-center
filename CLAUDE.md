@@ -681,6 +681,44 @@ window, completing in just **11 minutes** (4.5x faster than 4K context). C6-C8 a
    - Status pulse animations
    - Sound feedback improvements
 
+### Phase 4: 100% Pass Rate via Auto-Retry Pipeline (NEXT)
+
+**Goal:** Zero failures across all languages via automated recovery.
+
+**Pipeline design:**
+```
+Task validation fails
+    │
+    ├─ Step 1: Syntax check per language
+    │   ├─ PHP:    php -l tasks/file.php
+    │   ├─ Python: python -m py_compile tasks/file.py
+    │   ├─ JS:     node --check tasks/file.js
+    │   ├─ Go:     go build tasks/file.go
+    │   └─ TS:     tsc --noEmit tasks/file.ts
+    │   └─ Syntax error found → Ollama retry WITH error message in context
+    │
+    ├─ Step 2: Ollama retry (error-aware)
+    │   └─ Still fails → escalate to Haiku
+    │
+    └─ Step 3: Haiku fix (full context: original task + error + failed code)
+        └─ Target: 100% success across all languages
+```
+
+**Current language baselines:**
+| Language | Score | Script |
+|----------|-------|--------|
+| Python | 90% (36/40) | ollama-stress-test-40.js |
+| PHP | 85% (17/20) | ollama-stress-test-php.js |
+| JS/Go/TS | TBD | ollama-stress-test-{js,go}.js |
+
+### Phase 5: Small Apps & Landing Pages (AFTER 100%)
+
+Graduate from single-function tasks to real deliverables:
+- Multi-file mini-projects (CTO decomposes → Coder builds → QA validates)
+- Landing pages (HTML/CSS/JS from a brief)
+- CLI tools
+- Simple web apps
+
 ### Backlog
 - **MCP Full Fix** - Complete MCP integration with all issues resolved
 - Training Data Collection - Use archives for model improvement

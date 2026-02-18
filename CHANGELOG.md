@@ -4,6 +4,65 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [Phase F] - 2026-02-19
+
+### PHP Language Support Validated + OOM Bugfix + Next Milestone Scoped
+
+**PHP Benchmark:** 85% (17/20) in 4m 57s — no crashes, clean run.
+**Bug Fixed:** All 10 stress test scripts had a JavaScript heap OOM bug (accumulating full crewAI response bodies across tasks).
+**Next Milestone:** Auto syntax validation → Ollama retry → Haiku fallback → 100% success rate across all languages.
+
+#### Fixed
+- **OOM crash in all stress test scripts** (`scripts/ollama-stress-test*.js`)
+  - Root cause: `execResponse.json()` buffered full crewAI execution response (tool calls, agent thoughts, conversation history — several MB per task) into `execResult`, then passed as `result: execResult` to the complete endpoint. Over 20+ tasks V8 GC couldn't keep pace → heap climbed to ~4GB → fatal OOM
+  - Fix: Extract only `Boolean(execJson.success)` immediately; large response object is GC-eligible on next cycle
+  - Applied to all 10 scripts: `ollama-stress-test.js`, `*-40.js`, `*-php.js`, `*-go.js`, `*-js.js`, `*-14b.js`, `*-14b-8k.js`, `*-14b-q4ks-4k.js`, `*-qwen3-30b.js`, `*-qwen3-8b.js`
+  - Also recommended `--max-old-space-size=4096` as a safety net for long runs
+
+#### Test Results (Feb 19, 2026)
+
+**PHP Stress Test (20 tasks, C1-C8, 4m 57s):**
+| Complexity | Success Rate | Tasks |
+|------------|--------------|-------|
+| C1-C4 | **100%** | 10/10 |
+| C5 | 67% | 2/3 — `safeDivide` float comparison edge case |
+| C6 | 67% | 2/3 — `findSecondLargest` logic failure |
+| C7 | **100%** | 2/2 |
+| C8 | 50% | 1/2 — `binarySearch` failed |
+| **Total** | **85%** | **17/20** |
+
+**Cumulative language coverage (all at 8K/16K/32K dynamic context):**
+| Language | Best Result | Script |
+|----------|-------------|--------|
+| Python | 90% (36/40) | ollama-stress-test-40.js |
+| JavaScript | TBD | ollama-stress-test-js.js |
+| Go | TBD | ollama-stress-test-go.js |
+| PHP | **85% (17/20)** | ollama-stress-test-php.js |
+| TypeScript | TBD | — |
+
+#### Roadmap
+
+**Milestone: 100% Pass Rate via Auto-Retry Pipeline**
+```
+Task fails validation
+    │
+    ├─ Step 1: Syntax check (php -l / python -m py_compile / etc.)
+    │   └─ If syntax error → Ollama retry WITH error context
+    │
+    ├─ Step 2: Ollama retry (knows about the failure)
+    │   └─ If still fails → escalate to Haiku
+    │
+    └─ Step 3: Haiku fixes with full context
+        └─ Target: 100% success across all languages
+```
+
+**After 100%: Small Apps & Landing Pages**
+- Graduate from single-function tasks to multi-file mini-projects
+- Orchestrated agent teams (CTO decomposes → Coder builds → QA validates)
+- Real deliverables: landing pages, CLI tools, simple web apps
+
+---
+
 ## [Phase E] - 2026-02-03
 
 ### Ollama Optimization & 100% Success Rate Achievement

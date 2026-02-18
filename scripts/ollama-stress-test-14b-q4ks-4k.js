@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Ollama Ultimate Stress Test - 40 Tasks, Complexity 1-9
+ * Ollama 14B Q4_K_S Stress Test - 40 Tasks, Fixed 4K Context
  *
- * Pushes qwen2.5-coder:32k to its absolute limits.
- * Includes C9 (extreme) tasks: classes, multi-method, algorithms.
+ * Tests qwen2.5-coder:14b-instruct-q4_k_s with 4K context window.
+ * Compares against 7B baseline (90% pass rate @ 16K context).
  * Agent reset every 3 tasks for maximum freshness.
+ *
+ * Model: qwen2.5-coder:14b-instruct-q4_k_s (14.8B params, 8.6GB)
+ * Context: 4096 tokens (fixed - VRAM constrained)
+ * Quantization: Q4_K_S (smaller/faster than Q4_K_M)
+ *
+ * Goal: Test if smaller quant + smaller context fits in 8GB VRAM without CPU offload
  *
  * Complexity distribution (40 tasks):
  *   - C1: 3 tasks  (trivial)
@@ -401,10 +407,8 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
 }
 
 function getOllamaModel(complexity) {
-  // C1-C6: 8K with validation (fast, no spill)
-  // C7-C9: 16K without validation (complex, 5min timeout)
-  if (complexity >= 7) return 'qwen2.5-coder:16k';
-  return 'qwen2.5-coder:8k';
+  // Fixed 4K context for 14B Q4_K_S testing
+  return 'qwen2.5-coder:14b-q4ks-4k';
 }
 
 async function executeTask(taskId, description, complexity) {
@@ -642,7 +646,7 @@ async function main() {
   // Save results
   const fs = require('fs');
   fs.writeFileSync(
-    'scripts/ollama-stress-results-40.json',
+    'scripts/ollama-stress-results-14b-q4ks-4k.json',
     JSON.stringify({
       ...results,
       totalDuration,
@@ -651,7 +655,7 @@ async function main() {
       timestamp: new Date().toISOString()
     }, null, 2)
   );
-  console.log('\n💾 Results saved to scripts/ollama-stress-results-40.json');
+  console.log('\n💾 Results saved to scripts/ollama-stress-results-14b-q4ks-4k.json');
 
   return results;
 }

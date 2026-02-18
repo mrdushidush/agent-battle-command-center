@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Ollama Ultimate Stress Test - 40 Tasks, Complexity 1-9
+ * Qwen3 8B Stress Test - 40 Tasks, Fixed 8K Context
  *
- * Pushes qwen2.5-coder:32k to its absolute limits.
- * Includes C9 (extreme) tasks: classes, multi-method, algorithms.
+ * Tests qwen3:8b with 8K context window.
+ * Compares against Qwen 2.5 Coder 7B baseline (90% pass rate @ dynamic context).
  * Agent reset every 3 tasks for maximum freshness.
+ *
+ * Model: qwen3:8b (8B params, ~5.2GB)
+ * Context: 8192 tokens (fixed)
+ * Quantization: Q4_K_M (default Ollama)
+ *
+ * Qwen3 improvements:
+ * - Better tool calling (optimized for agentic workflows)
+ * - Thinking mode support (using /no_think for clean tool calls)
+ * - Newer architecture vs Qwen 2.5
  *
  * Complexity distribution (40 tasks):
  *   - C1: 3 tasks  (trivial)
@@ -16,7 +25,7 @@
  *   - C6: 5 tasks  (moderate)
  *   - C7: 5 tasks  (complex)
  *   - C8: 5 tasks  (complex)
- *   - C9: 5 tasks  (extreme - NEW!)
+ *   - C9: 5 tasks  (extreme)
  */
 
 const API_BASE = 'http://localhost:3001/api';
@@ -401,10 +410,8 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
 }
 
 function getOllamaModel(complexity) {
-  // C1-C6: 8K with validation (fast, no spill)
-  // C7-C9: 16K without validation (complex, 5min timeout)
-  if (complexity >= 7) return 'qwen2.5-coder:16k';
-  return 'qwen2.5-coder:8k';
+  // Fixed 8K context for Qwen3 8B testing
+  return 'qwen3:8b-8k';
 }
 
 async function executeTask(taskId, description, complexity) {
@@ -642,7 +649,7 @@ async function main() {
   // Save results
   const fs = require('fs');
   fs.writeFileSync(
-    'scripts/ollama-stress-results-40.json',
+    'scripts/ollama-stress-results-qwen3-8b.json',
     JSON.stringify({
       ...results,
       totalDuration,
@@ -651,7 +658,7 @@ async function main() {
       timestamp: new Date().toISOString()
     }, null, 2)
   );
-  console.log('\n💾 Results saved to scripts/ollama-stress-results-40.json');
+  console.log('\n💾 Results saved to scripts/ollama-stress-results-qwen3-8b.json');
 
   return results;
 }
