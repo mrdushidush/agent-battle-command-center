@@ -34,5 +34,8 @@
     "overrides": {
       "esbuild": ">=0.27.2"
     }
+  },
+  "dependencies": {
+    "pnpm": "^10.30.0"
   }
 }
