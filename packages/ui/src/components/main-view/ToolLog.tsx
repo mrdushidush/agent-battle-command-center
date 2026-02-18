@@ -15,9 +15,7 @@ interface ExecutionLogEntry {
 }
 
 export function ToolLog() {
-  const [logs, setLogs] = useState<ExecutionLogEntry[]>([
-    
-  ]);
+  const [logs, setLogs] = useState<ExecutionLogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -113,8 +111,14 @@ export function ToolLog() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `tool-log-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      if (a.parentNode) {
+        a.parentNode.removeChild(a);
+      }
+    }, 0);
   };
 
   return (
@@ -141,14 +145,14 @@ export function ToolLog() {
             />
             Auto-scroll
           </label>
-          <button 
-            className={"flex items-center gap-2 ml-2 text-gray-400 disabled:text-gray-600" + (logs.length === 0 ? " cursor-not-allowed" : "")}            
+          <button
+            className="flex items-center gap-2 ml-2 text-gray-400 enabled:hover:text-gray-200 disabled:text-gray-600 disabled:cursor-not-allowed"
             disabled={logs.length === 0}
             onClick={handleExport}
-            aria-label='Download logs as JSON'
+            aria-label="Download logs as JSON"
           >
-            <Download className='w-4 h-4 hover:text-gray-200'/>
-            <span className='text-xs'>Export</span>
+            <Download className="w-4 h-4" />
+            <span className="text-xs">Export</span>
           </button>
 
         </div>
