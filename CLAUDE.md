@@ -146,6 +146,43 @@ automatically detects and recovers these tasks.
 7. Emit `task_timeout` alert for visibility
 8. Publish to MCP Gateway
 
+### Auto-Retry Pipeline (IMPLEMENTED Feb 20, 2026)
+
+Validates task output using the task's `validationCommand` field and retries with error context
+if validation fails. Runs inline in `handleTaskCompletion()` before releasing locks/resources.
+
+**Implementation:**
+- `packages/api/src/services/autoRetryService.ts` — Core pipeline service
+- `packages/agents/src/main.py` — `POST /run-validation` endpoint
+
+**Pipeline:**
+```
+Task completion → Run validationCommand
+    │
+    ├─ PASS → Complete normally
+    ├─ FAIL → Phase 1: Ollama retry with error + failed code in context
+    │             ├─ Re-validate → PASS → Complete
+    │             └─ FAIL → Phase 2: Haiku escalation
+    │                          ├─ Re-validate → PASS → Complete
+    │                          └─ FAIL → handleTaskFailure()
+```
+
+**Configuration (Environment Variables):**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `AUTO_RETRY_ENABLED` | true | Set to 'false' to disable |
+| `AUTO_RETRY_MAX_OLLAMA_RETRIES` | 1 | Ollama retry attempts |
+| `AUTO_RETRY_MAX_HAIKU_RETRIES` | 1 | Haiku escalation attempts |
+| `AUTO_RETRY_VALIDATION_TIMEOUT_MS` | 15000 | Validation command timeout |
+
+**WebSocket Events:** `auto_retry_validation`, `auto_retry_attempt`, `auto_retry_result`
+
+**Results (Feb 20, 2026 — 40-task Python stress test):**
+- **98% pass rate (39/40)** — up from 90% without auto-retry
+- Auto-retry saved 2 tasks: `truncate` (Ollama Phase 1), `text_stats` (Ollama Phase 1)
+- C9 extreme: **100% (5/5)** — up from 80%
+- 1 remaining failure: `flatten_list` (logic error persists through all retry tiers)
+
 ### Rate Limiting
 
 Anthropic API rate limiting is implemented to prevent hitting API limits:
@@ -260,6 +297,11 @@ Task Arrives → calculateComplexity()
        ├─ CODE REVIEW (tiered, scheduled)
        │   ├─ Every 5th Ollama task → Haiku review
        │   └─ Every 10th task (complexity > 5) → Opus review
+       │
+       ├─ AUTO-RETRY (if validationCommand present)
+       │   ├─ Phase 0: Run validationCommand → PASS → done
+       │   ├─ Phase 1: Ollama retry with error context → re-validate
+       │   └─ Phase 2: Haiku escalation with full context → re-validate
        │
        ├─ FIX/ESCALATION CYCLE (if review fails)
        │   ├─ Ollama fails → Haiku retries with MCP context
@@ -469,6 +511,8 @@ packages/
 │   └── services/
 │       ├── taskQueue.ts      # Task lifecycle
 │       ├── taskRouter.ts     # Tiered complexity routing
+│       ├── taskExecutor.ts   # Execution lifecycle + auto-retry integration
+│       ├── autoRetryService.ts # Validation + retry pipeline (Phase 4)
 │       ├── resourcePool.ts   # Parallel execution resource management
 │       └── trainingDataService.ts
 ├── agents/src/
@@ -566,8 +610,8 @@ model CodeReview {
 
 ### Phase 2: Tier System Refinement (COMPLETED Feb 2026)
 
-**Breakthrough Finding:** Ollama achieves **90% success rate across C1-C9 (40 tasks)** with 16K context
-window, completing in just **11 minutes** (4.5x faster than 4K context). C6-C8 all 100%.
+**Breakthrough Finding:** Ollama achieves **98% success rate across C1-C9 (40 tasks)** with auto-retry
+pipeline (up from 90% without retry). C1-C9 all 100% except C5 (80%). See Phase 4 for details.
 
 **16K Context Upgrade Results (Feb 17, 2026 - 40 tasks, complexity 1-9):**
 | Complexity | Success Rate | Tasks | Avg Time | vs 4K Context |
@@ -681,37 +725,27 @@ window, completing in just **11 minutes** (4.5x faster than 4K context). C6-C8 a
    - Status pulse animations
    - Sound feedback improvements
 
-### Phase 4: 100% Pass Rate via Auto-Retry Pipeline (NEXT)
+### Phase 4: Auto-Retry Pipeline (IMPLEMENTED Feb 20, 2026)
 
-**Goal:** Zero failures across all languages via automated recovery.
+**Goal:** Push toward 100% via automated validation + retry with error context.
 
-**Pipeline design:**
-```
-Task validation fails
-    │
-    ├─ Step 1: Syntax check per language
-    │   ├─ PHP:    php -l tasks/file.php
-    │   ├─ Python: python -m py_compile tasks/file.py
-    │   ├─ JS:     node --check tasks/file.js
-    │   ├─ Go:     go build tasks/file.go
-    │   └─ TS:     tsc --noEmit tasks/file.ts
-    │   └─ Syntax error found → Ollama retry WITH error message in context
-    │
-    ├─ Step 2: Ollama retry (error-aware)
-    │   └─ Still fails → escalate to Haiku
-    │
-    └─ Step 3: Haiku fix (full context: original task + error + failed code)
-        └─ Target: 100% success across all languages
-```
+**Result: 90% → 98% (39/40) on Python 40-task stress test.**
 
-**Current language baselines:**
+**Implementation:** `autoRetryService.ts` validates task output using `validationCommand`,
+retries with Ollama (error context), then escalates to Haiku if still failing.
+See "Auto-Retry Pipeline" section above for full details.
+
+**Language baselines (with auto-retry):**
 | Language | Score | Script |
 |----------|-------|--------|
-| Python | 90% (36/40) | ollama-stress-test-40.js |
+| Python | **98% (39/40)** | ollama-stress-test-40.js |
 | PHP | 85% (17/20) | ollama-stress-test-php.js |
 | JS/Go/TS | TBD | ollama-stress-test-{js,go}.js |
 
-### Phase 5: Small Apps & Landing Pages (AFTER 100%)
+**Remaining failure:** `flatten_list` — model uses list comprehension that doesn't handle
+mixed types (`[1, [2,3]]`). Persists through Ollama retry and Haiku escalation.
+
+### Phase 5: Small Apps & Landing Pages (NEXT)
 
 Graduate from single-function tasks to real deliverables:
 - Multi-file mini-projects (CTO decomposes → Coder builds → QA validates)
