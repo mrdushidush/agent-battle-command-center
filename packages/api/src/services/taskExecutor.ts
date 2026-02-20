@@ -24,12 +24,14 @@ import { OllamaOptimizer, getOllamaOptimizer } from './ollamaOptimizer.js';
 import { TaskAssigner } from './taskAssigner.js';
 import { TaskRouter } from './taskRouter.js';
 import { ExecutorService } from './executor.js';
+import { AutoRetryService } from './autoRetryService.js';
 
 export class TaskExecutor {
   private trainingDataService: TrainingDataService;
   private codeReviewService: CodeReviewService | null = null;
   private ollamaOptimizer: OllamaOptimizer;
   private taskAssigner: TaskAssigner;
+  private autoRetryService: AutoRetryService | null = null;
 
   constructor(
     private prisma: PrismaClient,
@@ -40,6 +42,10 @@ export class TaskExecutor {
     this.codeReviewService = codeReviewService || null;
     this.ollamaOptimizer = getOllamaOptimizer(io);
     this.taskAssigner = new TaskAssigner(prisma, io);
+
+    if (process.env.AUTO_RETRY_ENABLED !== 'false') {
+      this.autoRetryService = new AutoRetryService(prisma, io);
+    }
   }
 
   /**
@@ -98,6 +104,22 @@ export class TaskExecutor {
         }
       } catch {
         // If output isn't valid JSON, skip validation
+      }
+    }
+
+    // === AUTO-RETRY: Validate output & retry with error context if needed ===
+    if (this.autoRetryService) {
+      const retryResult = await this.autoRetryService.validateAndRetry(taskId, result);
+      if (!retryResult.validated) {
+        console.warn(`[TaskExecutor] Auto-retry exhausted for task ${taskId}: ${retryResult.finalError}`);
+        await this.handleTaskFailure(taskId, `Auto-retry failed: ${retryResult.finalError}`);
+        return;
+      }
+      if (retryResult.executionResult) {
+        result = retryResult.executionResult; // Use retried result
+      }
+      if (retryResult.phase !== 'skipped') {
+        console.log(`[TaskExecutor] Task ${taskId} validated at ${retryResult.phase} (${retryResult.attempts} retries)`);
       }
     }
 
@@ -437,75 +459,6 @@ export class TaskExecutor {
     this.codeReviewService.triggerReview(taskId, executedByModel).catch((error) => {
       console.error('Failed to trigger code review:', error);
     });
-  }
-
-  /**
-   * Trigger syntax validation after task completion.
-   * If validation fails, create a fix task for QA agent.
-   */
-  private async triggerSyntaxValidation(taskId: string, task: any): Promise<void> {
-    try {
-      // Extract filename from task description or result
-      const fileMatch = task.description?.match(/tasks\/([a-z0-9_]+\.(py|js|ts|go|php))/i);
-      if (!fileMatch) {
-        console.log(`[SyntaxValidation] No file found in task ${taskId}, skipping validation`);
-        return;
-      }
-
-      const filename = fileMatch[1];
-      const extension = fileMatch[2];
-      const languageMap: Record<string, string> = {
-        'py': 'python',
-        'js': 'javascript',
-        'ts': 'typescript',
-        'go': 'go',
-        'php': 'php'
-      };
-      const language = languageMap[extension];
-
-      // Read the file content
-      const filePath = path.join('/app/workspace/tasks', filename);
-      let code: string;
-      try {
-        code = await fs.readFile(filePath, 'utf-8');
-      } catch (error) {
-        console.log(`[SyntaxValidation] File not found: ${filePath}, skipping`);
-        return;
-      }
-
-      // Call validate_syntax via agents API
-      const response = await fetch(`${process.env.AGENTS_URL || 'http://agents:8000'}/validate-syntax`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language })
-      });
-
-      const result = await response.json() as { result: string };
-
-      if (result.result !== 'OK') {
-        console.log(`[SyntaxValidation] Task ${taskId} has syntax errors, creating fix task`);
-
-        // Create fix task for QA agent (Haiku)
-        await this.prisma.task.create({
-          data: {
-            title: `Fix syntax errors in ${filename}`,
-            description: `Fix syntax errors in tasks/${filename}.\n\nValidation error:\n${result.result}\n\nUse validate_syntax tool to check your fixes.`,
-            status: 'pending',
-            priority: 10, // High priority
-            complexity: 3, // Simple fix task
-            complexitySource: 'auto',
-            assignedAgentId: 'qa-01', // Haiku agent with validate_syntax tool
-            taskType: 'code',
-          }
-        });
-
-        console.log(`[SyntaxValidation] Created fix task for ${filename}`);
-      } else {
-        console.log(`[SyntaxValidation] Task ${taskId} passed syntax validation`);
-      }
-    } catch (error) {
-      console.error('[SyntaxValidation] Error during syntax validation:', error);
-    }
   }
 
   /**

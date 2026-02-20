@@ -381,7 +381,8 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
       expectedOutput: `File tasks/${fileName}.php created with ${task.name} function`,
       taskType: 'code',
       priority: task.complexity <= 4 ? 3 : task.complexity,
-      maxIterations: 5
+      maxIterations: 5,
+      validationCommand: task.validation
     })
   });
 

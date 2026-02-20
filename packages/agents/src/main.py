@@ -107,6 +107,18 @@ class ValidateSyntaxResponse(BaseModel):
     result: str  # "OK" or error message
 
 
+class RunValidationRequest(BaseModel):
+    command: str       # e.g. "from tasks.c1_double import double; assert double(5)==10; print('PASS')"
+    language: str = "python"
+    timeout: int = 15
+
+
+class RunValidationResponse(BaseModel):
+    success: bool      # returncode == 0 AND "PASS" in stdout
+    output: str        # stdout or stderr
+    exit_code: int
+
+
 def get_llm(use_claude: bool, model: str | None, allow_fallback: bool):
     """Get the appropriate LLM based on configuration.
 
@@ -444,6 +456,74 @@ async def validate_syntax(request: ValidateSyntaxRequest):
         return ValidateSyntaxResponse(result=result)
     except Exception as e:
         return ValidateSyntaxResponse(result=f"Validation error: {str(e)}")
+
+
+@app.post("/run-validation", response_model=RunValidationResponse)
+async def run_validation(request: RunValidationRequest):
+    """Run a validation command in the workspace to verify task output."""
+    import subprocess as sp
+
+    # If command already starts with a binary (go run, php, python, node, tsx),
+    # treat it as a full command and just split it. Otherwise, wrap it with
+    # the appropriate -c/-e flag for the detected language.
+    command = request.command.strip()
+    first_word = command.split()[0] if command else ""
+    full_command_prefixes = ("go", "php", "python", "python3", "node", "tsx")
+
+    if first_word in full_command_prefixes:
+        import shlex
+        cmd = shlex.split(command)
+    else:
+        lang = request.language.lower()
+        if lang == "python":
+            cmd = ["python3", "-c", command]
+        elif lang in ("javascript", "js"):
+            cmd = ["node", "-e", command]
+        elif lang in ("typescript", "ts"):
+            cmd = ["tsx", "-e", command]
+        elif lang == "php":
+            cmd = ["php", "-r", command]
+        elif lang == "go":
+            cmd = ["go", "run", command]
+        else:
+            return RunValidationResponse(
+                success=False,
+                output=f"Unsupported language: {request.language}",
+                exit_code=-1,
+            )
+
+    try:
+        result = sp.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=request.timeout,
+            cwd=settings.WORKSPACE_PATH,
+        )
+
+        output = result.stdout
+        if result.stderr:
+            output += ("\n" if output else "") + result.stderr
+
+        success = result.returncode == 0 and "PASS" in result.stdout
+
+        return RunValidationResponse(
+            success=success,
+            output=output.strip()[:5000],  # Cap output size
+            exit_code=result.returncode,
+        )
+    except sp.TimeoutExpired:
+        return RunValidationResponse(
+            success=False,
+            output=f"Validation timed out after {request.timeout}s",
+            exit_code=-1,
+        )
+    except Exception as e:
+        return RunValidationResponse(
+            success=False,
+            output=f"Validation error: {str(e)}",
+            exit_code=-1,
+        )
 
 
 @app.post("/execute/abort")
