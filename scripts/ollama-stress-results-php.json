@@ -51,144 +51,144 @@
       "complexity": 1,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 33
     },
     {
       "task": "negate",
       "complexity": 1,
       "status": "passed",
       "error": null,
-      "duration": 8
+      "duration": 26
     },
     {
       "task": "greet",
       "complexity": 2,
       "status": "passed",
       "error": null,
-      "duration": 8
+      "duration": 31
     },
     {
       "task": "isEven",
       "complexity": 2,
       "status": "passed",
       "error": null,
-      "duration": 8
+      "duration": 28
     },
     {
       "task": "absolute",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 8
+      "duration": 30
     },
     {
       "task": "maxOfTwo",
       "complexity": 3,
       "status": "passed",
       "error": null,
-      "duration": 14
+      "duration": 31
     },
     {
       "task": "clamp",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 9
+      "duration": 32
     },
     {
       "task": "countVowels",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 11
+      "duration": 52
     },
     {
       "task": "reverseString",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 9
+      "duration": 34
     },
     {
       "task": "factorial",
       "complexity": 4,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 37
     },
     {
       "task": "fizzBuzz",
       "complexity": 5,
       "status": "passed",
       "error": null,
-      "duration": 17
+      "duration": 47
     },
     {
       "task": "isPalindrome",
       "complexity": 5,
       "status": "passed",
       "error": null,
-      "duration": 9
+      "duration": 31
     },
     {
       "task": "safeDivide",
       "complexity": 5,
       "status": "failed",
       "error": null,
-      "duration": 10
+      "duration": 125
     },
     {
       "task": "sumOfDigits",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 11
+      "duration": 66
     },
     {
       "task": "findSecondLargest",
       "complexity": 6,
       "status": "failed",
       "error": null,
-      "duration": 10
+      "duration": 117
     },
     {
       "task": "isPrime",
       "complexity": 6,
       "status": "passed",
       "error": null,
-      "duration": 16
+      "duration": 42
     },
     {
       "task": "fibonacci",
       "complexity": 7,
       "status": "passed",
       "error": null,
-      "duration": 13
+      "duration": 48
     },
     {
       "task": "wordFrequency",
       "complexity": 7,
       "status": "passed",
       "error": null,
-      "duration": 10
+      "duration": 33
     },
     {
       "task": "mergeSorted",
       "complexity": 8,
       "status": "passed",
       "error": null,
-      "duration": 15
+      "duration": 54
     },
     {
       "task": "binarySearch",
       "complexity": 8,
       "status": "failed",
       "error": null,
-      "duration": 13
+      "duration": 158
     }
   ],
   "language": "php",
-  "totalDuration": 297,
+  "totalDuration": 1124,
   "successRate": 85,
   "recommendedThreshold": 7
 }
