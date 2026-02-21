@@ -2703,8 +2703,10 @@ function buildValidationCommand(task) {
     const fileName = task.fileName || `${task.name}.go`;
     return `go run tasks/${task.dir}/${fileName}`;
   }
-  // For python/node, return raw code — the server wraps with python3 -c / node -e
-  return task.validation;
+  // Prepend LANG= prefix so server knows the correct language
+  // (description-based detection fails for React/HTML tasks with Python validation)
+  const serverLang = lang === 'py' ? 'python' : lang === 'node' ? 'javascript' : 'python';
+  return `LANG=${serverLang} ${task.validation}`;
 }
 
 /**
@@ -2846,16 +2848,44 @@ async function checkAsyncValidationAvailable() {
 }
 
 /**
- * Process the server-side retry queue. Returns { retried, saved, stillFailing, details }
+ * Process the server-side retry queue (non-blocking).
+ * Kicks off retries in background, polls for completion, returns final results.
  */
 async function processRetryQueue() {
   try {
-    const resp = await fetch(`${API_BASE}/validation/retry`, {
+    // 1. Kick off retry processing (returns immediately)
+    const startResp = await fetch(`${API_BASE}/validation/retry`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY }
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     });
-    if (!resp.ok) return null;
-    return resp.json();
+    if (!startResp.ok) return null;
+    const startResult = await startResp.json();
+    if (!startResult.started) {
+      console.log(`   No retries to process`);
+      return null;
+    }
+    console.log(`   Retry queue started (${startResult.count} entries)...`);
+
+    // 2. Poll status until retryInProgress is false (up to 20 min)
+    const maxWaitMs = 20 * 60 * 1000;
+    const pollStart = Date.now();
+    while (Date.now() - pollStart < maxWaitMs) {
+      await sleep(5000);
+      const status = await getValidationStatus();
+      if (status && !status.retryInProgress) {
+        console.log(`   Retry queue complete (${Math.round((Date.now() - pollStart) / 1000)}s)`);
+        break;
+      }
+      const elapsed = Math.round((Date.now() - pollStart) / 1000);
+      console.log(`   ... retrying (${elapsed}s, ${status?.passed || '?'} passed, ${status?.failed || '?'} failed)`);
+    }
+
+    // 3. Fetch final retry results
+    const resultsResp = await fetch(`${API_BASE}/validation/retry-results`, {
+      headers: { 'X-API-Key': API_KEY },
+    });
+    if (!resultsResp.ok) return null;
+    return resultsResp.json();
   } catch (e) {
     console.log(`   Retry queue error: ${e.message}`);
     return null;

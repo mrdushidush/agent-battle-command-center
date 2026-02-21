@@ -87,6 +87,8 @@ export class AsyncValidationService {
   private validationResults: Map<string, TaskValidationResult> = new Map();
   private retryQueue: RetryQueueEntry[] = [];
   private pendingCount = 0;
+  private retryInProgress = false;
+  private lastRetryResults: RetryQueueResults | null = null;
   private executor: ExecutorService;
   private agentsUrl: string;
 
@@ -119,6 +121,43 @@ export class AsyncValidationService {
       .finally(() => {
         this.pendingCount--;
       });
+  }
+
+  /**
+   * Fire-and-forget retry queue processing. Returns immediately so HTTP
+   * requests don't time out. Poll getStatus()/getLastRetryResults() for progress.
+   */
+  startRetryQueue(): { started: boolean; count: number } {
+    if (this.retryInProgress) {
+      return { started: false, count: 0 };
+    }
+    const count = this.retryQueue.length;
+    if (count === 0) {
+      return { started: false, count: 0 };
+    }
+    this.retryInProgress = true;
+    this.lastRetryResults = null;
+    this.processRetryQueue()
+      .then((results) => {
+        this.lastRetryResults = results;
+        this.retryInProgress = false;
+        console.log(`[AsyncValidation] Retry queue complete: ${results.saved}/${results.retried} saved`);
+      })
+      .catch((err) => {
+        console.error('[AsyncValidation] Retry queue error:', err);
+        this.retryInProgress = false;
+      });
+    return { started: true, count };
+  }
+
+  /** Get results from the last completed retry run */
+  getLastRetryResults(): RetryQueueResults | null {
+    return this.lastRetryResults;
+  }
+
+  /** Whether the retry queue is currently processing */
+  isRetrying(): boolean {
+    return this.retryInProgress;
   }
 
   /**
@@ -260,7 +299,7 @@ export class AsyncValidationService {
     return this.validationResults.get(taskId);
   }
 
-  getStatus(): AsyncValidationStatus {
+  getStatus(): AsyncValidationStatus & { retryInProgress: boolean } {
     let passed = 0;
     let failed = 0;
     for (const r of this.validationResults.values()) {
@@ -272,6 +311,7 @@ export class AsyncValidationService {
       passed,
       failed,
       retryQueueSize: this.retryQueue.length,
+      retryInProgress: this.retryInProgress,
       total: this.validationResults.size + this.pendingCount,
     };
   }
@@ -284,6 +324,8 @@ export class AsyncValidationService {
     this.validationResults.clear();
     this.retryQueue = [];
     this.pendingCount = 0;
+    this.retryInProgress = false;
+    this.lastRetryResults = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -302,12 +344,11 @@ export class AsyncValidationService {
       return;
     }
 
-    const language = this.detectLanguage(task);
-    const validationCmd = task.validationCommand;
+    const { language, cleanCommand } = this.extractLanguageFromCommand(task.validationCommand);
 
-    this.emitEvent('task_validating', taskId, { command: validationCmd });
+    this.emitEvent('task_validating', taskId, { command: cleanCommand });
 
-    const result = await this.runValidation(validationCmd, language);
+    const result = await this.runValidation(cleanCommand, language);
 
     if (result.success) {
       this.emitEvent('task_validated', taskId, { success: true });
@@ -334,7 +375,7 @@ export class AsyncValidationService {
       this.retryQueue.push({
         taskId,
         validationError: result.output,
-        validationCommand: validationCmd,
+        validationCommand: cleanCommand,
         language,
         failedCode,
         description: task.description || task.title,
@@ -387,13 +428,17 @@ export class AsyncValidationService {
     }
   }
 
-  private detectLanguage(task: { description: string | null; title: string }): string {
-    const desc = (task.description || task.title).toLowerCase();
-    if (desc.includes('.js') || desc.includes('javascript')) return 'javascript';
-    if (desc.includes('.ts') || desc.includes('typescript')) return 'typescript';
-    if (desc.includes('.go') || desc.includes(' go ')) return 'go';
-    if (desc.includes('.php') || desc.includes('php')) return 'php';
-    return 'python';
+  /**
+   * Extract language from LANG=xxx prefix in validationCommand, falling back
+   * to description-based detection if no prefix is present.
+   */
+  private extractLanguageFromCommand(command: string): { language: string; cleanCommand: string } {
+    const langMatch = command.match(/^LANG=(\w+)\s/);
+    if (langMatch) {
+      return { language: langMatch[1], cleanCommand: command.substring(langMatch[0].length) };
+    }
+    // Fallback: no prefix — return as-is with 'python' default
+    return { language: 'python', cleanCommand: command };
   }
 
   private buildRetryDescription(

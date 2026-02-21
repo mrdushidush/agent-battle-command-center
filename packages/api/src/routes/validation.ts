@@ -49,8 +49,9 @@ validationRouter.get('/results', asyncHandler(async (req, res) => {
 
 /**
  * POST /api/validation/retry
- * Triggers processing of the retry queue (Phase 1 Ollama → Phase 2 Haiku)
- * Returns results summary when complete
+ * Kicks off retry queue processing in background (non-blocking).
+ * Returns immediately. Poll GET /api/validation/status to track progress,
+ * then GET /api/validation/retry-results for final results.
  */
 validationRouter.post('/retry', asyncHandler(async (req, res) => {
   const service = getService(req);
@@ -62,8 +63,17 @@ validationRouter.post('/retry', asyncHandler(async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  const results = await service.processRetryQueue();
-  res.json(results);
+  const result = service.startRetryQueue();
+  res.json(result);
+}));
+
+/**
+ * GET /api/validation/retry-results
+ * Returns results from the last completed retry run (null if none or in progress)
+ */
+validationRouter.get('/retry-results', asyncHandler(async (req, res) => {
+  const service = getService(req);
+  res.json(service.getLastRetryResults());
 }));
 
 /**
