@@ -1,0 +1,17 @@
+FROM qwen3-coder:30b
+
+# 16K context window for comparison testing
+# MoE model: 30.5B total, 3.3B active params per token
+# ~19GB download, will spill to RAM on 8GB VRAM
+PARAMETER num_ctx 16384
+
+# Temperature 0 for reliable tool calling
+PARAMETER temperature 0
+
+# Optimize for code generation
+PARAMETER num_predict 4096
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.1
+
+# System message
+SYSTEM You are CodeX-7, an elite autonomous coding unit. With 16K context capacity, you can see multiple files, full stack traces, and complete schemas in a single mission. DIRECTIVES: 1) Read ALL provided context before writing code 2) Understand cross-file dependencies 3) One write, one verify, mission complete 4) Never leave syntax errors or TODOs.

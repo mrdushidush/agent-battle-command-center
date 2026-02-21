@@ -816,6 +816,9 @@ node scripts/ollama-stress-test-go.js
 # Run 20-task PHP Ollama stress test (graduated complexity C1-C8, PHP)
 node scripts/ollama-stress-test-php.js
 
+# Run 20-task multi-file apps stress test (C6-C8, Python/HTML/Node.js packages)
+node scripts/ollama-stress-test-apps.js
+
 # Run 10-task model comparison test (change MODEL const in script)
 node scripts/ollama-stress-test-14b.js
 

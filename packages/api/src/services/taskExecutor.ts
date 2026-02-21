@@ -156,8 +156,10 @@ export class TaskExecutor {
       },
     });
 
-    // Update agent stats and status
-    await this.updateAgentOnCompletion(task.assignedAgentId!, task.complexity || 5);
+    // Update agent stats and status (only if task was assigned to an agent)
+    if (task.assignedAgentId) {
+      await this.updateAgentOnCompletion(task.assignedAgentId, task.complexity || 5);
+    }
 
     // Update execution record
     await this.prisma.taskExecution.updateMany({
@@ -173,9 +175,11 @@ export class TaskExecutor {
     });
 
     // Capture training data (async, non-blocking)
-    this.captureTrainingData(taskId, task.assignedAgentId!, result, true).catch((error) => {
-      console.error('Failed to capture training data:', error);
-    });
+    if (task.assignedAgentId) {
+      this.captureTrainingData(taskId, task.assignedAgentId, result, true).catch((error) => {
+        console.error('Failed to capture training data:', error);
+      });
+    }
 
     // Trigger auto code review (async, non-blocking)
     this.triggerCodeReview(taskId, task.complexity || 5);
