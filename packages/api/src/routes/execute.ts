@@ -73,8 +73,13 @@ executeRouter.post('/', asyncHandler(async (req, res) => {
     }
   };
 
-  // Fire and forget
-  executeAsync();
+  // Fire and forget — catch to prevent silent stuck tasks
+  executeAsync().catch((err) => {
+    console.error(`[Execute] Unhandled async error for task ${data.taskId}:`, err);
+    taskQueue.handleTaskFailure(data.taskId, err instanceof Error ? err.message : 'Unhandled execution error').catch(
+      (e) => console.error(`[Execute] Failed to mark task ${data.taskId} as failed:`, e)
+    );
+  });
 
   res.json({ started: true, taskId: data.taskId });
 }));

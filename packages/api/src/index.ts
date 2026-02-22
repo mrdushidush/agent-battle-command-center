@@ -49,7 +49,7 @@ app.use(cors({
   origin: config.cors.origins,
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Rate limiting (before auth to prevent auth bypass attempts)
 app.use(standardRateLimiter);

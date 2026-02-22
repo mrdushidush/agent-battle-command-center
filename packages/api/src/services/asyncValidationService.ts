@@ -390,6 +390,8 @@ export class AsyncValidationService {
   // ---------------------------------------------------------------------------
 
   private async runValidation(command: string, language: string): Promise<ValidationResult> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), VALIDATION_TIMEOUT_MS + 5_000); // 5s grace beyond inner timeout
     try {
       const response = await fetch(`${this.agentsUrl}/run-validation`, {
         method: 'POST',
@@ -399,6 +401,7 @@ export class AsyncValidationService {
           language,
           timeout: Math.floor(VALIDATION_TIMEOUT_MS / 1000),
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -412,6 +415,8 @@ export class AsyncValidationService {
         output: `Validation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         exit_code: -1,
       };
+    } finally {
+      clearTimeout(timer);
     }
   }
 

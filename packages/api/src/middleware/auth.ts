@@ -13,7 +13,7 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction): 
     return next();
   }
 
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const apiKey = req.headers['x-api-key'] as string | undefined;
   const expectedKey = config.auth.apiKey;
 
   // If no API key is configured, warn but allow (for backward compatibility)
@@ -25,7 +25,7 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction): 
   if (!apiKey) {
     res.status(401).json({
       error: 'Unauthorized',
-      message: 'API key required. Provide via X-API-Key header or api_key query parameter.',
+      message: 'API key required. Provide via X-API-Key header.',
     });
     return;
   }
@@ -46,7 +46,7 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction): 
  * Use for endpoints that support both authenticated and public access
  */
 export function optionalApiKey(req: Request, res: Response, next: NextFunction): void {
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const apiKey = req.headers['x-api-key'] as string | undefined;
   const expectedKey = config.auth.apiKey;
 
   if (expectedKey && apiKey && apiKey === expectedKey) {

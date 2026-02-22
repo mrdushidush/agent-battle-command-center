@@ -4,6 +4,12 @@ services:
   postgres:
     image: postgres:16
     container_name: abcc-postgres
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -65,6 +71,12 @@ services:
     container_name: abcc-api
     ports:
       - "3001:3001"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abcc}?schema=public
       AGENTS_URL: http://agents:8000
@@ -94,6 +106,12 @@ services:
     container_name: abcc-agents
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     environment:
       OLLAMA_URL: http://ollama:11434
       OLLAMA_API_BASE: http://ollama:11434
