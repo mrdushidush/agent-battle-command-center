@@ -15,32 +15,33 @@ function isToday(date: Date | string | null | undefined): boolean {
 
 export function TaskQueue() {
   const { tasks, isLoading } = useUIStore();
-  const priorityCount = React.useMemo(() => {
-  const counts = {
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
-
-  tasks.forEach((task) => {
-    if (!task.priority) return;
-
-    const p = task.priority.toLowerCase();
-
-    if (p === "high") counts.high++;
-    else if (p === "medium") counts.medium++;
-    else if (p === "low") counts.low++;
-  });
-
-  return counts;
-}, [tasks]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'coder' | 'qa'>('all');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending');
+  const pendingTasks = useMemo(
+    () => tasks.filter(t => t.status === 'pending'),
+    [tasks]
+  );
   const allCompletedTasks = tasks.filter(t => ['completed', 'failed', 'aborted'].includes(t.status));
+
+  // Priority breakdown for pending tasks
+  const priorityCount = useMemo(() => {
+    const counts = { high: 0, medium: 0, low: 0 };
+
+    pendingTasks.forEach(task => {
+      if (!task.priority) return;
+
+      const p = String(task.priority).toLowerCase();
+
+      if (p === 'high') counts.high++;
+      else if (p === 'medium') counts.medium++;
+      else if (p === 'low') counts.low++;
+    });
+
+    return counts;
+  }, [pendingTasks]);
 
   // Filter completed tasks: show only today's unless archive mode is on
   const completedTasks = showArchive
@@ -54,6 +55,12 @@ export function TaskQueue() {
     ? displayTasks
     : displayTasks.filter(t => t.requiredAgent === filter || t.requiredAgent === null);
 
+  const priorityOrder = {
+    high: 3,
+    medium: 2,
+    low: 1,
+  } as const;
+
   return (
     <div className="h-full flex flex-col" role="region" aria-label="Task queue">
       {/* Header */}
@@ -62,8 +69,6 @@ export function TaskQueue() {
           <h2 className="font-display text-sm uppercase tracking-wider text-gray-400" id="task-queue-heading">
             Task Queue
           </h2>
-  </div>
-)}
           <span className="text-xs text-gray-500" aria-live="polite">
             {showCompleted
               ? showArchive
@@ -72,33 +77,13 @@ export function TaskQueue() {
               : `${pendingTasks.length} pending`}
           </span>
         </div>
-{tasks.length > 0 && (
-      <div className="flex flex-wrap gap-2 mt-2">
-    
-    {priorityCount.high > 0 && (
-      <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-        High {priorityCount.high}
-      </span>
-    )}
 
-    {priorityCount.medium > 0 && (
-      <span className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
-        Medium {priorityCount.medium}
-      </span>
-    )}
-
-    {priorityCount.low > 0 && (
-      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-        Low {priorityCount.low}
-      </span>
-    )}
         <div className="flex items-center gap-2" role="toolbar" aria-label="Task queue controls">
           {/* Pending/Completed Toggle */}
           <button
             onClick={() => { setShowCompleted(!showCompleted); setShowArchive(false); }}
-            className={`p-1.5 rounded transition-colors ${
-              showCompleted ? 'bg-hud-green/20 text-hud-green' : 'bg-command-accent text-gray-400'
-            }`}
+            className={`p-1.5 rounded transition-colors ${showCompleted ? 'bg-hud-green/20 text-hud-green' : 'bg-command-accent text-gray-400'
+              }`}
             aria-label={showCompleted ? 'Show pending tasks' : 'Show completed tasks'}
             aria-pressed={showCompleted}
           >
@@ -108,9 +93,8 @@ export function TaskQueue() {
           {showCompleted && archivedCount > 0 && (
             <button
               onClick={() => setShowArchive(!showArchive)}
-              className={`p-1.5 rounded transition-colors flex items-center gap-1 text-xs ${
-                showArchive ? 'bg-hud-orange/20 text-hud-orange' : 'bg-command-accent text-gray-400'
-              }`}
+              className={`p-1.5 rounded transition-colors flex items-center gap-1 text-xs ${showArchive ? 'bg-hud-orange/20 text-hud-orange' : 'bg-command-accent text-gray-400'
+                }`}
               aria-label={showArchive ? 'Show today only' : `Show all archived tasks (${archivedCount})`}
               aria-pressed={showArchive}
             >
@@ -124,13 +108,12 @@ export function TaskQueue() {
               <button
                 key={f}
                 onClick={() => setFilter(f as typeof filter)}
-                className={`px-2 py-1 text-xs rounded ${
-                  filter === f
-                    ? f === 'coder' ? 'bg-agent-coder/20 text-agent-coder'
+                className={`px-2 py-1 text-xs rounded ${filter === f
+                  ? f === 'coder' ? 'bg-agent-coder/20 text-agent-coder'
                     : f === 'qa' ? 'bg-agent-qa/20 text-agent-qa'
-                    : 'bg-command-panel text-white'
-                    : 'text-gray-500'
-                }`}
+                      : 'bg-command-panel text-white'
+                  : 'text-gray-500'
+                  }`}
                 aria-label={`Filter by ${f === 'all' ? 'all agents' : f}`}
                 aria-pressed={filter === f}
               >
@@ -149,6 +132,38 @@ export function TaskQueue() {
           </button>
         </div>
       </div>
+
+      {/* Priority Breakdown Row */}
+      {pendingTasks.length > 0 && (
+        <div className="px-3 pb-2 flex flex-wrap gap-2">
+          {priorityCount.high > 0 && (
+            <span
+              className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700"
+              aria-label={`${priorityCount.high} high priority tasks`}
+            >
+              High {priorityCount.high}
+            </span>
+          )}
+
+          {priorityCount.medium > 0 && (
+            <span
+              className="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700"
+              aria-label={`${priorityCount.medium} medium priority tasks`}
+            >
+              Medium {priorityCount.medium}
+            </span>
+          )}
+
+          {priorityCount.low > 0 && (
+            <span
+              className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700"
+              aria-label={`${priorityCount.low} low priority tasks`}
+            >
+              Low {priorityCount.low}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Task List - Full grid view */}
       <div className="flex-1 overflow-y-auto p-3" role="list" aria-labelledby="task-queue-heading">
@@ -185,7 +200,11 @@ export function TaskQueue() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             {filteredTasks
-              .sort((a, b) => b.priority - a.priority)
+              .sort(
+                (a, b) =>
+                  (priorityOrder[b.priority] || 0) -
+                  (priorityOrder[a.priority] || 0)
+              )
               .map(task => (
                 <div key={task.id} role="listitem">
                   <TaskCard task={task} />
