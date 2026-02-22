@@ -27,7 +27,7 @@ ENV VITE_API_KEY=${VITE_API_KEY}
 RUN pnpm --filter @abcc/ui build
 
 # Production image
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
 # Copy built assets
 COPY --from=builder /app/packages/ui/dist /usr/share/nginx/html

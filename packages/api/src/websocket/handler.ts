@@ -1,6 +1,50 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
+import { config } from '../config.js';
+
+// Track connections per IP to prevent DoS
+const connectionsPerIP = new Map<string, number>();
+const MAX_CONNECTIONS_PER_IP = 20;
 
 export function setupWebSocket(io: SocketIOServer): void {
+  // Authentication middleware — validate API key on connection
+  io.use((socket, next) => {
+    const expectedKey = config.auth.apiKey;
+
+    // If no API key configured, allow (backward compat — same as HTTP auth)
+    if (!expectedKey) {
+      return next();
+    }
+
+    const token = socket.handshake.auth.token || socket.handshake.headers['x-api-key'];
+    if (!token || token !== expectedKey) {
+      return next(new Error('Authentication failed: invalid or missing API key'));
+    }
+
+    next();
+  });
+
+  // Connection rate limiting middleware
+  io.use((socket, next) => {
+    const clientIp = socket.handshake.address;
+    const count = (connectionsPerIP.get(clientIp) || 0) + 1;
+
+    if (count > MAX_CONNECTIONS_PER_IP) {
+      return next(new Error('Too many connections from this IP'));
+    }
+
+    connectionsPerIP.set(clientIp, count);
+    socket.on('disconnect', () => {
+      const current = connectionsPerIP.get(clientIp) || 1;
+      if (current <= 1) {
+        connectionsPerIP.delete(clientIp);
+      } else {
+        connectionsPerIP.set(clientIp, current - 1);
+      }
+    });
+
+    next();
+  });
+
   io.on('connection', (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
 
@@ -17,8 +61,6 @@ export function setupWebSocket(io: SocketIOServer): void {
 
     // Client can request current state
     socket.on('request_state', async () => {
-      // This would typically fetch current state from DB
-      // For now, just acknowledge
       socket.emit('state_sync', { synced: true, timestamp: new Date() });
     });
 
@@ -34,13 +76,6 @@ export function setupWebSocket(io: SocketIOServer): void {
     socket.on('error', (error) => {
       console.error(`Socket error for ${socket.id}:`, error);
     });
-  });
-
-  // Middleware for logging
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    // Could add auth here if needed
-    next();
   });
 }
 

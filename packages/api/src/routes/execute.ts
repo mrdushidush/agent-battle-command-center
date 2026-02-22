@@ -10,6 +10,9 @@ export const executeRouter: RouterType = Router();
 
 const executor = new ExecutorService();
 
+// Track in-flight executions to prevent duplicate runs of same task
+const inFlightTasks = new Set<string>();
+
 // Execute a task
 executeRouter.post('/', asyncHandler(async (req, res) => {
   const taskQueue = req.app.get('taskQueue') as TaskQueueService;
@@ -39,6 +42,13 @@ executeRouter.post('/', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'Task is not assigned to an agent' });
     return;
   }
+
+  // Prevent duplicate execution of same task
+  if (inFlightTasks.has(data.taskId)) {
+    res.status(409).json({ error: 'Task execution already in progress' });
+    return;
+  }
+  inFlightTasks.add(data.taskId);
 
   // Mark task as in progress
   await taskQueue.handleTaskStart(data.taskId);
@@ -73,13 +83,17 @@ executeRouter.post('/', asyncHandler(async (req, res) => {
     }
   };
 
-  // Fire and forget — catch to prevent silent stuck tasks
-  executeAsync().catch((err) => {
-    console.error(`[Execute] Unhandled async error for task ${data.taskId}:`, err);
-    taskQueue.handleTaskFailure(data.taskId, err instanceof Error ? err.message : 'Unhandled execution error').catch(
-      (e) => console.error(`[Execute] Failed to mark task ${data.taskId} as failed:`, e)
-    );
-  });
+  // Fire and forget — catch to prevent silent stuck tasks, always clean up dedup set
+  executeAsync()
+    .catch((err) => {
+      console.error(`[Execute] Unhandled async error for task ${data.taskId}:`, err);
+      return taskQueue.handleTaskFailure(data.taskId, err instanceof Error ? err.message : 'Unhandled execution error').catch(
+        (e) => console.error(`[Execute] Failed to mark task ${data.taskId} as failed:`, e)
+      );
+    })
+    .finally(() => {
+      inFlightTasks.delete(data.taskId);
+    });
 
   res.json({ started: true, taskId: data.taskId });
 }));

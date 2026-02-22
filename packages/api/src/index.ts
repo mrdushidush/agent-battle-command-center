@@ -42,6 +42,9 @@ const io = new SocketIOServer(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  maxHttpBufferSize: 1e6,          // 1MB max message size (prevents payload DoS)
+  pingTimeout: 20000,
+  pingInterval: 25000,
 });
 
 // Middleware with CORS restrictions

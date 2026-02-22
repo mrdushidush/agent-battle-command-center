@@ -83,6 +83,12 @@ const VALIDATION_TIMEOUT_MS = parseInt(process.env.AUTO_RETRY_VALIDATION_TIMEOUT
 // Service
 // ---------------------------------------------------------------------------
 
+// Limits to prevent unbounded memory growth
+const MAX_VALIDATION_RESULTS = 500;
+const MAX_RETRY_QUEUE_SIZE = 100;
+const RESULT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const RESULT_MAX_AGE_MS = 24 * 60 * 60 * 1000;     // 24 hours
+
 export class AsyncValidationService {
   private validationResults: Map<string, TaskValidationResult> = new Map();
   private retryQueue: RetryQueueEntry[] = [];
@@ -91,6 +97,7 @@ export class AsyncValidationService {
   private lastRetryResults: RetryQueueResults | null = null;
   private executor: ExecutorService;
   private agentsUrl: string;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private prisma: PrismaClient,
@@ -98,6 +105,34 @@ export class AsyncValidationService {
   ) {
     this.executor = new ExecutorService();
     this.agentsUrl = config.agents.url;
+
+    // Periodically clean old validation results to prevent memory leak
+    this.cleanupTimer = setInterval(() => this.cleanupOldResults(), RESULT_CLEANUP_INTERVAL_MS);
+  }
+
+  /** Remove validation results older than MAX_AGE and cap size */
+  private cleanupOldResults(): void {
+    const cutoff = Date.now() - RESULT_MAX_AGE_MS;
+    let removed = 0;
+    for (const [id, result] of this.validationResults.entries()) {
+      if (result.validatedAt.getTime() < cutoff) {
+        this.validationResults.delete(id);
+        removed++;
+      }
+    }
+    // If still over limit, remove oldest
+    if (this.validationResults.size > MAX_VALIDATION_RESULTS) {
+      const sorted = [...this.validationResults.entries()]
+        .sort((a, b) => a[1].validatedAt.getTime() - b[1].validatedAt.getTime());
+      const toRemove = sorted.slice(0, sorted.length - MAX_VALIDATION_RESULTS);
+      for (const [id] of toRemove) {
+        this.validationResults.delete(id);
+        removed++;
+      }
+    }
+    if (removed > 0) {
+      console.log(`[AsyncValidation] Cleaned up ${removed} old validation results (${this.validationResults.size} remaining)`);
+    }
   }
 
   /**

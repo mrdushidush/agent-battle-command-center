@@ -91,12 +91,14 @@ export function useSocket() {
     setGlobalConnected(true);
     connectedRef.current = true;
 
+    const apiKey = import.meta.env.VITE_API_KEY || '';
     const socket = io(SOCKET_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       timeout: 20000,
+      auth: { token: apiKey },
     });
 
     socket.on('connect', () => {

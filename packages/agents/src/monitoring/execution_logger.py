@@ -13,6 +13,9 @@ import requests
 
 from src.config import settings
 
+# Max buffered logs to prevent unbounded memory growth when API is unreachable
+MAX_BUFFER_SIZE = 500
+
 
 class ExecutionLogger:
     """
@@ -169,7 +172,13 @@ class ExecutionLogger:
 
         except requests.RequestException as e:
             print(f"⚠️  Error logging step {log_entry.get('step', '?')}: {e}")
-            self.logs_buffer.append(log_entry)
+            if len(self.logs_buffer) < MAX_BUFFER_SIZE:
+                self.logs_buffer.append(log_entry)
+            else:
+                # Drop oldest half to make room
+                self.logs_buffer = self.logs_buffer[-(MAX_BUFFER_SIZE // 2):]
+                self.logs_buffer.append(log_entry)
+                print(f"⚠️  Log buffer at capacity ({MAX_BUFFER_SIZE}), dropped oldest entries")
 
     def flush_buffer(self) -> None:
         """

@@ -19,6 +19,11 @@ COPY pyproject.toml .
 # Install package in editable mode
 RUN pip install -e .
 
+# Run as non-root user
+RUN groupadd -g 1001 appgroup && useradd -u 1001 -g appgroup -s /bin/bash -m appuser \
+    && chown -R appuser:appgroup /app
+USER appuser
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health').read()"

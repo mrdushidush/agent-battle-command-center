@@ -25,12 +25,16 @@ COPY src ./src
 COPY pyproject.toml .
 COPY test_tools.py .
 
-# Create workspace directory
-RUN mkdir -p /app/workspace
+# Create workspace directory and non-root user
+RUN mkdir -p /app/workspace \
+    && groupadd -g 1001 appgroup \
+    && useradd -u 1001 -g appgroup -s /bin/bash -m appuser \
+    && chown -R appuser:appgroup /app
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
+USER appuser
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

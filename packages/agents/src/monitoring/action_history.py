@@ -21,6 +21,9 @@ TOOL_SPECIFIC_LIMITS = {
 # Hard limit on total tool calls per task
 MAX_TOTAL_TOOL_CALLS = 50
 
+# Max history entries to keep in memory (prevents unbounded growth)
+MAX_HISTORY_SIZE = 200
+
 
 class ActionHistory:
     """Singleton tracker for all tool invocations to detect loops."""
@@ -81,8 +84,10 @@ class ActionHistory:
                     f"If the file still needs changes, the task may need to be decomposed differently."
                 )
 
-        # Add to history
+        # Add to history (cap size to prevent unbounded memory growth)
         cls._history.append((tool_name, params, datetime.now()))
+        if len(cls._history) > MAX_HISTORY_SIZE:
+            cls._history = cls._history[-MAX_HISTORY_SIZE:]
 
         # Only check after we have at least 3 actions
         if len(cls._history) < 3:

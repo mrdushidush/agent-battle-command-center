@@ -23,6 +23,10 @@ RUN pnpm --filter @abcc/api build
 
 ENV NODE_ENV=production
 
+# Run as non-root user
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+RUN chown -R appuser:appgroup /app
+
 EXPOSE 3001
 
 WORKDIR /app/packages/api
@@ -31,4 +35,5 @@ WORKDIR /app/packages/api
 COPY packages/api/docker-entrypoint.sh /docker-entrypoint.sh
 RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
+USER appuser
 CMD ["sh", "/docker-entrypoint.sh"]

@@ -19,7 +19,7 @@ const createTaskSchema = z.object({
   lockedFiles: z.array(z.string()).default([]),
   acceptanceCriteria: z.string().optional(),
   contextNotes: z.string().optional(),
-  validationCommand: z.string().optional(),
+  validationCommand: z.string().max(2000).optional(),
 });
 
 const updateTaskSchema = z.object({

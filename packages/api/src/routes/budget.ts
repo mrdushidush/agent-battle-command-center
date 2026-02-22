@@ -65,8 +65,22 @@ budgetRouter.patch('/config', asyncHandler(async (req, res) => {
   });
 }));
 
-// Reset daily budget
+// Reset daily budget (rate-limited: once per 5 minutes to prevent abuse)
+let lastBudgetResetTime = 0;
+const BUDGET_RESET_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 budgetRouter.post('/reset', asyncHandler(async (req, res) => {
+  const now = Date.now();
+  if (now - lastBudgetResetTime < BUDGET_RESET_COOLDOWN_MS) {
+    const remainingSec = Math.ceil((BUDGET_RESET_COOLDOWN_MS - (now - lastBudgetResetTime)) / 1000);
+    res.status(429).json({
+      error: 'Too many resets',
+      message: `Budget reset is rate-limited. Try again in ${remainingSec}s.`,
+    });
+    return;
+  }
+
+  lastBudgetResetTime = now;
   budgetService.resetDaily();
 
   res.json({

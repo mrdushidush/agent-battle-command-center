@@ -16,10 +16,14 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction): 
   const apiKey = req.headers['x-api-key'] as string | undefined;
   const expectedKey = config.auth.apiKey;
 
-  // If no API key is configured, warn but allow (for backward compatibility)
+  // Reject all requests if no API key is configured (security hardening)
   if (!expectedKey) {
-    console.warn('WARNING: API_KEY not configured - authentication disabled!');
-    return next();
+    console.error('SECURITY: API_KEY not configured — rejecting request. Set API_KEY env var.');
+    res.status(500).json({
+      error: 'Server misconfiguration',
+      message: 'API authentication is not configured. Contact administrator.',
+    });
+    return;
   }
 
   if (!apiKey) {
