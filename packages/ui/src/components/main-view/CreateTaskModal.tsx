@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 import { useTasks } from '../../hooks/useTasks';
 import type { TaskType, TaskPriority, AgentType } from '@abcc/shared';
 
@@ -15,6 +15,8 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const [taskType, setTaskType] = useState<TaskType>('code');
   const [requiredAgent, setRequiredAgent] = useState<AgentType | ''>('');
   const [priority, setPriority] = useState<TaskPriority>(5);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [validationCommand, setValidationCommand] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         taskType,
         requiredAgent: requiredAgent || undefined,
         priority,
+        validationCommand: validationCommand.trim() || undefined,
       });
       onClose();
     } catch (err) {
@@ -121,6 +124,34 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               <span>Low</span>
               <span>High</span>
             </div>
+          </div>
+
+          {/* Advanced Options */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              <ChevronRight className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
+              Advanced Options
+            </button>
+            {showAdvanced && (
+              <div className="mt-2">
+                <label className="block text-xs text-gray-400 mb-1">
+                  Validation Command
+                </label>
+                <textarea
+                  value={validationCommand}
+                  onChange={(e) => setValidationCommand(e.target.value)}
+                  className="w-full bg-command-bg border border-command-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-hud-blue h-20 resize-none"
+                  placeholder='python -c "from tasks.example import fn; assert fn(1) == 2"'
+                />
+                <p className="text-[10px] text-gray-600 mt-1">
+                  Shell command to validate task output. Enables auto-retry on failure.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Error */}

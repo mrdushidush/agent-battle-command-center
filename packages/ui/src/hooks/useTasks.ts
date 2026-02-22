@@ -31,6 +31,7 @@ export function useTasks() {
     priority?: TaskPriority;
     maxIterations?: number;
     lockedFiles?: string[];
+    validationCommand?: string;
   }) => {
     setLoadingLocal(true);
     setError(null);

@@ -1,4 +1,4 @@
-import { Clock, AlertTriangle, CheckCircle, XCircle, Code, TestTube, Eye, Bug, RefreshCw, Play, Edit, Trash2, Copy, Check } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, XCircle, Code, TestTube, Eye, Bug, RefreshCw, Play, Edit, Trash2, Copy, Check, Shield } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import type { Task } from '@abcc/shared';
@@ -40,7 +40,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
-  const { selectedTaskId, selectTask, agents, agentHealth } = useUIStore();
+  const { selectedTaskId, selectTask, agents, agentHealth, validationStatus } = useUIStore();
   const { deleteTask } = useTasks();
   const isSelected = selectedTaskId === task.id;
   const [executing, setExecuting] = useState(false);
@@ -382,9 +382,26 @@ export function TaskCard({ task, compact = false, onClick }: TaskCardProps) {
             </span>
           )}
         </div>
-        <span className="text-[9px]" aria-label={`Iteration ${task.currentIteration} of ${task.maxIterations}`}>
-          {task.currentIteration}/{task.maxIterations}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {/* Validation badge */}
+          {(task.validationCommand || validationStatus[task.id]) && (() => {
+            const vs = validationStatus[task.id];
+            const vStatus = vs?.status;
+            return (
+              <Shield className={clsx(
+                'w-3 h-3',
+                vStatus === 'passed' ? 'text-hud-green' :
+                vStatus === 'failed' ? 'text-hud-red' :
+                vStatus === 'retrying' ? 'text-hud-blue animate-pulse' :
+                vStatus === 'validating' ? 'text-hud-amber animate-pulse' :
+                'text-gray-600'
+              )} aria-label={vStatus ? `Validation: ${vStatus}` : 'Has validation command'} />
+            );
+          })()}
+          <span className="text-[9px]" aria-label={`Iteration ${task.currentIteration} of ${task.maxIterations}`}>
+            {task.currentIteration}/{task.maxIterations}
+          </span>
+        </div>
       </div>
 
       {/* Edit Modal */}

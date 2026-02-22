@@ -287,6 +287,7 @@ interface CreateTaskRequest {
   priority?: number;
   maxIterations?: number;
   lockedFiles?: string[];
+  validationCommand?: string;
 }
 
 interface UpdateTaskRequest {
@@ -505,3 +506,47 @@ export interface CostTimelineResponse {
   endTime: Date;
   totalCost: number;
 }
+
+// Validation API
+export interface TaskValidationResult {
+  taskId: string;
+  passed: boolean;
+  error?: string;
+  validatedAt: string;
+  retryPhase?: string;
+  retryAttempts?: number;
+}
+
+export interface ValidationStatus {
+  pending: number;
+  passed: number;
+  failed: number;
+  retryQueueSize: number;
+  retryInProgress: boolean;
+  total: number;
+}
+
+export interface RetryQueueResults {
+  retried: number;
+  saved: number;
+  stillFailing: number;
+  details: Array<{
+    taskId: string;
+    savedAt?: string;
+    finalError?: string;
+  }>;
+}
+
+export const validationApi = {
+  getStatus: () =>
+    request<ValidationStatus>('/validation/status'),
+
+  getResult: (taskId: string) =>
+    request<TaskValidationResult | null>(`/validation/results?taskId=${taskId}`),
+
+  triggerRetry: () =>
+    request<{ started: boolean; count: number }>('/validation/retry', { method: 'POST' }),
+
+  getRetryResults: () =>
+    request<RetryQueueResults | null>('/validation/retry-results'),
+};

@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
-import { X, Play, RefreshCw, Square, MessageSquare, Clock, Zap, Star, AlertTriangle, DollarSign, Hash } from 'lucide-react';
+import { X, Play, RefreshCw, Square, MessageSquare, Clock, Zap, Star, AlertTriangle, DollarSign, Hash, Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Task } from '@abcc/shared';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useUIStore } from '../../store/uiState';
 import { useTasks } from '../../hooks/useTasks';
-import { codeReviewsApi, type CodeReview } from '../../api/client';
+import { codeReviewsApi, validationApi, type CodeReview, type TaskValidationResult } from '../../api/client';
 
 interface TaskDetailProps {
   task: Task;
 }
 
 export function TaskDetail({ task }: TaskDetailProps) {
-  const { selectTask, agents } = useUIStore();
+  const { selectTask, agents, validationStatus } = useUIStore();
   const { retryTask, abortTask, submitHumanInput, startExecution, loading } = useTasks();
   const [humanInput, setHumanInput] = useState('');
   const [codeReview, setCodeReview] = useState<CodeReview | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [validationResult, setValidationResult] = useState<TaskValidationResult | null>(null);
+  const [cmdExpanded, setCmdExpanded] = useState(false);
 
   // Fetch code review for completed tasks
   useEffect(() => {
@@ -29,6 +31,17 @@ export function TaskDetail({ task }: TaskDetailProps) {
       setCodeReview(null);
     }
   }, [task.id, task.status]);
+
+  // Fetch validation result for tasks with validationCommand
+  useEffect(() => {
+    if (task.validationCommand && ['completed', 'failed'].includes(task.status)) {
+      validationApi.getResult(task.id)
+        .then(setValidationResult)
+        .catch(() => setValidationResult(null));
+    } else {
+      setValidationResult(null);
+    }
+  }, [task.id, task.status, task.validationCommand]);
 
   const assignedAgent = task.assignedAgentId
     ? agents.find(a => a.id === task.assignedAgentId)
@@ -130,6 +143,97 @@ export function TaskDetail({ task }: TaskDetailProps) {
             </div>
           </div>
         </div>
+
+        {/* Validation Section */}
+        {(task.validationCommand || validationStatus[task.id]) && (() => {
+          const wsStatus = validationStatus[task.id];
+          const displayStatus = wsStatus?.status || (validationResult?.passed ? 'passed' : validationResult?.passed === false ? 'failed' : null);
+          const displayError = wsStatus?.error || validationResult?.error;
+
+          return (
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Shield className="w-3 h-3" />
+                Validation
+              </div>
+
+              <div className="bg-command-bg rounded-sm p-3 space-y-2">
+                {/* Validation Command */}
+                {task.validationCommand && (
+                  <div>
+                    <button
+                      onClick={() => setCmdExpanded(!cmdExpanded)}
+                      className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-400 transition-colors"
+                    >
+                      {cmdExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      Command
+                    </button>
+                    {cmdExpanded ? (
+                      <pre className="text-xs text-gray-400 font-mono mt-1 whitespace-pre-wrap break-all bg-black/30 rounded p-2">
+                        {task.validationCommand}
+                      </pre>
+                    ) : (
+                      <div className="text-xs text-gray-400 font-mono mt-1 truncate">
+                        {task.validationCommand}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Status */}
+                {displayStatus && (
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      displayStatus === 'passed' ? 'bg-hud-green' :
+                      displayStatus === 'failed' ? 'bg-hud-red' :
+                      displayStatus === 'retrying' ? 'bg-hud-blue animate-pulse' :
+                      displayStatus === 'validating' ? 'bg-hud-amber animate-pulse' :
+                      'bg-gray-500'
+                    }`} />
+                    <span className={`text-sm ${
+                      displayStatus === 'passed' ? 'text-hud-green' :
+                      displayStatus === 'failed' ? 'text-hud-red' :
+                      displayStatus === 'retrying' ? 'text-hud-blue' :
+                      displayStatus === 'validating' ? 'text-hud-amber' :
+                      'text-gray-400'
+                    }`}>
+                      {displayStatus === 'passed' ? 'Passed' :
+                       displayStatus === 'failed' ? 'Failed' :
+                       displayStatus === 'retrying' ? 'Retrying...' :
+                       displayStatus === 'validating' ? 'Validating...' :
+                       'Pending'}
+                    </span>
+                    {validationResult?.validatedAt && displayStatus === 'passed' && (
+                      <span className="text-[10px] text-gray-600">
+                        {new Date(validationResult.validatedAt).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Error */}
+                {displayError && displayStatus === 'failed' && (
+                  <div className="bg-hud-red/10 border border-hud-red/20 rounded p-2 text-xs text-hud-red font-mono whitespace-pre-wrap max-h-24 overflow-y-auto">
+                    {displayError}
+                  </div>
+                )}
+
+                {/* Retry Info */}
+                {wsStatus?.status === 'retrying' && (
+                  <div className="text-xs text-hud-blue flex items-center gap-2">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    Phase {wsStatus.retryPhase} ({wsStatus.retryTier}), Attempt {wsStatus.retryAttempt}
+                  </div>
+                )}
+                {validationResult?.retryPhase && displayStatus === 'passed' && (
+                  <div className="text-[10px] text-gray-500">
+                    Saved by {validationResult.retryPhase} retry (attempt {validationResult.retryAttempts})
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Human Input Section */}
         {task.status === 'needs_human' && (

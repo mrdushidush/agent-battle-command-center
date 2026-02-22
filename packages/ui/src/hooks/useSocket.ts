@@ -284,6 +284,38 @@ export function useSocket() {
       }
     });
 
+    // Validation pipeline events
+    socket.on('task_validating', (event: { taskId: string }) => {
+      useUIStore.getState().setValidationStatus(event.taskId, { status: 'validating' });
+    });
+
+    socket.on('task_validated', (event: { taskId: string }) => {
+      useUIStore.getState().setValidationStatus(event.taskId, { status: 'passed' });
+    });
+
+    socket.on('task_validation_failed', (event: { taskId: string; error?: string }) => {
+      useUIStore.getState().setValidationStatus(event.taskId, {
+        status: 'failed',
+        error: event.error,
+      });
+    });
+
+    socket.on('auto_retry_attempt', (event: { taskId: string; phase: number; attempt: number; tier: string }) => {
+      useUIStore.getState().setValidationStatus(event.taskId, {
+        status: 'retrying',
+        retryPhase: event.phase,
+        retryAttempt: event.attempt,
+        retryTier: event.tier,
+      });
+    });
+
+    socket.on('auto_retry_result', (event: { taskId: string; success: boolean; phase: number }) => {
+      useUIStore.getState().setValidationStatus(event.taskId, {
+        status: event.success ? 'passed' : 'failed',
+        retryPhase: event.phase,
+      });
+    });
+
     // Code review events (Opus reviewing code)
     socket.on('code_review_started', () => {
       playWithDelay(() => playOpusReview('cto'));

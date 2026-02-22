@@ -112,6 +112,17 @@ interface UIState {
   updateAgentHealth: (agentId: string, health: Partial<UIState['agentHealth'][string]>) => void;
   resetAgentHealth: (agentId: string) => void;
 
+  // Validation status tracking (per-task)
+  validationStatus: Record<string, {
+    status: 'pending' | 'validating' | 'passed' | 'failed' | 'retrying';
+    error?: string;
+    retryPhase?: number;
+    retryAttempt?: number;
+    retryTier?: string;
+  }>;
+  setValidationStatus: (taskId: string, status: UIState['validationStatus'][string]) => void;
+  clearValidationStatuses: () => void;
+
   // Budget tracking
   budget: {
     dailySpentCents: number;
@@ -291,6 +302,17 @@ export const useUIStore = create<UIState>((set) => ({
       delete newHealth[agentId];
       return { agentHealth: newHealth };
     }),
+
+  // Validation status tracking
+  validationStatus: {},
+  setValidationStatus: (taskId, status) =>
+    set((state) => ({
+      validationStatus: {
+        ...state.validationStatus,
+        [taskId]: status,
+      },
+    })),
+  clearValidationStatuses: () => set({ validationStatus: {} }),
 
   // Budget tracking
   budget: {

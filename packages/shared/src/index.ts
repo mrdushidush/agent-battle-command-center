@@ -83,6 +83,7 @@ export interface Task {
   result: TaskResult | null;
   error: string | null;
   metrics: TaskMetrics;
+  validationCommand?: string;
   lockedFiles: string[];
   parentTaskId: string | null;
   createdAt: Date;
@@ -207,6 +208,7 @@ export interface CreateTaskRequest {
   maxIterations?: number;
   humanTimeoutMinutes?: number;
   parentTaskId?: string;
+  validationCommand?: string;
 }
 
 export interface UpdateTaskRequest {
