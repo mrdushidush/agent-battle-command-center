@@ -1,6 +1,6 @@
 # Agent Battle Command Center - Full Architecture Assessment
 
-**Date:** 2026-02-06 (Updated: 2026-02-19 — PHP Validated + OOM Fix + Retry Roadmap)
+**Date:** 2026-02-06 (Updated: 2026-02-22 — Validation Pipeline UI Integration)
 **Assessor:** Software Architecture Review (Claude Sonnet 4.6)
 **Codebase Snapshot:** main branch, clean working tree
 **Previous Score:** 7.2 / 10 (Strong Alpha, Pre-MVP)
@@ -15,12 +15,12 @@ The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platf
 
 Since the initial assessment earlier today, **significant improvements** have been made across security, testing, error handling, and infrastructure. Multiple critical and high-severity items from the original assessment have been addressed.
 
-### Overall Score: **8.7 / 10** (Strong MVP)
+### Overall Score: **8.8 / 10** (Strong MVP)
 
 | Category | Previous | Current | Delta | Status |
 |----------|----------|---------|-------|--------|
 | Core Architecture | 8/10 | 9/10 | +1.0 | Dynamic context routing, C9→Ollama |
-| Feature Completeness | 7/10 | 7.5/10 | +0.5 | Settings modal fixed, Flow minimap |
+| Feature Completeness | 7/10 | 8/10 | +1.0 | Settings modal, Flow minimap, Validation UI |
 | Code Quality | 6.5/10 | 7/10 | +0.5 | Auth middleware, error boundaries |
 | Test Coverage | 3/10 | 5/10 | +2.0 | 10 API tests + 2 Python test suites |
 | Documentation | 7/10 | 7.5/10 | +0.5 | CHANGELOG exists, LICENSE added |
@@ -28,7 +28,7 @@ Since the initial assessment earlier today, **significant improvements** have be
 | DevOps / CI | 7/10 | 8.5/10 | +1.5 | Docker Hub publishing, CI/CD, backup healthy |
 | Community Readiness | 4/10 | 7/10 | +3.0 | Docker Hub, setup script, README, LICENSE |
 
-**Score improvement: +1.5 points (7.2 -> 8.7)**
+**Score improvement: +1.6 points (7.2 -> 8.8)**
 
 ---
 
@@ -102,7 +102,7 @@ Since the initial assessment earlier today, **significant improvements** have be
 - Global `os.environ` for request context (not thread-safe)
 - `api_credits_used: 0.1` placeholder still returns hardcoded value
 
-### 2.5 UI (7.5/10, was 7/10)
+### 2.5 UI (8/10, was 7.5/10)
 
 **Improvements:**
 - **Error boundaries implemented** — Two components:
@@ -112,6 +112,14 @@ Since the initial assessment earlier today, **significant improvements** have be
 - **Flow minimap added** — New `FlowMinimap.tsx` with horizontal Kanban-style pipeline (QUEUE -> ASSIGNED -> ACTIVE -> BLOCKED -> COMPLETE -> FAILED)
 - **Settings modal fixed** — Test sound cycles through entire audio library, budget input works with Save button, theme accent changes apply via CSS custom properties
 - **3 minimap styles** — Grid (classic), Timeline (status progression), Flow (agent pipeline)
+- **NEW: Validation pipeline fully surfaced in UI** (Feb 22, 2026):
+  - `CreateTaskModal` — Collapsible "Advanced Options" with monospace `validationCommand` textarea
+  - `TaskDetail` — Validation section with expandable command, color-coded status dot (green/red/yellow/blue), error display, retry phase/attempt info
+  - `TaskCard` — Shield icon badge for at-a-glance validation status (green=passed, red=failed, yellow=validating, blue=retrying)
+  - WebSocket listeners for 5 validation events (`task_validating`, `task_validated`, `task_validation_failed`, `auto_retry_attempt`, `auto_retry_result`)
+  - Zustand `validationStatus` map for real-time per-task tracking
+  - `validationApi` client with `getStatus`, `getResult`, `triggerRetry`, `getRetryResults`
+  - Tasks created from the UI now get the same validation + auto-retry treatment as stress test tasks
 
 **Remaining Concerns:**
 - Zero UI tests
@@ -220,6 +228,7 @@ For ABCC, an MVP means: **A user can deploy the system, submit coding tasks thro
 | Error recovery | DONE | DONE | Stuck task auto-recovery (10min timeout) |
 | Backup system | DONE | DONE | Automated 30-min PostgreSQL backups (verified healthy) |
 | One-command deployment | DONE | DONE | `docker compose up` (source) or `docker compose -f docker-compose.hub.yml up` (pre-built) |
+| **Validation pipeline in UI** | MISSING | **DONE** | Create tasks with validationCommand, real-time status via WebSocket |
 | **Authentication** | MISSING | **DONE** | API key auth on all endpoints |
 | **Error handling** | PARTIAL | **DONE** | Error boundaries + component-level isolation |
 | **CORS security** | MISSING | **DONE** | Configurable origins with test coverage |
@@ -419,6 +428,10 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 3. ~~Entrypoint creates all variants~~ **DONE** — `ollama-entrypoint.sh` auto-creates 8k/16k/32k on startup
 4. ~~Per-task model override~~ **DONE** — `main.py` accepts `model` param to select context size
 
+### Completed (2026-02-22)
+1. ~~Validation pipeline UI integration~~ **DONE** — `validationCommand` field in CreateTaskModal, real-time validation status in TaskDetail/TaskCard via WebSocket, validation API client, Zustand state tracking
+2. ~~UI parity with stress tests~~ **DONE** — Tasks created from dashboard now get identical validation + auto-retry pipeline treatment as programmatic stress test tasks
+
 ### Do Next (This Week)
 1. Purge coder-02 from agent registry (30 min)
 2. Add E2E tests (Playwright)
@@ -438,8 +451,9 @@ Initial Assessment (Morning):  7.2 / 10 (Strong Alpha, Pre-MVP)
 Updated Assessment (Evening):  8.1 / 10 (MVP Ready)
 Docker Hub Update (Feb 12):    8.5 / 10 (Strong MVP)
 Dynamic Context (Feb 18):      8.7 / 10 (Strong MVP)
+Validation UI (Feb 22):        8.8 / 10 (Strong MVP)
                                ─────────
-                 Total Delta: +1.5 points
+                 Total Delta: +1.6 points
 
 Key Improvements (cumulative):
   Community:    4.0 → 7.0  (+3.0)  ███████████████
@@ -447,9 +461,19 @@ Key Improvements (cumulative):
   Testing:      3.0 → 5.0  (+2.0)  ██████████
   DevOps:       7.0 → 8.5  (+1.5)  ███████▌
   Architecture: 8.0 → 9.0  (+1.0)  █████
-  Features:     7.0 → 7.5  (+0.5)  ██▌
+  Features:     7.0 → 8.0  (+1.0)  █████
   Code Quality: 6.5 → 7.0  (+0.5)  ██▌
   Documentation:7.0 → 7.5  (+0.5)  ██▌
+
+Feb 22 Improvements:
+  Features: 7.5 → 8.0  (+0.5)  Validation pipeline surfaced in UI
+    - CreateTaskModal: validationCommand textarea in Advanced Options
+    - TaskDetail: validation status, error, retry phase display
+    - TaskCard: shield badge (green/red/yellow/blue)
+    - WebSocket: 5 validation event listeners (real-time updates)
+    - Zustand: per-task validationStatus map
+    - API client: validationApi (getStatus, getResult, triggerRetry, getRetryResults)
+    - UI tasks now get same validation + auto-retry as stress test tasks
 
 Feb 18 Improvements:
   Architecture: 8.5 → 9.0  (+0.5)  Dynamic context routing (8K/16K/32K by complexity)
@@ -464,7 +488,7 @@ Feb 18 Improvements:
 
 ---
 
-*Assessment updated: 2026-02-18 (Dynamic Context Routing)*
+*Assessment updated: 2026-02-22 (Validation Pipeline UI Integration)*
 *Project version: v0.4.6+*
 *Docker Hub: dushidush/api, dushidush/agents, dushidush/ui*
 *Ollama models: qwen2.5-coder:8k, :16k, :32k (dynamic by complexity)*
