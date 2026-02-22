@@ -1,0 +1,111 @@
+{
+  "ollama": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "errors": 0,
+    "times": [
+      32,
+      8,
+      11,
+      10,
+      17
+    ]
+  },
+  "grok": {
+    "total": 5,
+    "passed": 3,
+    "failed": 2,
+    "errors": 0,
+    "times": [
+      20,
+      42,
+      42
+    ]
+  },
+  "details": [
+    {
+      "task": "double",
+      "tier": "ollama",
+      "complexity": 1,
+      "status": "passed",
+      "error": null,
+      "duration": 35
+    },
+    {
+      "task": "is_even",
+      "tier": "ollama",
+      "complexity": 2,
+      "status": "passed",
+      "error": null,
+      "duration": 11
+    },
+    {
+      "task": "max_of_three",
+      "tier": "ollama",
+      "complexity": 3,
+      "status": "passed",
+      "error": null,
+      "duration": 15
+    },
+    {
+      "task": "count_vowels",
+      "tier": "ollama",
+      "complexity": 4,
+      "status": "passed",
+      "error": null,
+      "duration": 13
+    },
+    {
+      "task": "fizzbuzz",
+      "tier": "ollama",
+      "complexity": 5,
+      "status": "passed",
+      "error": null,
+      "duration": 25
+    },
+    {
+      "task": "palindrome",
+      "tier": "grok",
+      "complexity": 5,
+      "status": "passed",
+      "error": null,
+      "duration": 23
+    },
+    {
+      "task": "is_prime",
+      "tier": "grok",
+      "complexity": 6,
+      "status": "failed",
+      "error": null,
+      "duration": 21
+    },
+    {
+      "task": "fibonacci",
+      "tier": "grok",
+      "complexity": 7,
+      "status": "failed",
+      "error": null,
+      "duration": 154
+    },
+    {
+      "task": "word_freq",
+      "tier": "grok",
+      "complexity": 7,
+      "status": "passed",
+      "error": null,
+      "duration": 102
+    },
+    {
+      "task": "merge_sorted",
+      "tier": "grok",
+      "complexity": 8,
+      "status": "passed",
+      "error": null,
+      "duration": 103
+    }
+  ],
+  "totalDuration": 534,
+  "successRate": 80,
+  "timestamp": "2026-02-22T22:44:20.520Z"
+}
