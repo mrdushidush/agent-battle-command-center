@@ -53,6 +53,11 @@ const COST_RATES: Record<string, { input: number; output: number }> = {
   // Claude Opus 4.5 - Current default (cheaper than Opus 4!)
   'claude-opus-4-5': { input: 5, output: 25 },
   'claude-opus-4-5-20251101': { input: 5, output: 25 },
+
+  // xAI Grok models (estimated pricing)
+  'grok-code-fast-1': { input: 5, output: 15 },
+  'grok-3-latest': { input: 5, output: 15 },
+  'grok-4-latest': { input: 10, output: 30 },
 };
 
 /**
@@ -74,6 +79,9 @@ function getModelRate(modelName: string | null): { input: number; output: number
   // Check for partial matches (order matters - check specific versions first)
   if (normalizedModel.includes('ollama')) {
     return COST_RATES['ollama'];
+  }
+  if (normalizedModel.includes('grok')) {
+    return COST_RATES['grok-code-fast-1']; // Default Grok pricing
   }
   // Haiku versions
   if (normalizedModel.includes('haiku-4-5') || normalizedModel.includes('haiku-4.5')) {
@@ -143,6 +151,7 @@ export interface CostSummary {
   }>;
   byModelTier: {
     free: number;
+    grok: number;
     haiku: number;
     sonnet: number;
     opus: number;
@@ -155,12 +164,13 @@ export interface CostSummary {
 /**
  * Get model tier for grouping
  */
-function getModelTier(modelName: string | null): 'free' | 'haiku' | 'sonnet' | 'opus' {
+function getModelTier(modelName: string | null): 'free' | 'grok' | 'haiku' | 'sonnet' | 'opus' {
   if (!modelName) return 'free';
 
   const normalized = modelName.toLowerCase();
 
   if (normalized.includes('ollama')) return 'free';
+  if (normalized.includes('grok')) return 'grok';
   if (normalized.includes('haiku')) return 'haiku';
   if (normalized.includes('opus')) return 'opus';
   if (normalized.includes('sonnet')) return 'sonnet';
@@ -181,6 +191,7 @@ export function aggregateCosts(logs: ExecutionLog[]): CostSummary {
 
   const byModelTier = {
     free: 0,
+    grok: 0,
     haiku: 0,
     sonnet: 0,
     opus: 0,

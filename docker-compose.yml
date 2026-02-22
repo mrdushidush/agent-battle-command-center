@@ -72,6 +72,9 @@ services:
       API_KEY: ${API_KEY}
       NODE_ENV: production
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      XAI_BASE_URL: ${XAI_BASE_URL:-https://api.x.ai/v1}
+      XAI_MODEL: ${XAI_MODEL:-grok-code-fast-1}
       REDIS_URL: redis://redis:6379/0
       USE_MCP: "false"
     depends_on:
@@ -96,6 +99,9 @@ services:
       OLLAMA_API_BASE: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:8k}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      XAI_BASE_URL: ${XAI_BASE_URL:-https://api.x.ai/v1}
+      XAI_MODEL: ${XAI_MODEL:-grok-code-fast-1}
       API_KEY: ${API_KEY}
       USE_MCP: "false"
       MCP_GATEWAY_URL: http://mcp-gateway:8001

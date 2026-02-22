@@ -123,11 +123,23 @@ def get_llm(use_claude: bool, model: str | None, allow_fallback: bool):
     """Get the appropriate LLM based on configuration.
 
     For Claude: returns model string for litellm (crewai 0.86.0+)
+    For xAI/Grok: returns model string with openai/ prefix + api_base for litellm
     For Ollama: returns model string with ollama/ prefix for litellm
 
     Note: CrewAI 0.86.0+ uses litellm internally, so we return model strings
     with provider prefixes rather than LangChain objects.
     """
+    # Check if model explicitly requests xAI/Grok
+    if model and model.startswith("grok"):
+        if settings.XAI_API_KEY:
+            # litellm uses openai/ prefix with custom api_base for xAI
+            os.environ["XAI_API_KEY"] = settings.XAI_API_KEY
+            model_name = f"xai/{model}"
+            print(f"🔮 Using xAI/Grok: {model_name} via {settings.XAI_BASE_URL}")
+            return model_name
+        else:
+            raise ValueError("XAI_API_KEY not set. Cannot use Grok models.")
+
     if use_claude and settings.ANTHROPIC_API_KEY:
         # Return model string for litellm (crewai 0.86.0+)
         model_name = model or settings.DEFAULT_MODEL
@@ -175,6 +187,8 @@ def get_model_tier(model: str) -> str:
         return "sonnet"
     if "opus" in model_lower:
         return "opus"
+    if "grok" in model_lower or "xai" in model_lower:
+        return "grok"
     if "ollama" in model_lower:
         return "ollama"  # Not rate limited
     return "sonnet"  # Default to sonnet tier
@@ -183,6 +197,7 @@ def get_model_tier(model: str) -> str:
 # Cost rates per million tokens (USD) - mirrors costCalculator.ts
 COST_RATES = {
     "ollama": {"input": 0, "output": 0},
+    "grok": {"input": 5, "output": 15},  # xAI grok-code-fast-1 pricing (estimated)
     "haiku": {"input": 1, "output": 5},
     "sonnet": {"input": 3, "output": 15},
     "opus": {"input": 5, "output": 25},
@@ -566,11 +581,13 @@ async def health():
     """Health check endpoint."""
     ollama_available = check_ollama_available()
     claude_available = bool(settings.ANTHROPIC_API_KEY)
+    grok_available = bool(settings.XAI_API_KEY)
 
     return {
         "status": "ok",
         "ollama": ollama_available,
         "claude": claude_available,
+        "grok": grok_available,
     }
 
 

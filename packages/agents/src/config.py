@@ -11,6 +11,11 @@ class Settings:
     DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "anthropic/claude-sonnet-4-5-20250929")
     WORKSPACE_PATH: str = os.getenv("WORKSPACE_PATH", "/app/workspace")
     API_KEY: str = os.getenv("API_KEY", "")
+
+    # xAI (Grok) settings
+    XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
+    XAI_BASE_URL: str = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
+    XAI_MODEL: str = os.getenv("XAI_MODEL", "grok-code-fast-1")
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
     API_PORT: int = int(os.getenv("API_PORT", "8000"))
 
