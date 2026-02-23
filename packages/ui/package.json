@@ -21,7 +21,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "socket.io-client": "^4.7.4",
-    "three": "^0.182.0",
+    "three": "^0.183.1",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.182.0",
+    "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/ui": "^4.0.18",
     "jsdom": "^28.1.0",
