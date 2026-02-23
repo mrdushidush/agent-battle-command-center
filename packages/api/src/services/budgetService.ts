@@ -169,7 +169,7 @@ class BudgetService {
     } else if (modelLower.includes('haiku')) {
       rates = COST_RATES.haiku;
     } else {
-      // Ollama or unknown - free
+      // Ollama (local or remote) or unknown - free
       return 0;
     }
 

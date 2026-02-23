@@ -71,6 +71,7 @@ interface UIState {
     totalCost: number;
     byModelTier: {
       free: number;
+      remote: number;
       haiku: number;
       sonnet: number;
       opus: number;
@@ -239,6 +240,7 @@ export const useUIStore = create<UIState>((set) => ({
     totalCost: 0,
     byModelTier: {
       free: 0,
+      remote: 0,
       haiku: 0,
       sonnet: 0,
       opus: 0,

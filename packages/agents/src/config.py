@@ -27,6 +27,11 @@ class Settings:
     LITELLM_NUM_RETRIES: int = int(os.getenv("LITELLM_NUM_RETRIES", "5"))
     LITELLM_REQUEST_TIMEOUT: int = int(os.getenv("LITELLM_REQUEST_TIMEOUT", "120"))
 
+    # Remote Ollama settings (optional, e.g., Mac Studio 128GB)
+    REMOTE_OLLAMA_URL: str = os.getenv("REMOTE_OLLAMA_URL", "")
+    REMOTE_OLLAMA_MODEL: str = os.getenv("REMOTE_OLLAMA_MODEL", "qwen2.5-coder:70b")
+    REMOTE_OLLAMA_TIMEOUT: int = int(os.getenv("REMOTE_OLLAMA_TIMEOUT", "600"))
+
     # MCP Gateway settings (Real-time Agent Collaboration)
     USE_MCP: bool = os.getenv("USE_MCP", "false").lower() == "true"
     MCP_GATEWAY_URL: str = os.getenv("MCP_GATEWAY_URL", "http://mcp-gateway:8001")

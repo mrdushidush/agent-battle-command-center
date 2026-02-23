@@ -40,9 +40,15 @@
 import type { PrismaClient, Task, Agent } from '@prisma/client';
 import { getDualComplexityAssessment } from './complexityAssessor.js';
 import { budgetService } from './budgetService.js';
+import { isRemoteOllamaEnabled } from './resourcePool.js';
+
+// Remote Ollama config from environment
+const REMOTE_OLLAMA_MIN_COMPLEXITY = parseInt(process.env.REMOTE_OLLAMA_MIN_COMPLEXITY || '7', 10);
+const REMOTE_OLLAMA_MAX_COMPLEXITY = parseInt(process.env.REMOTE_OLLAMA_MAX_COMPLEXITY || '9', 10);
+const REMOTE_OLLAMA_COST_CENTS = parseInt(process.env.REMOTE_OLLAMA_COST_CENTS || '0', 10);
 
 // Model tiers for the routing system
-export type ModelTier = 'ollama' | 'haiku' | 'sonnet' | 'opus';
+export type ModelTier = 'ollama' | 'remote_ollama' | 'haiku' | 'sonnet' | 'opus';
 
 export interface RoutingDecision {
   agentId: string;
@@ -343,10 +349,25 @@ export class TaskRouter {
       console.log('💸 Budget exceeded - forcing task to Ollama (free)');
     }
 
-    // TRIVIAL → EXTREME (1-9): All coding tasks → Ollama (FREE, dynamic context)
+    // REMOTE OLLAMA (C7-C9 when remote is configured): Complex tasks → Remote server
+    const remoteEnabled = isRemoteOllamaEnabled();
+    if (!selectedAgent && remoteEnabled && !claudeBlocked
+        && complexity >= REMOTE_OLLAMA_MIN_COMPLEXITY && complexity <= REMOTE_OLLAMA_MAX_COMPLEXITY) {
+      selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
+      if (selectedAgent) {
+        const level = complexity < 9 ? 'Complex' : 'Extreme';
+        reason = `${level} complexity (${complexity.toFixed(1)}/10) → Remote Ollama (${process.env.REMOTE_OLLAMA_MODEL || 'remote'})`;
+        confidence = 0.90;
+        modelTier = 'remote_ollama';
+        estimatedCost = REMOTE_OLLAMA_COST_CENTS / 100; // cents to dollars
+      }
+    }
+
+    // LOCAL OLLAMA (C1-C6 always, C7-C9 when no remote): Coding tasks → Local Ollama (FREE)
     // Context size adapts to complexity: 8K (C1-C6), 16K (C7-C8), 32K (C9)
     // Also route here if Claude is blocked due to budget
-    if (!selectedAgent && (complexity < 10 || claudeBlocked)) {
+    const localMaxComplexity = remoteEnabled ? REMOTE_OLLAMA_MIN_COMPLEXITY : 10;
+    if (!selectedAgent && (complexity < localMaxComplexity || claudeBlocked)) {
       selectedAgent = agents.find((a) => a.agentType.name === 'coder') || null;
       if (selectedAgent) {
         if (claudeBlocked && complexity >= 10) {
@@ -406,7 +427,7 @@ export class TaskRouter {
     }
 
     // Find fallback agent (prefer QA as backup for coder tasks)
-    const fallbackAgent = modelTier === 'ollama'
+    const fallbackAgent = (modelTier === 'ollama' || modelTier === 'remote_ollama')
       ? agents.find((a) => a.agentType.name === 'qa')
       : agents.find((a) => a.id !== selectedAgent!.id);
 

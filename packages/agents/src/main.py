@@ -279,11 +279,18 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         os.environ['CURRENT_TASK_ID'] = request.task_id
         print(f"📋 Set MCP context: agent={request.agent_id}, task={request.task_id}")
 
-        # Set custom environment variables if provided (e.g., for rate limit delays)
+        # Set custom environment variables if provided (e.g., OLLAMA_API_BASE for remote Ollama)
+        # Save originals so we can restore after execution to prevent leakage
+        saved_env: dict[str, str | None] = {}
+        is_remote_execution = False
         if request.env:
             for key, value in request.env.items():
+                saved_env[key] = os.environ.get(key)
                 os.environ[key] = str(value)
             print(f"🔧 Custom env vars: {', '.join(f'{k}={v}' for k, v in request.env.items())}")
+            if 'OLLAMA_API_BASE' in request.env:
+                is_remote_execution = True
+                print(f"🌐 Remote Ollama execution: {request.env['OLLAMA_API_BASE']}")
 
         agent = get_agent(agent_type, llm, use_mcp=use_mcp_for_agent)
 
@@ -433,7 +440,20 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         final_output = structured_output.model_dump_json(indent=2)
 
         total_input, total_output = token_tracker.get_total_tokens()
-        api_credits = calculate_api_credits(llm_model_tier, total_input, total_output)
+
+        # Prefix model name for remote execution tracking
+        logged_model_tier = llm_model_tier
+        if is_remote_execution and logged_model_tier == "ollama":
+            logged_model_tier = "remote_ollama"
+
+        api_credits = calculate_api_credits(logged_model_tier, total_input, total_output)
+
+        # Restore original env vars before returning
+        for key, original_value in saved_env.items():
+            if original_value is not None:
+                os.environ[key] = original_value
+            elif key in os.environ:
+                del os.environ[key]
 
         return ExecuteResponse(
             success=structured_output.success,
@@ -449,6 +469,14 @@ async def execute_task(request: ExecuteRequest) -> ExecuteResponse:
         )
 
     except Exception as e:
+        # Restore original env vars on error
+        if 'saved_env' in locals():
+            for key, original_value in saved_env.items():
+                if original_value is not None:
+                    os.environ[key] = original_value
+                elif key in os.environ:
+                    del os.environ[key]
+
         elapsed_ms = int((time.time() - start_time) * 1000)
         return ExecuteResponse(
             success=False,
@@ -583,11 +611,22 @@ async def health():
     claude_available = bool(settings.ANTHROPIC_API_KEY)
     grok_available = bool(settings.XAI_API_KEY)
 
+    # Check remote Ollama availability
+    remote_ollama_available = False
+    if settings.REMOTE_OLLAMA_URL:
+        try:
+            import httpx
+            resp = httpx.get(f"{settings.REMOTE_OLLAMA_URL}/api/tags", timeout=5)
+            remote_ollama_available = resp.status_code == 200
+        except Exception:
+            remote_ollama_available = False
+
     return {
         "status": "ok",
         "ollama": ollama_available,
         "claude": claude_available,
         "grok": grok_available,
+        "remote_ollama": remote_ollama_available,
     }
 
 

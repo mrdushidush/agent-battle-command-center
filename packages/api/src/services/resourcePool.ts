@@ -7,12 +7,23 @@
  *
  * Resource Types:
  * - ollama: Single local Ollama instance (1 slot)
+ * - remote_ollama: Remote Ollama on powerful server (optional, configurable slots)
  * - claude: Cloud API with rate limiting (2 slots - rate limiter handles throttling)
  */
 
 import type { Server as SocketIOServer } from 'socket.io';
 
-export type ResourceType = 'ollama' | 'claude';
+export type ResourceType = 'ollama' | 'remote_ollama' | 'claude';
+
+// Remote Ollama configuration from environment
+const REMOTE_OLLAMA_URL = process.env.REMOTE_OLLAMA_URL || '';
+const REMOTE_OLLAMA_MIN_COMPLEXITY = parseInt(process.env.REMOTE_OLLAMA_MIN_COMPLEXITY || '7', 10);
+const REMOTE_OLLAMA_MAX_COMPLEXITY = parseInt(process.env.REMOTE_OLLAMA_MAX_COMPLEXITY || '9', 10);
+const REMOTE_OLLAMA_SLOTS = parseInt(process.env.REMOTE_OLLAMA_SLOTS || '1', 10);
+
+export function isRemoteOllamaEnabled(): boolean {
+  return REMOTE_OLLAMA_URL.length > 0;
+}
 
 export interface ResourceStatus {
   type: ResourceType;
@@ -32,12 +43,19 @@ export class ResourcePoolService {
   ]);
 
   // Configurable limits per resource type
-  private limits: Record<ResourceType, number> = {
+  private limits: Record<string, number> = {
     ollama: 1, // Single Ollama instance
     claude: 2, // Can run 2 Claude tasks (rate limiter handles throttling)
   };
 
-  private constructor() {}
+  private constructor() {
+    // Conditionally init remote_ollama pool if configured
+    if (isRemoteOllamaEnabled()) {
+      this.activeTasks.set('remote_ollama', new Set());
+      this.limits['remote_ollama'] = REMOTE_OLLAMA_SLOTS;
+      console.log(`[ResourcePool] Remote Ollama enabled: ${REMOTE_OLLAMA_URL} (${REMOTE_OLLAMA_SLOTS} slots, C${REMOTE_OLLAMA_MIN_COMPLEXITY}-C${REMOTE_OLLAMA_MAX_COMPLEXITY})`);
+    }
+  }
 
   /**
    * Get singleton instance
@@ -123,10 +141,14 @@ export class ResourcePoolService {
 
   /**
    * Get resource type based on complexity (for routing decisions)
-   * C1-C9 use Ollama (dynamic context), C10 uses Claude
+   * C1-C6 use local Ollama, C7-C9 use remote Ollama (if enabled), C10 uses Claude
    */
   getResourceForComplexity(complexity: number): ResourceType {
-    return complexity < 10 ? 'ollama' : 'claude';
+    if (complexity >= 10) return 'claude';
+    if (isRemoteOllamaEnabled() && complexity >= REMOTE_OLLAMA_MIN_COMPLEXITY && complexity <= REMOTE_OLLAMA_MAX_COMPLEXITY) {
+      return 'remote_ollama';
+    }
+    return 'ollama';
   }
 
   /**
@@ -188,7 +210,7 @@ export class ResourcePoolService {
   /**
    * Get current limits
    */
-  getLimits(): Record<ResourceType, number> {
+  getLimits(): Record<string, number> {
     return { ...this.limits };
   }
 

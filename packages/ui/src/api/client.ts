@@ -437,6 +437,7 @@ export interface CostMetricsSummary {
   totalCostFormatted: string;
   byModelTier: {
     free: number;
+    remote: number;
     haiku: number;
     sonnet: number;
     opus: number;
@@ -493,6 +494,7 @@ export interface HourlyCostData {
   logCount: number;
   byModelTier: {
     free: number;
+    remote: number;
     haiku: number;
     sonnet: number;
     opus: number;

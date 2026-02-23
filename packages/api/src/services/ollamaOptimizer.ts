@@ -74,9 +74,11 @@ export class OllamaOptimizer {
   }
 
   /**
-   * Check if a task should use Ollama based on complexity and agent type
+   * Check if a task should use LOCAL Ollama based on complexity and agent type.
+   * Remote Ollama tasks (128GB server, 70B models) don't need rest delays.
    */
-  isOllamaTask(complexity: number, agentTypeName: string): boolean {
+  isOllamaTask(complexity: number, agentTypeName: string, modelTier?: string): boolean {
+    if (modelTier === 'remote_ollama') return false; // Remote doesn't need rest
     return complexity < OLLAMA_COMPLEXITY_THRESHOLD && agentTypeName === 'coder';
   }
 

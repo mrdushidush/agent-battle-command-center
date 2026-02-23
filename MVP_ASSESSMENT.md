@@ -1,6 +1,6 @@
 # Agent Battle Command Center - Full Architecture Assessment
 
-**Date:** 2026-02-06 (Updated: 2026-02-22 — Validation Pipeline UI Integration)
+**Date:** 2026-02-06 (Updated: 2026-02-23 — 3-Tier Routing: Local/Remote/Cloud)
 **Assessor:** Software Architecture Review (Claude Sonnet 4.6)
 **Codebase Snapshot:** main branch, clean working tree
 **Previous Score:** 7.2 / 10 (Strong Alpha, Pre-MVP)
@@ -40,7 +40,11 @@ Since the initial assessment earlier today, **significant improvements** have be
 - Clean separation into 7 Docker services (postgres, redis, ollama, api, agents, ui, backup)
 - Well-designed tiered routing based on academic complexity theory (Campbell's)
 - **NEW: Dynamic context sizing** — 3 Ollama model variants (8K/16K/32K) selected per-task by complexity
-- Smart resource pool for parallel execution (Ollama GPU + Claude API simultaneously)
+- **NEW: 3-Tier Routing** — Local Ollama (C1-C6) → Remote Ollama (C7-C9, optional) → Claude API (C10+)
+  - Remote tier is fully optional — unset `REMOTE_OLLAMA_URL` for 2-tier fallback
+  - Resource pool expanded to 3 types: `ollama`, `remote_ollama`, `claude`
+  - Auto-retry escalation: Local → Remote → Haiku (3 phases instead of 2)
+- Smart resource pool for parallel execution (Ollama GPU + Remote + Claude API simultaneously)
 - Shared TypeScript types package (`@abcc/shared`) prevents API contract drift
 - WebSocket-driven real-time updates for agent status, task progress, alerts
 - Graceful shutdown handling with proper cleanup

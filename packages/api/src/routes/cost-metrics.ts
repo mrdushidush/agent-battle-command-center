@@ -23,6 +23,7 @@ costMetricsRouter.get('/summary', asyncHandler(async (req, res) => {
     totalCostFormatted: formatCost(summary.totalCost),
     byModelTier: {
       free: summary.byModelTier.free,
+      remote: summary.byModelTier.remote,
       haiku: summary.byModelTier.haiku,
       sonnet: summary.byModelTier.sonnet,
       opus: summary.byModelTier.opus,
@@ -200,6 +201,7 @@ costMetricsRouter.get('/timeline', asyncHandler(async (req, res) => {
     logCount: number;
     byModelTier: {
       free: number;
+      remote: number;
       haiku: number;
       sonnet: number;
       opus: number;
@@ -222,6 +224,7 @@ costMetricsRouter.get('/timeline', asyncHandler(async (req, res) => {
         logCount: 0,
         byModelTier: {
           free: 0,
+          remote: 0,
           haiku: 0,
           sonnet: 0,
           opus: 0,

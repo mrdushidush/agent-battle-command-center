@@ -227,6 +227,7 @@ export interface ExecuteTaskRequest {
   useClaude?: boolean;
   model?: string;
   allowFallback?: boolean;
+  env?: Record<string, string>;
 }
 
 export interface ExecuteTaskResponse {

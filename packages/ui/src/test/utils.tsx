@@ -110,6 +110,7 @@ export const mockUseSocket = () => ({
     totalCost: 1.23,
     byModelTier: {
       free: 0,
+      remote: 0,
       haiku: 0.5,
       sonnet: 0.73,
       opus: 0,

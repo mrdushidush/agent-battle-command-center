@@ -36,6 +36,7 @@ export class ExecutorService {
           use_claude: request.useClaude ?? true,
           model: request.model,
           allow_fallback: request.allowFallback ?? true,
+          env: request.env,
         }),
       }, EXECUTE_TIMEOUT_MS);
 
@@ -99,13 +100,13 @@ export class ExecutorService {
     }
   }
 
-  async healthCheck(): Promise<{ status: string; ollama: boolean; claude: boolean }> {
+  async healthCheck(): Promise<{ status: string; ollama: boolean; claude: boolean; remote_ollama?: boolean }> {
     try {
       const response = await fetchWithTimeout(`${this.baseUrl}/health`, {}, HEALTH_TIMEOUT_MS);
       if (!response.ok) {
         return { status: 'error', ollama: false, claude: false };
       }
-      return await response.json() as { status: string; ollama: boolean; claude: boolean };
+      return await response.json() as { status: string; ollama: boolean; claude: boolean; remote_ollama?: boolean };
     } catch (error) {
       return { status: 'error', ollama: false, claude: false };
     }

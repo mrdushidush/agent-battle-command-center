@@ -228,7 +228,7 @@ export function useSocket() {
     // Cost metrics events
     socket.on('cost_updated', (event: { payload: {
       totalCost: number;
-      byModelTier: { free: number; haiku: number; sonnet: number; opus: number };
+      byModelTier: { free: number; remote: number; haiku: number; sonnet: number; opus: number };
       totalTokens: { input: number; output: number; total: number };
     } }) => {
       useUIStore.getState().updateCostMetrics(event.payload);

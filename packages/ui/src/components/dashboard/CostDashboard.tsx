@@ -7,6 +7,7 @@ interface CostMetrics {
   totalCostFormatted: string;
   byModelTier: {
     free: number;
+    remote: number;
     haiku: number;
     sonnet: number;
     opus: number;
@@ -169,7 +170,7 @@ export function CostDashboard() {
 function calculatePieData(metrics: CostMetrics): PieSlice[] {
   const { byModelTier } = metrics;
 
-  const total = byModelTier.free + byModelTier.haiku + byModelTier.sonnet + byModelTier.opus;
+  const total = byModelTier.free + (byModelTier.remote || 0) + byModelTier.haiku + byModelTier.sonnet + byModelTier.opus;
 
   if (total === 0) {
     return [];
@@ -180,6 +181,7 @@ function calculatePieData(metrics: CostMetrics): PieSlice[] {
     { label: 'Opus', value: byModelTier.opus, color: '#ef4444' },
     { label: 'Sonnet', value: byModelTier.sonnet, color: '#f59e0b' },
     { label: 'Haiku', value: byModelTier.haiku, color: '#10b981' },
+    { label: 'Remote', value: byModelTier.remote || 0, color: '#3b82f6' },
     { label: 'Free', value: byModelTier.free, color: '#6b7280' },
   ];
 

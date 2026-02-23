@@ -4,8 +4,9 @@
  * Validates task output using the task's validationCommand, then retries
  * with error context if validation fails:
  *   Phase 0: Run validationCommand → PASS → done
- *   Phase 1: Ollama retry with error context → re-validate
- *   Phase 2: Haiku escalation with full context → re-validate
+ *   Phase 1: Local Ollama retry with error context → re-validate
+ *   Phase 2: Remote Ollama retry (if configured) → re-validate
+ *   Phase 3: Haiku escalation with full context → re-validate
  */
 
 import type { PrismaClient } from '@prisma/client';
@@ -14,6 +15,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { config } from '../config.js';
 import { ExecutorService } from './executor.js';
+import { isRemoteOllamaEnabled } from './resourcePool.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +29,7 @@ interface ValidationResult {
 
 export interface RetryResult {
   validated: boolean;            // true if validation passed (or no validationCommand)
-  phase: 'skipped' | 'phase0' | 'phase1' | 'phase2';
+  phase: 'skipped' | 'phase0' | 'phase1' | 'phase2' | 'phase3';
   executionResult?: Record<string, unknown>;  // updated result if retried
   finalError?: string;
   attempts: number;
@@ -39,6 +41,7 @@ export interface RetryResult {
 
 const AUTO_RETRY_ENABLED = process.env.AUTO_RETRY_ENABLED !== 'false';
 const MAX_OLLAMA_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_OLLAMA_RETRIES || '1', 10);
+const MAX_REMOTE_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_REMOTE_RETRIES || '1', 10);
 const MAX_HAIKU_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_HAIKU_RETRIES || '1', 10);
 const VALIDATION_TIMEOUT_MS = parseInt(process.env.AUTO_RETRY_VALIDATION_TIMEOUT_MS || '15000', 10);
 
@@ -136,19 +139,67 @@ export class AutoRetryService {
       }
     }
 
-    // ── Phase 2: Haiku escalation ────────────────────────────────────────
-    // Re-read file (it may have been updated by Ollama retry)
-    const codeAfterPhase1 = await this.readTaskFile(task);
+    // ── Phase 2: Remote Ollama retry (if configured) ─────────────────────
+    let attemptsAfterPhase1 = MAX_OLLAMA_RETRIES;
+    const remoteEnabled = isRemoteOllamaEnabled();
+
+    if (remoteEnabled) {
+      const codeAfterPhase1 = await this.readTaskFile(task);
+      const phase1Validation = await this.runValidation(validationCmd, language);
+
+      for (let attempt = 1; attempt <= MAX_REMOTE_RETRIES; attempt++) {
+        this.emitEvent('auto_retry_attempt', taskId, { phase: 2, attempt, tier: 'remote' });
+        console.log(`[AutoRetry] Phase 2 attempt ${attempt}/${MAX_REMOTE_RETRIES} (Remote Ollama) for task ${taskId.substring(0, 8)}`);
+
+        const retryDesc = this.buildRetryDescription(
+          task.description || task.title,
+          phase1Validation.output,
+          codeAfterPhase1,
+          'remote',
+        );
+
+        const remoteModel = process.env.REMOTE_OLLAMA_MODEL || 'qwen2.5-coder:70b';
+        const execResult = await this.executor.executeTask({
+          taskId,
+          agentId: task.assignedAgentId || 'coder-01',
+          taskDescription: retryDesc,
+          expectedOutput: `Fixed code that passes validation`,
+          useClaude: false,
+          model: remoteModel,
+          env: { OLLAMA_API_BASE: process.env.REMOTE_OLLAMA_URL || '' },
+        });
+
+        if (execResult.success) {
+          const revalidation = await this.runValidation(validationCmd, language);
+          if (revalidation.success) {
+            this.emitEvent('auto_retry_result', taskId, { phase: 2, attempt, success: true });
+            console.log(`[AutoRetry] Phase 2 (Remote) succeeded for task ${taskId.substring(0, 8)} on attempt ${attempt}`);
+            return {
+              validated: true,
+              phase: 'phase2',
+              executionResult: { output: execResult.output ?? '', metrics: execResult.metrics ?? {} },
+              attempts: MAX_OLLAMA_RETRIES + attempt,
+            };
+          }
+          console.log(`[AutoRetry] Phase 2 attempt ${attempt} still fails validation: ${revalidation.output.substring(0, 150)}`);
+        }
+      }
+      attemptsAfterPhase1 = MAX_OLLAMA_RETRIES + MAX_REMOTE_RETRIES;
+    }
+
+    // ── Phase 3: Haiku escalation ────────────────────────────────────────
+    // Re-read file (it may have been updated by previous retries)
+    const codeAfterPreviousPhases = await this.readTaskFile(task);
     const latestValidation = await this.runValidation(validationCmd, language);
 
     for (let attempt = 1; attempt <= MAX_HAIKU_RETRIES; attempt++) {
-      this.emitEvent('auto_retry_attempt', taskId, { phase: 2, attempt, tier: 'haiku' });
-      console.log(`[AutoRetry] Phase 2 attempt ${attempt}/${MAX_HAIKU_RETRIES} (Haiku) for task ${taskId.substring(0, 8)}`);
+      this.emitEvent('auto_retry_attempt', taskId, { phase: 3, attempt, tier: 'haiku' });
+      console.log(`[AutoRetry] Phase 3 attempt ${attempt}/${MAX_HAIKU_RETRIES} (Haiku) for task ${taskId.substring(0, 8)}`);
 
       const retryDesc = this.buildRetryDescription(
         task.description || task.title,
         latestValidation.output,
-        codeAfterPhase1,
+        codeAfterPreviousPhases,
         'haiku',
       );
 
@@ -164,28 +215,28 @@ export class AutoRetryService {
       if (execResult.success) {
         const revalidation = await this.runValidation(validationCmd, language);
         if (revalidation.success) {
-          this.emitEvent('auto_retry_result', taskId, { phase: 2, attempt, success: true });
-          console.log(`[AutoRetry] Phase 2 succeeded for task ${taskId.substring(0, 8)} on attempt ${attempt}`);
+          this.emitEvent('auto_retry_result', taskId, { phase: 3, attempt, success: true });
+          console.log(`[AutoRetry] Phase 3 succeeded for task ${taskId.substring(0, 8)} on attempt ${attempt}`);
           return {
             validated: true,
-            phase: 'phase2',
+            phase: 'phase3',
             executionResult: { output: execResult.output ?? '', metrics: execResult.metrics ?? {} },
-            attempts: MAX_OLLAMA_RETRIES + attempt,
+            attempts: attemptsAfterPhase1 + attempt,
           };
         }
-        console.log(`[AutoRetry] Phase 2 attempt ${attempt} still fails validation: ${revalidation.output.substring(0, 150)}`);
+        console.log(`[AutoRetry] Phase 3 attempt ${attempt} still fails validation: ${revalidation.output.substring(0, 150)}`);
       }
     }
 
     // All retries exhausted
-    const totalAttempts = MAX_OLLAMA_RETRIES + MAX_HAIKU_RETRIES;
+    const totalAttempts = attemptsAfterPhase1 + MAX_HAIKU_RETRIES;
     const finalValidation = await this.runValidation(validationCmd, language);
-    this.emitEvent('auto_retry_result', taskId, { phase: 2, success: false, totalAttempts });
+    this.emitEvent('auto_retry_result', taskId, { phase: 3, success: false, totalAttempts });
     console.log(`[AutoRetry] All retries exhausted for task ${taskId.substring(0, 8)} after ${totalAttempts} attempts`);
 
     return {
       validated: false,
-      phase: 'phase2',
+      phase: 'phase3',
       finalError: `Validation failed after ${totalAttempts} retries: ${finalValidation.output.substring(0, 300)}`,
       attempts: totalAttempts,
     };
@@ -265,7 +316,7 @@ export class AutoRetryService {
     originalDescription: string,
     validationError: string,
     failedCode: string,
-    tier: 'ollama' | 'haiku',
+    tier: 'ollama' | 'remote' | 'haiku',
   ): string {
     const codeSection = failedCode
       ? `\n\nThe previous attempt produced this code (which has errors):\n\`\`\`\n${failedCode}\n\`\`\``

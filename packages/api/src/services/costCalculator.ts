@@ -19,6 +19,9 @@ const COST_RATES: Record<string, { input: number; output: number }> = {
   // Ollama - free local model
   'ollama': { input: 0, output: 0 },
 
+  // Remote Ollama - near-free (electricity only)
+  'remote_ollama': { input: 0, output: 0 },
+
   // Claude Haiku 3 (deprecated but kept for legacy logs)
   'claude-3-haiku': { input: 0.25, output: 1.25 },
   'claude-haiku-3': { input: 0.25, output: 1.25 },
@@ -76,7 +79,10 @@ function getModelRate(modelName: string | null): { input: number; output: number
     return COST_RATES[normalizedModel];
   }
 
-  // Check for partial matches (order matters - check specific versions first)
+  // Check for partial matches (order matters - check specific prefixes first)
+  if (normalizedModel.startsWith('remote_ollama') || normalizedModel.startsWith('remote_')) {
+    return COST_RATES['remote_ollama'];
+  }
   if (normalizedModel.includes('ollama')) {
     return COST_RATES['ollama'];
   }
@@ -151,6 +157,7 @@ export interface CostSummary {
   }>;
   byModelTier: {
     free: number;
+    remote: number;
     grok: number;
     haiku: number;
     sonnet: number;
@@ -164,11 +171,13 @@ export interface CostSummary {
 /**
  * Get model tier for grouping
  */
-function getModelTier(modelName: string | null): 'free' | 'grok' | 'haiku' | 'sonnet' | 'opus' {
+function getModelTier(modelName: string | null): 'free' | 'remote' | 'grok' | 'haiku' | 'sonnet' | 'opus' {
   if (!modelName) return 'free';
 
   const normalized = modelName.toLowerCase();
 
+  // Check remote prefix first (remote_ollama/... or remote-ollama/...)
+  if (normalized.startsWith('remote_ollama') || normalized.startsWith('remote_')) return 'remote';
   if (normalized.includes('ollama')) return 'free';
   if (normalized.includes('grok')) return 'grok';
   if (normalized.includes('haiku')) return 'haiku';
@@ -191,6 +200,7 @@ export function aggregateCosts(logs: ExecutionLog[]): CostSummary {
 
   const byModelTier = {
     free: 0,
+    remote: 0,
     grok: 0,
     haiku: 0,
     sonnet: 0,

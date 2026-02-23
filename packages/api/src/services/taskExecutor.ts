@@ -131,8 +131,11 @@ export class TaskExecutor {
     // Release file locks (moved before async validation so agent is freed immediately)
     await this.taskAssigner.releaseFileLocks(taskId);
 
-    // Release resource pool slot
+    // Capture resource type before releasing (for rest delay optimization)
     const resourcePool = ResourcePoolService.getInstance();
+    const taskResourceType = resourcePool.getTaskResource(taskId);
+
+    // Release resource pool slot
     resourcePool.release(taskId);
 
     // Save output to workspace file
@@ -163,7 +166,7 @@ export class TaskExecutor {
 
     // Update agent stats and status (only if task was assigned to an agent)
     if (task.assignedAgentId) {
-      await this.updateAgentOnCompletion(task.assignedAgentId, task.complexity || 5);
+      await this.updateAgentOnCompletion(task.assignedAgentId, task.complexity || 5, taskResourceType || undefined);
     }
 
     // Update execution record
@@ -267,8 +270,11 @@ export class TaskExecutor {
     // Release file locks
     await this.taskAssigner.releaseFileLocks(taskId);
 
-    // Release resource pool slot
+    // Capture resource type before releasing (for rest delay optimization)
     const resourcePool = ResourcePoolService.getInstance();
+    const abortResourceType = resourcePool.getTaskResource(taskId);
+
+    // Release resource pool slot
     resourcePool.release(taskId);
 
     // Get execution logs to calculate actual complexity and categorize error
@@ -294,7 +300,7 @@ export class TaskExecutor {
 
     // Update agent on failure
     if (task.assignedAgentId) {
-      await this.updateAgentOnFailure(task.assignedAgentId, task.complexity || 5);
+      await this.updateAgentOnFailure(task.assignedAgentId, task.complexity || 5, abortResourceType || undefined);
     }
 
     this.emitTaskUpdate(updatedTask as unknown as Task);
@@ -363,7 +369,7 @@ export class TaskExecutor {
   /**
    * Update agent stats and status on task completion
    */
-  private async updateAgentOnCompletion(agentId: string, complexity: number): Promise<void> {
+  private async updateAgentOnCompletion(agentId: string, complexity: number, modelTier?: string): Promise<void> {
     const agent = await this.prisma.agent.findUnique({
       where: { id: agentId },
       include: { agentType: true },
@@ -374,7 +380,8 @@ export class TaskExecutor {
     const stats = agent.stats as Record<string, number>;
 
     // Ollama optimization: Add rest delay to prevent context pollution
-    const isOllamaTask = this.ollamaOptimizer.isOllamaTask(complexity, agent.agentType.name);
+    // Skip rest for remote Ollama tasks (powerful remote server doesn't need it)
+    const isOllamaTask = this.ollamaOptimizer.isOllamaTask(complexity, agent.agentType.name, modelTier);
 
     if (isOllamaTask) {
       await this.ollamaOptimizer.applyRestDelay(agent.id, agent.name);
@@ -411,7 +418,7 @@ export class TaskExecutor {
   /**
    * Update agent stats and status on task failure
    */
-  private async updateAgentOnFailure(agentId: string, complexity: number): Promise<void> {
+  private async updateAgentOnFailure(agentId: string, complexity: number, modelTier?: string): Promise<void> {
     const agent = await this.prisma.agent.findUnique({
       where: { id: agentId },
       include: { agentType: true },
@@ -422,7 +429,8 @@ export class TaskExecutor {
     const stats = agent.stats as Record<string, number>;
 
     // Ollama optimization: Add rest delay for failed Ollama tasks too
-    const isOllamaTask = this.ollamaOptimizer.isOllamaTask(complexity, agent.agentType.name);
+    // Skip rest for remote Ollama tasks
+    const isOllamaTask = this.ollamaOptimizer.isOllamaTask(complexity, agent.agentType.name, modelTier);
 
     if (isOllamaTask) {
       await this.ollamaOptimizer.applyFailureRestDelay(agent.id, agent.name);
@@ -673,6 +681,7 @@ export class TaskExecutor {
       // (respects complexity routing - don't assign Haiku tasks to Ollama agent)
       const agentMatchesDecision =
         (decision.modelTier === 'ollama' && agent.agentType.name === 'coder') ||
+        (decision.modelTier === 'remote_ollama' && agent.agentType.name === 'coder') ||
         (decision.modelTier === 'haiku' && agent.agentType.name === 'qa') ||
         (decision.modelTier === 'sonnet' && agent.agentType.name === 'qa');
 
@@ -703,7 +712,13 @@ export class TaskExecutor {
         try {
           // Map complexity to Ollama context-size variant
           let ollamaModel: string | undefined;
-          if (decision.modelTier === 'ollama') {
+          let execEnv: Record<string, string> | undefined;
+
+          if (decision.modelTier === 'remote_ollama') {
+            // Remote Ollama: use remote model and URL override
+            ollamaModel = process.env.REMOTE_OLLAMA_MODEL || 'qwen2.5-coder:70b';
+            execEnv = { OLLAMA_API_BASE: process.env.REMOTE_OLLAMA_URL || '' };
+          } else if (decision.modelTier === 'ollama') {
             const cx = decision.complexity || 0;
             ollamaModel = cx >= 9 ? 'qwen2.5-coder:32k'
                         : cx >= 7 ? 'qwen2.5-coder:16k'
@@ -715,8 +730,9 @@ export class TaskExecutor {
             agentId: agentId,
             taskDescription: pendingTask.description || pendingTask.title,
             expectedOutput: `Successfully completed: ${pendingTask.title}`,
-            useClaude: decision.modelTier !== 'ollama',
+            useClaude: decision.modelTier !== 'ollama' && decision.modelTier !== 'remote_ollama',
             model: ollamaModel,
+            env: execEnv,
           });
 
           if (result.success) {

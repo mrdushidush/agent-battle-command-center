@@ -6,17 +6,19 @@
 
 ## Project Overview
 
-A command center for orchestrating AI coding agents with cost-optimized tiered routing:
-- **Ollama** - All coding tasks (C1-C9) with dynamic context sizing, free local model
-- **Sonnet** - Decomposition-level tasks (C10), ~$0.005/task
-- **Opus** - Decomposition (9+) and code reviews ONLY (never writes code)
+A command center for orchestrating AI coding agents with cost-optimized 3-tier routing:
+- **Local Ollama** - Simple/moderate tasks (C1-C6) with 8K context, free local model
+- **Remote Ollama** *(optional)* - Complex tasks (C7-C9) on powerful remote server (e.g., Mac Studio 128GB), ~free
+- **Claude API** - Decomposition (C10) via Sonnet, code reviews via Opus (never writes code)
+
+If `REMOTE_OLLAMA_URL` is unset, Local Ollama handles C1-C9 (2-tier fallback).
 
 ## Architecture
 
 ```
 UI (React:5173) → API (Express:3001) → Agents (FastAPI:8000) → Ollama/Claude
-                         ↓                      ↓
-                   PostgreSQL:5432         litellm (internal)
+                         ↓                      ↓                    ↓
+                   PostgreSQL:5432         litellm (internal)    Remote Ollama (optional)
 ```
 
 ### Agent Service (crewai 0.86.0+)
@@ -162,9 +164,11 @@ Task completion → Run validationCommand
     ├─ PASS → Complete normally
     ├─ FAIL → Phase 1: Ollama retry with error + failed code in context
     │             ├─ Re-validate → PASS → Complete
-    │             └─ FAIL → Phase 2: Haiku escalation
+    │             └─ FAIL → Phase 2: Remote Ollama (if configured)
     │                          ├─ Re-validate → PASS → Complete
-    │                          └─ FAIL → handleTaskFailure()
+    │                          └─ FAIL → Phase 3: Haiku escalation
+    │                                       ├─ Re-validate → PASS → Complete
+    │                                       └─ FAIL → handleTaskFailure()
 ```
 
 **Configuration (Environment Variables):**
@@ -172,6 +176,7 @@ Task completion → Run validationCommand
 |---------|---------|-------------|
 | `AUTO_RETRY_ENABLED` | true | Set to 'false' to disable |
 | `AUTO_RETRY_MAX_OLLAMA_RETRIES` | 1 | Ollama retry attempts |
+| `AUTO_RETRY_MAX_REMOTE_RETRIES` | 1 | Remote Ollama retry attempts |
 | `AUTO_RETRY_MAX_HAIKU_RETRIES` | 1 | Haiku escalation attempts |
 | `AUTO_RETRY_VALIDATION_TIMEOUT_MS` | 15000 | Validation command timeout |
 
@@ -259,7 +264,8 @@ Tasks can run in parallel when they use different resources (local GPU vs cloud 
 
 ```
 Resource Pool:
-├─ Ollama: 1 slot (local GPU - qwen2.5-coder:32k, 16K context)
+├─ Ollama: 1 slot (local GPU - qwen2.5-coder:8k/16k/32k)
+├─ Remote Ollama: 1 slot (optional, configurable via REMOTE_OLLAMA_URL)
 └─ Claude: 2 slots (cloud API - rate limiter handles throttling)
 ```
 
@@ -287,11 +293,11 @@ Task Arrives → calculateComplexity()
        │   ├─ <9  → Sonnet (~$0.005)
        │   └─ ≥9  → Opus (~$0.04)
        │
-       ├─ EXECUTION (dual complexity assessment + parallel when possible)
-       │   ├─ 1-6  → Ollama 8K ctx (free, fast) ──────┐
-       │   ├─ 7-8  → Ollama 16K ctx (free, complex) ──┤
-       │   ├─ 9    → Ollama 32K ctx (free, extreme) ──┘
-       │   └─ 10   → Sonnet (~$0.005) ────────────────
+       ├─ EXECUTION (3-tier routing, dual complexity assessment)
+       │   ├─ 1-6  → Local Ollama 8K ctx (free, fast) ─────┐
+       │   ├─ 7-9  → Remote Ollama* (free, powerful) ──────┤ *if REMOTE_OLLAMA_URL set
+       │   │         (fallback: Local 16K/32K if no remote) ┘
+       │   └─ 10   → Sonnet (~$0.005) ─────────────────────
        │   NOTE: Opus NEVER writes code
        │
        ├─ CODE REVIEW (tiered, scheduled)
@@ -300,8 +306,9 @@ Task Arrives → calculateComplexity()
        │
        ├─ AUTO-RETRY (if validationCommand present)
        │   ├─ Phase 0: Run validationCommand → PASS → done
-       │   ├─ Phase 1: Ollama retry with error context → re-validate
-       │   └─ Phase 2: Haiku escalation with full context → re-validate
+       │   ├─ Phase 1: Local Ollama retry with error context → re-validate
+       │   ├─ Phase 2: Remote Ollama retry (if configured) → re-validate
+       │   └─ Phase 3: Haiku escalation with full context → re-validate
        │
        ├─ FIX/ESCALATION CYCLE (if review fails)
        │   ├─ Ollama fails → Haiku retries with MCP context
@@ -400,16 +407,18 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
 - For extreme tasks (9+), only QA agent is allowed - NO fallback to Ollama
 - C1-C8 all routed to Ollama with 16K context (Feb 17, 2026 upgrade)
 
-**Academic Complexity Scale:**
+**Academic Complexity Scale (3-Tier Routing):**
 
-| Score | Level    | Characteristics                                          | Model      | Context | Cost/Task | Ollama Rate |
-|-------|----------|----------------------------------------------------------|------------|---------|-----------|-------------|
-| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Ollama     | 8K      | FREE      | 100%        |
-| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Ollama     | 8K      | FREE      | 100%        |
-| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Ollama     | 8K      | FREE      | 60-100%     |
-| 7-8   | Complex  | Multiple functions; algorithms; data structures          | Ollama     | 16K     | FREE      | 100%        |
-| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | Ollama     | 32K     | FREE      | 80%         |
-| 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Sonnet     | N/A     | ~$0.01    | N/A         |
+| Score | Level    | Characteristics                                          | Tier           | Model (example)         | Cost/Task |
+|-------|----------|----------------------------------------------------------|----------------|-------------------------|-----------|
+| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Local Ollama   | qwen2.5-coder:8k       | FREE      |
+| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Local Ollama   | qwen2.5-coder:8k       | FREE      |
+| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Local Ollama   | qwen2.5-coder:8k       | FREE      |
+| 7-8   | Complex  | Multiple functions; algorithms; data structures          | **Remote***    | qwen2.5-coder:70b      | ~FREE     |
+| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | **Remote***    | qwen2.5-coder:70b      | ~FREE     |
+| 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Claude (Sonnet)| claude-sonnet-4-5       | ~$0.01    |
+
+*Remote = Remote Ollama if `REMOTE_OLLAMA_URL` is set, otherwise falls back to Local Ollama (16K/32K context).
 
 **Note:** Opus is reserved for decomposition (9+) and code reviews only - it never writes code.
 
@@ -438,13 +447,14 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
    - Failure history (retries indicate hidden complexity)
 
 **Routing tiers (Updated Feb 18, 2026 - dynamic context routing):**
-- Trivial/Moderate (1-6) → Coder (Ollama 8K) - FREE, ~12s/task avg
-- Complex (7-8) → Coder (Ollama 16K) - FREE, ~15s/task avg
-- Extreme (9) → Coder (Ollama 32K) - FREE, ~28s/task avg
+- Trivial/Moderate (1-6) → Coder (Local Ollama 8K) - FREE, ~12s/task avg
+- Complex (7-8) → Coder (Remote Ollama* or Local 16K) - FREE, ~15s/task avg
+- Extreme (9) → Coder (Remote Ollama* or Local 32K) - FREE, ~28s/task avg
 - Decomposition (10) → QA (Sonnet) - ~$0.01/task
 - Decomposition (9+) → CTO (Opus) - ~$0.02/task (no coding)
-- Failed tasks use fix cycle (Ollama → Haiku → Human)
+- Failed tasks use fix cycle (Local Ollama → Remote Ollama* → Haiku → Human)
 - **Important:** Decomposition tasks (10) will queue if QA agent is busy - no fallback to Ollama
+- *Remote Ollama only used when `REMOTE_OLLAMA_URL` is configured
 
 **Task fields for complexity tracking:**
 - `routerComplexity` - Rule-based score
@@ -842,6 +852,9 @@ node scripts/full-system-health-check.js --clear-tasks     # Clear pending tasks
 # Reset stuck agents
 curl -X POST http://localhost:3001/api/agents/reset-all
 
+# Check agent health (includes remote_ollama status)
+curl http://localhost:8000/health
+
 # Check task routing
 curl http://localhost:3001/api/queue/TASK_ID/route
 
@@ -882,6 +895,13 @@ pnpm run security:audit       # Fail build if HIGH/CRITICAL vulns found
 | `OLLAMA_API_BASE` | Yes** | - | litellm requires this for Ollama in Docker |
 | `OLLAMA_MODEL` | No | qwen2.5-coder:7b | Default local model (best for code tasks) |
 | `DEFAULT_MODEL` | No | anthropic/claude-sonnet-4-20250514 | Default Claude model |
+| `REMOTE_OLLAMA_URL` | No | (empty) | Remote Ollama URL (e.g., http://mac-studio.local:11434) |
+| `REMOTE_OLLAMA_MODEL` | No | qwen2.5-coder:70b | Model on remote Ollama server |
+| `REMOTE_OLLAMA_MIN_COMPLEXITY` | No | 7 | Tasks >= this go to remote |
+| `REMOTE_OLLAMA_MAX_COMPLEXITY` | No | 9 | Tasks > this go to Claude |
+| `REMOTE_OLLAMA_SLOTS` | No | 1 | Parallel task slots on remote |
+| `REMOTE_OLLAMA_COST_CENTS` | No | 0 | Per-task cost tracking (electricity) |
+| `REMOTE_OLLAMA_TIMEOUT` | No | 600 | Timeout in seconds for remote tasks |
 | `RATE_LIMIT_BUFFER` | No | 0.8 | Trigger rate limiting at this % of limit |
 | `MIN_API_DELAY` | No | 0.5 | Minimum delay (seconds) between API calls |
 | `RATE_LIMIT_DEBUG` | No | false | Enable rate limiter debug logging |
