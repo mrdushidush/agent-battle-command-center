@@ -1,6 +1,16 @@
 // Agent Types
-export type AgentType = 'coder' | 'qa';
+export type AgentType = 'coder' | 'qa' | 'cto';
 export type AgentStatus = 'idle' | 'busy' | 'stuck' | 'offline';
+
+// Model override for per-agent model selection
+export type ModelOverride = 'auto' | 'ollama' | 'grok' | 'haiku' | 'sonnet' | 'opus';
+
+// Allowed model options per agent type
+export const AGENT_MODEL_OPTIONS: Record<AgentType, ModelOverride[]> = {
+  coder: ['auto', 'ollama', 'grok', 'haiku', 'sonnet'],
+  qa: ['auto', 'ollama', 'grok', 'haiku', 'sonnet', 'opus'],
+  cto: ['auto', 'ollama', 'grok', 'sonnet', 'opus'],
+};
 
 export interface AgentStats {
   tasksCompleted: number;
@@ -285,6 +295,7 @@ export interface UIState {
 export const AGENT_COLORS: Record<AgentType, string> = {
   coder: '#3B82F6', // blue
   qa: '#10B981',    // green
+  cto: '#F59E0B',   // amber
 };
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {

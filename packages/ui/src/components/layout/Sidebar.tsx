@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { AgentCard } from '../shared/AgentCard';
 import { useUIStore } from '../../store/uiState';
+import { agentsApi } from '../../api/client';
 
 // Agents to hide from UI (unused/test agents)
 const HIDDEN_AGENTS: string[] = [];
@@ -8,11 +10,20 @@ const HIDDEN_AGENTS: string[] = [];
 export function Sidebar() {
   const { agents, sidebarCollapsed, toggleSidebar, alerts } = useUIStore();
   const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
+  const [grokEnabled, setGrokEnabled] = useState(false);
+
+  // Fetch model features on mount
+  useEffect(() => {
+    agentsApi.getModelFeatures()
+      .then((features) => setGrokEnabled(features.grokEnabled))
+      .catch(() => setGrokEnabled(false));
+  }, []);
 
   // Filter out hidden agents and group by type
   const visibleAgents = agents.filter(a => !HIDDEN_AGENTS.includes(a.id));
   const coderAgents = visibleAgents.filter(a => a.type === 'coder');
   const qaAgents = visibleAgents.filter(a => a.type === 'qa');
+  const ctoAgents = visibleAgents.filter(a => a.type === 'cto');
 
   if (sidebarCollapsed) {
     return (
@@ -30,7 +41,9 @@ export function Sidebar() {
             <div
               key={agent.id}
               className={`w-8 h-8 rounded flex items-center justify-center ${
-                agent.type === 'coder' ? 'bg-agent-coder/20' : 'bg-agent-qa/20'
+                agent.type === 'coder' ? 'bg-agent-coder/20' :
+                agent.type === 'cto' ? 'bg-hud-amber/20' :
+                'bg-agent-qa/20'
               }`}
               title={`${agent.name} (${agent.status})`}
             >
@@ -84,7 +97,7 @@ export function Sidebar() {
           </div>
           <div className="space-y-2">
             {coderAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} compact />
+              <AgentCard key={agent.id} agent={agent} compact grokEnabled={grokEnabled} />
             ))}
             {coderAgents.length === 0 && (
               <div className="text-xs text-gray-600 text-center py-2">No coder agents</div>
@@ -100,13 +113,28 @@ export function Sidebar() {
           </div>
           <div className="space-y-2">
             {qaAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} compact />
+              <AgentCard key={agent.id} agent={agent} compact grokEnabled={grokEnabled} />
             ))}
             {qaAgents.length === 0 && (
               <div className="text-xs text-gray-600 text-center py-2">No QA agents</div>
             )}
           </div>
         </div>
+
+        {/* CTO */}
+        {ctoAgents.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full bg-hud-amber" />
+              <span className="text-xs uppercase tracking-wider text-gray-500">CTO</span>
+            </div>
+            <div className="space-y-2">
+              {ctoAgents.map(agent => (
+                <AgentCard key={agent.id} agent={agent} compact grokEnabled={grokEnabled} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Alert Summary */}

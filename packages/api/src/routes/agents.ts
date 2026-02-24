@@ -6,6 +6,9 @@ import { AgentManagerService } from '../services/agentManager.js';
 import type { TaskQueueService } from '../services/taskQueue.js';
 import type { StuckTaskRecoveryService } from '../services/stuckTaskRecovery.js';
 import type { Server as SocketIOServer } from 'socket.io';
+import { AGENT_MODEL_OPTIONS } from '@abcc/shared';
+import type { AgentType, ModelOverride } from '@abcc/shared';
+import { isGrokEnabled } from '../services/modelResolver.js';
 
 export const agentsRouter: RouterType = Router();
 
@@ -118,6 +121,13 @@ agentsRouter.patch('/stuck-recovery/config', asyncHandler(async (req, res) => {
   });
 }));
 
+// Get available model features (for UI to know what's enabled)
+agentsRouter.get('/model-features', asyncHandler(async (req, res) => {
+  res.json({
+    grokEnabled: isGrokEnabled(),
+  });
+}));
+
 // Get single agent
 agentsRouter.get('/:id', asyncHandler(async (req, res) => {
   const io = req.app.get('io') as SocketIOServer;
@@ -183,6 +193,37 @@ agentsRouter.patch('/:id', asyncHandler(async (req, res) => {
     return;
   }
 
+  // Validate preferredModel against allowed options for this agent type
+  if (update.preferredModel) {
+    const agentRecord = await prisma.agent.findUnique({
+      where: { id: req.params.id },
+      include: { agentType: true },
+    });
+
+    if (!agentRecord) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    const agentType = agentRecord.agentType.name as AgentType;
+    const allowedModels = AGENT_MODEL_OPTIONS[agentType];
+
+    if (allowedModels && !allowedModels.includes(update.preferredModel as ModelOverride)) {
+      res.status(400).json({
+        error: `Model '${update.preferredModel}' is not allowed for agent type '${agentType}'. Allowed: ${allowedModels.join(', ')}`,
+      });
+      return;
+    }
+
+    // Validate Grok availability
+    if (update.preferredModel === 'grok' && !isGrokEnabled()) {
+      res.status(400).json({
+        error: 'Grok is not available. Set XAI_API_KEY environment variable to enable it.',
+      });
+      return;
+    }
+  }
+
   // Otherwise update config
   const config = {
     preferredModel: update.preferredModel,
@@ -198,6 +239,13 @@ agentsRouter.patch('/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ error: 'Agent not found' });
     return;
   }
+
+  // Emit WebSocket event so UI updates in real-time
+  io.emit('agent_status_changed', {
+    type: 'agent_status_changed',
+    payload: agent,
+    timestamp: new Date(),
+  });
 
   res.json(agent);
 }));

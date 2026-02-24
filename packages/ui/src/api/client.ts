@@ -109,6 +109,9 @@ export const agentsApi = {
 
   getStats: (id: string) =>
     request<{ stats: AgentStats; executions: TaskExecution[] }>(`/agents/${id}/stats`),
+
+  getModelFeatures: () =>
+    request<{ grokEnabled: boolean }>('/agents/model-features'),
 };
 
 // Queue API

@@ -234,7 +234,7 @@ export function TimelineMinimap() {
         {agents.map(agent => {
           const pos = getAgentPosition(agent.id);
           const isActive = agent.status === 'busy';
-          const color = agent.type === 'coder' ? '#3B82F6' : '#10B981';
+          const color = agent.type === 'coder' ? '#3B82F6' : agent.type === 'cto' ? '#F59E0B' : '#10B981';
 
           return (
             <g key={agent.id}>

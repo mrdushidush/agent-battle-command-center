@@ -26,6 +26,7 @@ import { TaskRouter } from './taskRouter.js';
 import { ExecutorService } from './executor.js';
 import { AutoRetryService } from './autoRetryService.js';
 import type { AsyncValidationService } from './asyncValidationService.js';
+import { resolveModelOverride } from './modelResolver.js';
 
 export class TaskExecutor {
   private trainingDataService: TrainingDataService;
@@ -677,17 +678,24 @@ export class TaskExecutor {
       const taskRouter = new TaskRouter(this.prisma);
       const decision = await taskRouter.routeTask(pendingTask.id);
 
-      // Only auto-assign if the decision matches this agent type
-      // (respects complexity routing - don't assign Haiku tasks to Ollama agent)
-      const agentMatchesDecision =
-        (decision.modelTier === 'ollama' && agent.agentType.name === 'coder') ||
-        (decision.modelTier === 'remote_ollama' && agent.agentType.name === 'coder') ||
-        (decision.modelTier === 'haiku' && agent.agentType.name === 'qa') ||
-        (decision.modelTier === 'sonnet' && agent.agentType.name === 'qa');
+      // Check if agent has a model override
+      const agentConfig = agent.config as Record<string, unknown>;
+      const preferredModel = agentConfig?.preferredModel as string | undefined;
+      const modelOverride = resolveModelOverride(preferredModel, decision.complexity || 0);
 
-      if (!agentMatchesDecision) {
-        console.log(`⏭️ Task ${pendingTask.id.substring(0, 8)} requires ${decision.modelTier}, ${agent.name} is ${agent.agentType.name} - skipping`);
-        return;
+      // When agent has a model override, it accepts any task (bypass tier matching)
+      // Otherwise, only auto-assign if the decision matches this agent type
+      if (!modelOverride) {
+        const agentMatchesDecision =
+          (decision.modelTier === 'ollama' && agent.agentType.name === 'coder') ||
+          (decision.modelTier === 'remote_ollama' && agent.agentType.name === 'coder') ||
+          (decision.modelTier === 'haiku' && agent.agentType.name === 'qa') ||
+          (decision.modelTier === 'sonnet' && agent.agentType.name === 'qa');
+
+        if (!agentMatchesDecision) {
+          console.log(`⏭️ Task ${pendingTask.id.substring(0, 8)} requires ${decision.modelTier}, ${agent.name} is ${agent.agentType.name} - skipping`);
+          return;
+        }
       }
 
       // Assign the task
@@ -710,19 +718,30 @@ export class TaskExecutor {
       const executor = new ExecutorService();
       const executeAsync = async () => {
         try {
-          // Map complexity to Ollama context-size variant
-          let ollamaModel: string | undefined;
+          let useClaude: boolean;
+          let execModel: string | undefined;
           let execEnv: Record<string, string> | undefined;
 
-          if (decision.modelTier === 'remote_ollama') {
+          if (modelOverride) {
+            // Per-agent model override takes priority
+            useClaude = modelOverride.useClaude;
+            execModel = modelOverride.model;
+            execEnv = modelOverride.env;
+            console.log(`🎯 Using model override for ${agent.name}: ${preferredModel} → ${modelOverride.model}`);
+          } else if (decision.modelTier === 'remote_ollama') {
             // Remote Ollama: use remote model and URL override
-            ollamaModel = process.env.REMOTE_OLLAMA_MODEL || 'qwen2.5-coder:70b';
+            useClaude = false;
+            execModel = process.env.REMOTE_OLLAMA_MODEL || 'qwen2.5-coder:70b';
             execEnv = { OLLAMA_API_BASE: process.env.REMOTE_OLLAMA_URL || '' };
           } else if (decision.modelTier === 'ollama') {
+            useClaude = false;
             const cx = decision.complexity || 0;
-            ollamaModel = cx >= 9 ? 'qwen2.5-coder:32k'
-                        : cx >= 7 ? 'qwen2.5-coder:16k'
-                        : 'qwen2.5-coder:8k';
+            execModel = cx >= 9 ? 'qwen2.5-coder:32k'
+                      : cx >= 7 ? 'qwen2.5-coder:16k'
+                      : 'qwen2.5-coder:8k';
+          } else {
+            useClaude = true;
+            execModel = undefined;
           }
 
           const result = await executor.executeTask({
@@ -730,8 +749,8 @@ export class TaskExecutor {
             agentId: agentId,
             taskDescription: pendingTask.description || pendingTask.title,
             expectedOutput: `Successfully completed: ${pendingTask.title}`,
-            useClaude: decision.modelTier !== 'ollama' && decision.modelTier !== 'remote_ollama',
-            model: ollamaModel,
+            useClaude,
+            model: execModel,
             env: execEnv,
           });
 

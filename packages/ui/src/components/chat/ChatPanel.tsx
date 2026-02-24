@@ -150,7 +150,7 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
                 className="w-2 h-2 rounded-full"
                 style={{
                   backgroundColor:
-                    selectedAgent?.type === 'coder' ? '#3B82F6' : '#10B981',
+                    selectedAgent?.type === 'coder' ? '#3B82F6' : selectedAgent?.type === 'cto' ? '#F59E0B' : '#10B981',
                 }}
               />
               <span className="text-sm text-gray-200">
@@ -172,7 +172,7 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
                     className="w-2 h-2 rounded-full"
                     style={{
                       backgroundColor:
-                        agent.type === 'coder' ? '#3B82F6' : '#10B981',
+                        agent.type === 'coder' ? '#3B82F6' : agent.type === 'cto' ? '#F59E0B' : '#10B981',
                     }}
                   />
                   <span className="text-sm text-gray-200">{agent.name}</span>

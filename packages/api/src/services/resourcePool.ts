@@ -13,7 +13,7 @@
 
 import type { Server as SocketIOServer } from 'socket.io';
 
-export type ResourceType = 'ollama' | 'remote_ollama' | 'claude';
+export type ResourceType = 'ollama' | 'remote_ollama' | 'claude' | 'grok';
 
 // Remote Ollama configuration from environment
 const REMOTE_OLLAMA_URL = process.env.REMOTE_OLLAMA_URL || '';
@@ -54,6 +54,13 @@ export class ResourcePoolService {
       this.activeTasks.set('remote_ollama', new Set());
       this.limits['remote_ollama'] = REMOTE_OLLAMA_SLOTS;
       console.log(`[ResourcePool] Remote Ollama enabled: ${REMOTE_OLLAMA_URL} (${REMOTE_OLLAMA_SLOTS} slots, C${REMOTE_OLLAMA_MIN_COMPLEXITY}-C${REMOTE_OLLAMA_MAX_COMPLEXITY})`);
+    }
+
+    // Conditionally init grok pool if XAI_API_KEY is set
+    if (process.env.XAI_API_KEY) {
+      this.activeTasks.set('grok', new Set());
+      this.limits['grok'] = 2;
+      console.log('[ResourcePool] Grok (xAI) enabled: 2 slots');
     }
   }
 
