@@ -2747,18 +2747,25 @@ async function createTask(task) {
 async function executeTask(taskId, description, complexity) {
   const model = getOllamaModel(complexity);
   console.log(`   Model: ${model}`);
-  const response = await fetch(`${AGENTS_BASE}/execute`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      task_id: taskId,
-      agent_id: 'coder-01',
-      task_description: description,
-      use_claude: false,
-      model: model
-    })
-  });
-  return response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TASK_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${AGENTS_BASE}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        task_id: taskId,
+        agent_id: 'coder-01',
+        task_description: description,
+        use_claude: false,
+        model: model
+      })
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function waitForAgent(maxWaitMs = 60000) {
@@ -2940,28 +2947,79 @@ async function runCTODecomposition(brief, results) {
     });
 
     if (!decompResponse.ok) throw new Error(`Decomposition failed: ${decompResponse.status}`);
-    console.log('   Decomposition started, polling for subtasks...');
+    const decompData = await decompResponse.json();
+    console.log(`   Assigned to: ${decompData.assignedTo}`);
 
-    // Poll for subtasks (2 min timeout)
-    const pollStart = Date.now();
-    let subtasks = [];
-    while (Date.now() - pollStart < CTO_TIMEOUT_MS) {
-      await sleep(5000);
-      try {
-        const taskResponse = await fetch(`${API_BASE}/tasks/${parent.id}`, {
-          headers: { 'X-API-Key': API_KEY }
-        });
-        const taskData = await taskResponse.json();
-        if (taskData.subTasks && taskData.subTasks.length > 0) {
-          subtasks = taskData.subTasks;
-          break;
-        }
-        // Also check if parent task completed (decomposition done)
-        if (taskData.status === 'completed' || taskData.status === 'failed') {
-          break;
-        }
-      } catch (e) {}
-      console.log('   ... waiting for subtasks');
+    // Execute the CTO agent to actually perform decomposition
+    const decompReq = decompData.decompositionRequest;
+    console.log('   Executing CTO agent (Claude) for decomposition...');
+    const ctoExecResponse = await fetch(`${AGENTS_BASE}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task_id: decompReq.task_id,
+        agent_id: decompReq.agent_id,
+        task_description: decompReq.task_description,
+        expected_output: decompReq.expected_output,
+        use_claude: true,
+      })
+    });
+
+    if (!ctoExecResponse.ok) {
+      const errText = await ctoExecResponse.text();
+      throw new Error(`CTO execution failed: ${ctoExecResponse.status} ${errText.substring(0, 100)}`);
+    }
+    const ctoResult = await ctoExecResponse.json();
+    console.log(`   CTO finished: success=${ctoResult.success}`);
+
+    // Release CTO agent (only if complete_decomposition() didn't already do it)
+    const parentCheck = await fetch(`${API_BASE}/tasks/${parent.id}`, {
+      headers: { 'X-API-Key': API_KEY }
+    }).then(r => r.json());
+    if (parentCheck.status !== 'completed') {
+      await fetch(`${API_BASE}/tasks/${parent.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+        body: JSON.stringify({ success: Boolean(ctoResult.success) })
+      });
+    } else {
+      console.log('   CTO already completed parent task via complete_decomposition()');
+      // Ensure CTO agent is idle
+      await fetch(`${API_BASE}/agents/reset-all`, {
+        method: 'POST',
+        headers: { 'X-API-Key': API_KEY }
+      });
+    }
+
+    // Fetch subtasks created by CTO
+    await sleep(2000); // Brief wait for DB consistency
+    const subtasksResponse = await fetch(`${API_BASE}/task-planning/${parent.id}/subtasks`, {
+      headers: { 'X-API-Key': API_KEY }
+    });
+    const subtasksData = await subtasksResponse.json();
+    let subtasks = subtasksData.subtasks || [];
+
+    // If no subtasks from immediate fetch, poll briefly
+    if (subtasks.length === 0) {
+      console.log('   No subtasks yet, polling...');
+      const pollStart = Date.now();
+      while (Date.now() - pollStart < CTO_TIMEOUT_MS) {
+        await sleep(5000);
+        try {
+          const taskResponse = await fetch(`${API_BASE}/tasks/${parent.id}`, {
+            headers: { 'X-API-Key': API_KEY }
+          });
+          const taskData = await taskResponse.json();
+          if (taskData.subTasks && taskData.subTasks.length > 0) {
+            subtasks = taskData.subTasks;
+            break;
+          }
+          if (taskData.status === 'completed' || taskData.status === 'failed') {
+            break;
+          }
+        } catch (e) {}
+        console.log('   ... waiting for subtasks');
+      }
     }
 
     if (subtasks.length > 0) {
@@ -2986,12 +3044,18 @@ async function runCTODecomposition(brief, results) {
           });
           await waitForAgent();
           results.ctoGenerated++;
+          results.totalRun++;
           results.passed++;
+          results.details.push({ task: st.title || st.id, section: 1, category: 'cto_decomposed', complexity: 7, status: 'passed', duration: 0 });
           console.log(`   \u2705 Subtask completed`);
         } catch (e) {
           results.ctoGenerated++;
+          results.totalRun++;
           results.failed++;
+          results.details.push({ task: st.title || st.id, section: 1, category: 'cto_decomposed', complexity: 7, status: 'failed', duration: 0 });
           console.log(`   \u274c Subtask failed: ${e.message.substring(0, 60)}`);
+          // Wait for agent to become idle before next subtask
+          await waitForAgent();
         }
         await sleep(REST_DELAY_MS);
       }

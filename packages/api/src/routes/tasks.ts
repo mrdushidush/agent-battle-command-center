@@ -10,7 +10,7 @@ export const tasksRouter: RouterType = Router();
 const createTaskSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional(),
-  taskType: z.enum(['code', 'test', 'review', 'debug', 'refactor']),
+  taskType: z.enum(['code', 'test', 'review', 'debug', 'refactor', 'decomposition']),
   requiredAgent: z.enum(['coder', 'qa', 'cto']).optional(),
   priority: z.number().min(1).max(10).default(5),
   maxIterations: z.number().min(1).max(10).default(3),

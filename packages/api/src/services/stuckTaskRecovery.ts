@@ -119,7 +119,7 @@ export class StuckTaskRecoveryService {
   }
 
 //  Recover ALL assigned or in_progress tasks (used by reset button)
- 
+
 async forceRecoverAll(): Promise<RecoveryResult[]> {
   const stuckTasks = await this.prisma.task.findMany({
     where: {
@@ -135,21 +135,42 @@ async forceRecoverAll(): Promise<RecoveryResult[]> {
     },
   });
 
-  if (stuckTasks.length === 0) {
-    return [];
-  }
-
-  console.log(`StuckTaskRecoveryService: Force recovering ${stuckTasks.length} task(s)`);
-
   const results: RecoveryResult[] = [];
 
-  for (const task of stuckTasks) {
-    try {
-      const result = await this.recoverStuckTask(task);
-      results.push(result);
-      this.addToHistory(result);
-    } catch (error) {
-      console.error(`Force recovery failed for task ${task.id}:`, error);
+  if (stuckTasks.length > 0) {
+    console.log(`StuckTaskRecoveryService: Force recovering ${stuckTasks.length} task(s)`);
+
+    for (const task of stuckTasks) {
+      try {
+        const result = await this.recoverStuckTask(task);
+        results.push(result);
+        this.addToHistory(result);
+      } catch (error) {
+        console.error(`Force recovery failed for task ${task.id}:`, error);
+      }
+    }
+  }
+
+  // Also reset any agents stuck as 'busy' with no matching task (orphaned agents)
+  const busyAgents = await this.prisma.agent.findMany({
+    where: { status: 'busy' },
+  });
+
+  for (const agent of busyAgents) {
+    // Check if agent has a valid assigned/in_progress task
+    const hasTask = agent.currentTaskId ? await this.prisma.task.findFirst({
+      where: {
+        id: agent.currentTaskId,
+        OR: [{ status: 'assigned' }, { status: 'in_progress' }],
+      },
+    }) : null;
+
+    if (!hasTask) {
+      console.log(`StuckTaskRecoveryService: Resetting orphaned busy agent ${agent.id} (no active task)`);
+      await this.prisma.agent.update({
+        where: { id: agent.id },
+        data: { status: 'idle', currentTaskId: null },
+      });
     }
   }
 
