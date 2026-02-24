@@ -4,6 +4,42 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [v0.7.0] - 2026-02-25
+
+### Per-Agent Model Selection + Grok Support
+
+**Major Feature:** Users can now override which model each agent uses via a dropdown in the sidebar. Supports Auto (default complexity-based routing), Ollama, Grok (xAI), Haiku, Sonnet, and Opus — with per-agent-type restrictions.
+
+#### Added
+- **Per-agent model dropdown** in sidebar (`AgentCard.tsx`)
+  - Compact dropdown under each agent name
+  - Options vary by agent type (e.g., coder can't use Opus)
+  - "Auto" preserves existing complexity-based routing
+  - Grok shows as disabled with "(no key)" when `XAI_API_KEY` not set
+- **Model resolver service** (`packages/api/src/services/modelResolver.ts`)
+  - `resolveModelOverride()` maps override → concrete execution params
+  - `isGrokEnabled()` checks for xAI API key availability
+- **Grok (xAI) resource pool** — 2 slots, conditionally initialized if `XAI_API_KEY` set
+- **Model validation** on `PATCH /api/agents/:id` — returns 400 for invalid model/agent combinations
+- **`GET /api/agents/model-features`** endpoint — exposes feature flags (grokEnabled) to UI
+- **CTO agents in sidebar** — CTO section with amber color and briefcase icon
+- **`ModelOverride` type** and **`AGENT_MODEL_OPTIONS`** constant in shared types
+- **`AgentType` expanded** to include `'cto'`
+
+#### Changed
+- **Task executor** reads `agent.config.preferredModel` and bypasses tier matching when override is set
+- **WebSocket event** emitted on agent config update (was missing)
+- **CTO agent color** fixed in ChatPanel and TimelineMinimap (was defaulting to QA green)
+
+#### Model Options Per Agent Type
+| Agent | Options |
+|-------|---------|
+| Coder | Auto, Ollama, Grok, Haiku, Sonnet |
+| QA | Auto, Ollama, Grok, Haiku, Sonnet, Opus |
+| CTO | Auto, Ollama, Grok, Sonnet, Opus |
+
+---
+
 ## [Phase F] - 2026-02-19
 
 ### PHP Language Support Validated + OOM Bugfix + Next Milestone Scoped

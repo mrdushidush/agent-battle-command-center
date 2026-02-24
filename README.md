@@ -28,10 +28,11 @@ An RTS-inspired control center for orchestrating AI coding agents with intellige
 - **Proven:** 90% success rate on 40-task C1-C9 suite in just 11 minutes (Feb 2026)
 - Passes LRU Cache, RPN Calculator, Sorted Linked List, Stack — all FREE on local GPU
 
-**🎯 Academic Complexity Routing**
+**🎯 Academic Complexity Routing + Per-Agent Model Override**
 - Based on Campbell's Task Complexity Theory
 - Dual assessment: rule-based + Haiku AI semantic analysis
 - Automatic escalation: Ollama (1-8) → Sonnet (9-10) — Haiku eliminated from routing
+- **NEW: Per-agent model dropdown** — override Auto routing with Ollama/Grok/Haiku/Sonnet/Opus per agent
 
 **🎵 Bark TTS Military Radio Voice Lines**
 - 96 GPU-generated voice lines with military radio post-processing (static, squelch, crackle)
@@ -222,12 +223,14 @@ For contributors and developers who want to modify the code.
 
 ## 🎯 Key Features
 
-### Tiered Task Routing (16K Context Upgrade - Feb 2026)
+### Tiered Task Routing + Per-Agent Model Selection (v0.7.0)
 - **Complexity 1-8** → Ollama (FREE, ~12s avg with 16K context) - 90-100% success rate
 - **Complexity 9** → Ollama for single-class tasks (80% — LRU Cache, Stack, RPN Calculator)
 - **Complexity 9-10** → Sonnet (~$0.01/task) - Multi-class architectural tasks only
 - **Decomposition** → Opus (~$0.02/task) - Breaking down complex tasks only
 - **Haiku eliminated** from execution routing — Ollama handles C7-C8 at 100%
+- **Per-agent model override** — sidebar dropdown to force any agent to use a specific model
+- **Grok (xAI) support** — set `XAI_API_KEY` to enable Grok as a model option
 
 ### Real-Time Monitoring
 - **Active Missions** - Live agent status with health indicators
@@ -242,7 +245,7 @@ For contributors and developers who want to modify the code.
 - **Training data export** for future model fine-tuning
 
 ### Parallel Execution
-- **Resource pools** - Ollama (1 slot) + Claude (2 slots)
+- **Resource pools** - Ollama (1 slot) + Grok (2 slots) + Claude (2 slots)
 - **40-60% faster** for mixed-complexity batches
 - **File locking** prevents conflicts between parallel tasks
 
@@ -282,6 +285,9 @@ DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/abcc?sche
 
 # Ollama Model (custom 16K context Modelfile, auto-created on startup)
 OLLAMA_MODEL=qwen2.5-coder:32k
+
+# Grok / xAI (OPTIONAL — enables Grok as a model option in agent dropdowns)
+XAI_API_KEY=xai-your_key_here
 ```
 
 **Security:**
@@ -710,11 +716,16 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ## 🗺️ Roadmap
 
-### Current (Alpha - v0.4.x)
+### Current (v0.7.x)
+- ✅ **Per-agent model selection** — dropdown to override Auto routing per agent (v0.7.0)
+- ✅ **Grok (xAI) support** — new model option for all agents (v0.7.0)
+- ✅ **CTO agents in sidebar** — full visibility for all 3 agent types (v0.7.0)
+- ✅ **3-tier routing** — Local Ollama / Remote Ollama / Claude API (v0.5.1)
+- ✅ **Auto-retry pipeline** — 98% pass rate with validation + retry (v0.5.0)
 - ✅ Tiered task routing (Ollama/Sonnet/Opus)
-- ✅ **16K context window** for Ollama — 90% C1-C9, 4.5x faster (v0.4.6)
-- ✅ 3D holographic battlefield view with React Three Fiber (v0.4.5)
-- ✅ Bark TTS military radio voice lines — 96 clips, 3 packs (v0.4.4)
+- ✅ 16K context window for Ollama — 90% C1-C9, 4.5x faster
+- ✅ 3D holographic battlefield view with React Three Fiber
+- ✅ Bark TTS military radio voice lines — 96 clips, 3 packs
 - ✅ API authentication and rate limiting
 - ✅ Parallel execution and file locking
 - ✅ Cost tracking and budget limits
@@ -722,13 +733,11 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - ✅ Docker Hub image publishing
 - ✅ Multi-language workspace (Python, JavaScript, TypeScript, Go, PHP)
 
-### Beta (v0.5.x) - Target: 4-6 weeks
-- [ ] Multi-language workspace (JavaScript/TypeScript support)
+### Next (v0.8.x)
 - [ ] E2E test suite (Playwright)
 - [ ] Onboarding flow / first-run wizard
 - [ ] Agent workspace viewer (live code editing view)
 - [ ] Plugin system for custom agent tools
-- [x] Docker Hub image publishing
 
 ### Community Release (v1.0.x) - Target: 2-3 months
 - [ ] Multi-user authentication (OAuth2/OIDC)
