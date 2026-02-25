@@ -517,13 +517,16 @@ packages/
 │   │   ├── queue.ts          # Smart routing
 │   │   ├── code-reviews.ts   # Code review API (NEW)
 │   │   ├── execution-logs.ts # Execution history
-│   │   └── task-planning.ts  # Decomposition API
+│   │   ├── task-planning.ts  # Decomposition API
+│   │   └── battle-claw.ts    # OpenClaw skill integration (NEW)
 │   └── services/
 │       ├── taskQueue.ts      # Task lifecycle
 │       ├── taskRouter.ts     # Tiered complexity routing
 │       ├── taskExecutor.ts   # Execution lifecycle + auto-retry integration
 │       ├── autoRetryService.ts # Validation + retry pipeline (Phase 4)
 │       ├── resourcePool.ts   # Parallel execution resource management
+│       ├── battleClawService.ts    # OpenClaw single-call orchestration (NEW)
+│       ├── costSavingsCalculator.ts # Cloud equivalent savings (NEW)
 │       └── trainingDataService.ts
 ├── agents/src/
 │   ├── agents/
@@ -763,6 +766,46 @@ Graduate from single-function tasks to real deliverables:
 - CLI tools
 - Simple web apps
 
+### Phase 6: Battle Claw — OpenClaw Skill (IMPLEMENTED Feb 25, 2026)
+
+**Purpose:** Expose ABCC's 3-tier routing as an OpenClaw skill for external consumers.
+The pitch: "Your coding tasks are free now."
+
+**Architecture:**
+```
+OpenClaw Agent → /battle-claw skill (index.mjs)
+    → POST http://localhost:3001/api/battle-claw/execute
+        → ABCC taskRouter (complexity 1-10)
+        → Ollama (FREE, 90%+) or Sonnet (~$0.01, ~1%)
+        → Auto-retry pipeline
+    ← { success, files, cost, savings }
+    → Writes code to OpenClaw workspace
+```
+
+**ABCC Endpoint:** `POST /api/battle-claw/execute`
+- Single blocking HTTP call wraps entire task lifecycle
+- Create → Route → Assign → Execute → Validate → Return code
+- Returns generated files + complexity + cost savings
+
+**Additional Endpoints:**
+- `GET /api/battle-claw/health` — Service readiness + capabilities
+- `GET /api/battle-claw/stats` — Cumulative task stats & savings
+
+**New Files:**
+- `packages/api/src/services/costSavingsCalculator.ts` — Cloud equivalent cost estimation
+- `packages/api/src/services/battleClawService.ts` — Single-call task orchestration
+- `packages/api/src/routes/battle-claw.ts` — REST endpoints
+
+**OpenClaw Skill (separate repo at `D:\dev\battle-claw\`):**
+- `SKILL.md` — Skill definition with YAML frontmatter
+- `manifest.json` — ClawHub manifest with JSON schema
+- `index.mjs` — Core logic (health check → execute → write files → track savings)
+- `lib/abcc-client.mjs` — ABCC HTTP client
+- `lib/cost-tracker.mjs` — Local savings persistence (~/.openclaw/battle-claw-stats.json)
+
+**Deployment:** Localhost only. User runs ABCC + Ollama on their own machine via Docker.
+Requires 8GB+ VRAM GPU. Cloud-hosted option deferred to future phase.
+
 ### Backlog
 - **MCP Full Fix** - Complete MCP integration with all issues resolved
 - Training Data Collection - Use archives for model improvement
@@ -872,6 +915,17 @@ curl http://localhost:3001/api/queue/resources
 
 # Clear resource pool (reset stuck resources)
 curl -X POST http://localhost:3001/api/queue/resources/clear
+
+# Battle Claw - test execute endpoint
+curl -X POST http://localhost:3001/api/battle-claw/execute \
+  -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
+  -d '{"description":"Create a function that reverses a string","language":"python"}'
+
+# Battle Claw - health check
+curl http://localhost:3001/api/battle-claw/health -H "X-API-Key: $API_KEY"
+
+# Battle Claw - cumulative stats
+curl http://localhost:3001/api/battle-claw/stats -H "X-API-Key: $API_KEY"
 
 # Check backup status
 docker logs abcc-backup --tail 20

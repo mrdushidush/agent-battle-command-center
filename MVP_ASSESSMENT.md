@@ -492,9 +492,37 @@ Feb 18 Improvements:
 
 ---
 
-*Assessment updated: 2026-02-22 (Validation Pipeline UI Integration)*
+*Assessment updated: 2026-02-25 (Battle Claw — OpenClaw Skill Integration)*
 *Project version: v0.4.6+*
 *Docker Hub: dushidush/api, dushidush/agents, dushidush/ui*
 *Ollama models: qwen2.5-coder:8k, :16k, :32k (dynamic by complexity)*
-*Total source files reviewed: ~130 across 5 packages*
+*Total source files reviewed: ~135 across 5 packages + battle-claw skill*
 *Live system verified: All 7 services healthy, 40-task stress test 90% with dynamic context routing*
+
+---
+
+## Battle Claw — OpenClaw Skill (Added 2026-02-25)
+
+**Purpose:** External integration layer exposing ABCC's 3-tier routing as an OpenClaw skill.
+Users get free coding via local Ollama with a single API call.
+
+**New files (ABCC):**
+- `packages/api/src/services/costSavingsCalculator.ts` — Cloud equivalent cost estimation
+- `packages/api/src/services/battleClawService.ts` — Single-call task orchestration
+- `packages/api/src/routes/battle-claw.ts` — REST endpoints (execute, health, stats)
+
+**Modified files (ABCC):**
+- `packages/api/src/index.ts` — Route + service registration
+
+**Separate repo (`D:\dev\battle-claw\`):**
+- `SKILL.md` — OpenClaw skill definition
+- `manifest.json` — ClawHub manifest with JSON schema
+- `index.mjs` — Core skill logic (health check, execute, write files, track savings)
+- `lib/abcc-client.mjs` — ABCC HTTP client wrapper
+- `lib/cost-tracker.mjs` — Local savings persistence (~/.openclaw/battle-claw-stats.json)
+- `README.md` — ClawHub listing documentation
+
+**API Endpoints:**
+- `POST /api/battle-claw/execute` — Single-call coding task execution
+- `GET /api/battle-claw/health` — Service health + capabilities
+- `GET /api/battle-claw/stats` — Cumulative task stats & savings

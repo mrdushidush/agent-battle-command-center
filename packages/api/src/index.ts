@@ -18,6 +18,7 @@ import { costMetricsRouter } from './routes/cost-metrics.js';
 import { memoriesRouter } from './routes/memories.js';
 import { budgetRouter } from './routes/budget.js';
 import { validationRouter } from './routes/validation.js';
+import { battleClawRouter } from './routes/battle-claw.js';
 import { setupWebSocket } from './websocket/handler.js';
 import { budgetService } from './services/budgetService.js';
 import { TaskQueueService } from './services/taskQueue.js';
@@ -28,6 +29,7 @@ import { CodeReviewService } from './services/codeReviewService.js';
 import { SchedulerService } from './services/schedulerService.js';
 import { StuckTaskRecoveryService } from './services/stuckTaskRecovery.js';
 import { AsyncValidationService } from './services/asyncValidationService.js';
+import { BattleClawService } from './services/battleClawService.js';
 import { mcpBridge } from './services/mcpBridge.js';
 import { requireApiKey } from './middleware/auth.js';
 import { standardRateLimiter } from './middleware/rateLimiter.js';
@@ -107,6 +109,11 @@ if (asyncValidation) {
   app.set('asyncValidation', asyncValidation);
 }
 
+// Initialize Battle Claw service (OpenClaw skill integration)
+const battleClawService = new BattleClawService(prisma, io);
+app.set('battleClawService', battleClawService);
+console.log('Battle Claw service: enabled');
+
 // Routes
 app.use('/api/tasks', tasksRouter);
 app.use('/api/agents', agentsRouter);
@@ -122,6 +129,7 @@ app.use('/api/cost-metrics', costMetricsRouter);
 app.use('/api/memories', memoriesRouter);
 app.use('/api/budget', budgetRouter);
 app.use('/api/validation', validationRouter);
+app.use('/api/battle-claw', battleClawRouter);
 
 // Health check
 app.get('/health', (req, res) => {
