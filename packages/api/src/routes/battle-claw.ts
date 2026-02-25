@@ -15,11 +15,8 @@ import { z } from 'zod';
 import { asyncHandler } from '../types/index.js';
 import { BattleClawService } from '../services/battleClawService.js';
 import { ExecutorService } from '../services/executor.js';
-import type { Server as SocketIOServer } from 'socket.io';
 
 export const battleClawRouter: RouterType = Router();
-
-const executor = new ExecutorService();
 
 // ─── POST /execute ───────────────────────────────────────────────────────────
 
@@ -48,6 +45,7 @@ battleClawRouter.post('/execute', asyncHandler(async (req, res) => {
 // ─── GET /health ─────────────────────────────────────────────────────────────
 
 battleClawRouter.get('/health', asyncHandler(async (req, res) => {
+  const executor = new ExecutorService();
   const health = await executor.healthCheck();
 
   res.json({

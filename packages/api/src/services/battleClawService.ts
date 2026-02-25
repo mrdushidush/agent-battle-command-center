@@ -17,6 +17,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { Server as SocketIOServer } from 'socket.io';
 import { TaskRouter, type ModelTier } from './taskRouter.js';
 import { ExecutorService } from './executor.js';
+import { AutoRetryService } from './autoRetryService.js';
 import { calculateTotalCost } from './costCalculator.js';
 import { calculateSavings, type CostSavings } from './costSavingsCalculator.js';
 
@@ -104,16 +105,27 @@ export class BattleClawService {
       },
     });
 
+    // Emit task created event (C4 fix: WebSocket visibility)
+    this.emitTaskUpdate(task);
+
     try {
       // 3. Route for complexity assessment
       const routing = await this.router.routeTask(task.id);
 
-      // 4. Assign to agent
+      // 4. Assign to agent (C2 fix: atomic check-and-set)
       const agentId = routing.agentId;
+      const agentUpdate = await this.prisma.agent.updateMany({
+        where: { id: agentId, status: 'idle' },
+        data: { status: 'busy', currentTaskId: task.id },
+      });
+      if (agentUpdate.count === 0) {
+        throw new Error(`Agent ${agentId} is no longer available`);
+      }
+
       await this.prisma.task.update({
         where: { id: task.id },
         data: {
-          status: 'assigned',
+          status: 'in_progress', // C3 fix: use in_progress so StuckTaskRecovery monitors it
           assignedAgentId: agentId,
           assignedAt: new Date(),
           complexity: routing.complexity,
@@ -121,10 +133,10 @@ export class BattleClawService {
           complexityReasoning: routing.complexityReasoning,
         },
       });
-      await this.prisma.agent.update({
-        where: { id: agentId },
-        data: { status: 'busy', currentTaskId: task.id },
-      });
+
+      const updatedTask = await this.prisma.task.findUnique({ where: { id: task.id } });
+      if (updatedTask) this.emitTaskUpdate(updatedTask);
+      this.emitAgentUpdate(agentId, 'busy');
 
       // 5. Execute via FastAPI agents service
       const execResult = await this.executor.executeTask({
@@ -136,23 +148,40 @@ export class BattleClawService {
         model: routing.modelTier === 'sonnet' ? 'anthropic/claude-sonnet-4-20250514' : undefined,
       });
 
-      // 6. Handle execution result — let the existing taskQueue handle lifecycle
-      //    but we need to wait for completion
+      // 6. Run auto-retry validation pipeline (C1 fix: 90% → 98% pass rate)
+      let validated = false;
       if (execResult.success) {
-        await this.prisma.task.update({
-          where: { id: task.id },
-          data: {
-            status: 'completed',
-            result: {
-              output: execResult.output ?? '',
-              apiCreditsUsed: execResult.metrics?.apiCreditsUsed ?? 0,
-              timeSpentMs: execResult.metrics?.timeSpentMs ?? 0,
-              iterations: execResult.metrics?.iterations ?? 1,
+        const autoRetry = new AutoRetryService(this.prisma, this.io);
+        const retryResult = await autoRetry.validateAndRetry(task.id, execResult as unknown as Record<string, unknown>);
+        validated = retryResult.validated;
+
+        // If retry produced updated result, use it
+        if (!retryResult.validated && retryResult.finalError) {
+          // Validation failed even after retries — mark as failed
+          await this.prisma.task.update({
+            where: { id: task.id },
+            data: {
+              status: 'failed',
+              error: `Validation failed: ${retryResult.finalError}`,
+              timeSpentMs: Date.now() - startTime,
             },
-            completedAt: new Date(),
-            timeSpentMs: Date.now() - startTime,
-          },
-        });
+          });
+        } else {
+          await this.prisma.task.update({
+            where: { id: task.id },
+            data: {
+              status: 'completed',
+              result: {
+                output: execResult.output ?? '',
+                apiCreditsUsed: execResult.metrics?.apiCreditsUsed ?? 0,
+                timeSpentMs: execResult.metrics?.timeSpentMs ?? 0,
+                iterations: execResult.metrics?.iterations ?? 1,
+              },
+              completedAt: new Date(),
+              timeSpentMs: Date.now() - startTime,
+            },
+          });
+        }
       } else {
         await this.prisma.task.update({
           where: { id: task.id },
@@ -169,11 +198,12 @@ export class BattleClawService {
         where: { id: agentId },
         data: { status: 'idle', currentTaskId: null },
       });
+      this.emitAgentUpdate(agentId, 'idle');
 
       // 8. Read generated files from workspace
       const files = await this.readGeneratedFiles(task.id, fileName);
 
-      // 9. Calculate costs
+      // 9. Calculate costs (use actual execution log costs, not hardcoded $0)
       const logs = await this.prisma.executionLog.findMany({
         where: { taskId: task.id },
       });
@@ -181,6 +211,10 @@ export class BattleClawService {
       const savings = calculateSavings(routing.complexity, actualCost);
 
       const elapsed = Date.now() - startTime;
+
+      // Emit final task status
+      const finalTask = await this.prisma.task.findUnique({ where: { id: task.id } });
+      if (finalTask) this.emitTaskUpdate(finalTask);
 
       if (!execResult.success) {
         return {
@@ -204,10 +238,10 @@ export class BattleClawService {
       }
 
       return {
-        success: true,
+        success: validated,
         taskId: task.id,
         files,
-        validated: !!request.validationCommand,
+        validated,
         complexity: {
           score: routing.complexity,
           source: routing.complexitySource || 'router',
@@ -219,6 +253,7 @@ export class BattleClawService {
           timeMs: elapsed,
         },
         cost: savings,
+        error: validated ? undefined : 'Validation failed after retries',
       };
     } catch (error) {
       // Clean up on failure
@@ -239,7 +274,12 @@ export class BattleClawService {
           where: { id: failedTask.assignedAgentId },
           data: { status: 'idle', currentTaskId: null },
         }).catch(() => {});
+        this.emitAgentUpdate(failedTask.assignedAgentId, 'idle');
       }
+
+      // Emit failure event
+      const errorTask = await this.prisma.task.findUnique({ where: { id: task.id } });
+      if (errorTask) this.emitTaskUpdate(errorTask);
 
       return {
         success: false,
@@ -344,7 +384,10 @@ export class BattleClawService {
 
     for (const task of tasks) {
       const complexity = task.complexity || 5;
-      const savings = calculateSavings(complexity, 0); // Ollama tasks cost $0
+      // Query actual cost from execution logs instead of hardcoding $0
+      const taskLogs = await this.prisma.executionLog.findMany({ where: { taskId: task.id } });
+      const taskActualCost = calculateTotalCost(taskLogs);
+      const savings = calculateSavings(complexity, taskActualCost);
       totalSavings += savings.savingsUSD;
       totalActualCost += savings.actualCostUSD;
 
@@ -373,6 +416,16 @@ export class BattleClawService {
       byLanguage,
       byTier,
     };
+  }
+
+  // ─── WebSocket Events ────────────────────────────────────────────────────
+
+  private emitTaskUpdate(task: { id: string; status: string; [key: string]: unknown }): void {
+    this.io.emit('task_updated', { type: 'task_updated', payload: task, timestamp: new Date() });
+  }
+
+  private emitAgentUpdate(agentId: string, status: string): void {
+    this.io.emit('agent_status_changed', { type: 'agent_status_changed', payload: { id: agentId, status }, timestamp: new Date() });
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────

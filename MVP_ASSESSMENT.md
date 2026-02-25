@@ -501,28 +501,238 @@ Feb 18 Improvements:
 
 ---
 
-## Battle Claw — OpenClaw Skill (Added 2026-02-25)
+## Battle Claw — OpenClaw Skill QA Assessment (2026-02-25)
 
 **Purpose:** External integration layer exposing ABCC's 3-tier routing as an OpenClaw skill.
 Users get free coding via local Ollama with a single API call.
 
-**New files (ABCC):**
-- `packages/api/src/services/costSavingsCalculator.ts` — Cloud equivalent cost estimation
-- `packages/api/src/services/battleClawService.ts` — Single-call task orchestration
-- `packages/api/src/routes/battle-claw.ts` — REST endpoints (execute, health, stats)
+### Overall Score: 6.5 / 10 (Functional MVP, Not Production-Ready)
 
-**Modified files (ABCC):**
-- `packages/api/src/index.ts` — Route + service registration
+| Category | Score | Notes |
+|----------|-------|-------|
+| Core Functionality | 8/10 | End-to-end flow works for single requests |
+| Error Handling | 5/10 | Happy path solid, edge cases weak |
+| Integration Completeness | 4/10 | Bypasses validation pipeline, no socket events |
+| Type Safety | 6/10 | TypeScript on ABCC side, untyped JS on skill side |
+| Concurrency Safety | 3/10 | Race conditions in agent assignment + stats |
+| Security | 7/10 | Auth enforced, input validated via Zod |
+| Documentation | 8/10 | README, SKILL.md, CLAUDE.md all updated |
+| Test Coverage | 1/10 | Zero tests (smoke test referenced but missing) |
+| Code Quality | 7/10 | Clean structure, good separation of concerns |
+| Production Readiness | 4/10 | MVP demo quality, not production-safe |
 
-**Separate repo (`D:\dev\battle-claw\`):**
-- `SKILL.md` — OpenClaw skill definition
-- `manifest.json` — ClawHub manifest with JSON schema
-- `index.mjs` — Core skill logic (health check, execute, write files, track savings)
-- `lib/abcc-client.mjs` — ABCC HTTP client wrapper
-- `lib/cost-tracker.mjs` — Local savings persistence (~/.openclaw/battle-claw-stats.json)
-- `README.md` — ClawHub listing documentation
+### File Inventory
 
-**API Endpoints:**
+**ABCC Side (3 new files, 1 modified):**
+
+| File | Lines | Purpose | Status |
+|------|-------|---------|--------|
+| `packages/api/src/services/costSavingsCalculator.ts` | 111 | Cloud equivalent cost estimation | Complete |
+| `packages/api/src/services/battleClawService.ts` | 408 | Single-call task orchestration | Complete, issues noted |
+| `packages/api/src/routes/battle-claw.ts` | 80 | REST endpoints (execute, health, stats) | Complete, dead code |
+| `packages/api/src/index.ts` | +4 lines | Route + service registration | Complete |
+
+**OpenClaw Skill (separate repo `D:\dev\battle-claw\`, 9 files):**
+
+| File | Lines | Purpose | Status |
+|------|-------|---------|--------|
+| `index.mjs` | 178 | Core skill logic | Complete |
+| `lib/abcc-client.mjs` | 94 | HTTP client wrapper | Complete |
+| `lib/cost-tracker.mjs` | 104 | Local savings persistence | Complete, race condition |
+| `manifest.json` | 51 | ClawHub manifest | Complete |
+| `SKILL.md` | 60 | OpenClaw skill definition | Complete |
+| `README.md` | 117 | User documentation | Complete |
+| `package.json` | 31 | Package definition | Complete |
+| `LICENSE` | 21 | MIT license | Complete |
+| `.github/workflows/publish.yml` | 25 | CI/CD stub | Incomplete (TODO) |
+
+**Total: 12 files, ~1,280 lines of code/config**
+
+---
+
+### Critical Issues (Must Fix Before Production)
+
+#### C1. Auto-Retry Pipeline Completely Bypassed
+**Location:** `battleClawService.ts:130-165`
+**Severity:** CRITICAL
+
+The main ABCC task flow runs `autoRetryService` (Phase 1: Ollama → Phase 2: Remote → Phase 3: Haiku) pushing pass rate from 90% → 98%. Battle Claw **skips this entirely** — it calls `executor.executeTask()` directly and marks success/failure without validation.
+
+This means Battle Claw users get 90% pass rate while normal ABCC users get 98%. The `validationCommand` parameter is accepted but never executed.
+
+**Fix:** Call `autoRetryService.validateAndRetry()` after execution completes, before returning response.
+
+#### C2. Race Condition in Agent Assignment
+**Location:** `battleClawService.ts:113-127`
+**Severity:** CRITICAL
+
+Agent is assigned without checking availability atomically:
+```typescript
+// Line 113: No check if agent is still idle!
+await this.prisma.task.update({ where: { id: task.id }, data: { assignedAgentId: agentId } });
+await this.prisma.agent.update({ where: { id: agentId }, data: { status: 'busy' } });
+```
+
+Two concurrent requests can both see agent as idle, both assign it, creating a double-booking.
+
+**Fix:** Use conditional update: `where: { id: agentId, status: 'idle' }` and check affected rows.
+
+#### C3. Stuck Task Recovery Doesn't Cover Battle Claw Tasks
+**Location:** `battleClawService.ts:113-119`
+**Severity:** HIGH
+
+Tasks are set to `status: 'assigned'` but never to `in_progress`. The `StuckTaskRecoveryService` only monitors `in_progress` tasks. If the agent crashes mid-execution, the task stays `assigned` forever and the agent is never released.
+
+**Fix:** Set task status to `in_progress` before calling `executor.executeTask()`.
+
+#### C4. No WebSocket Events Emitted
+**Location:** `battleClawService.ts` (entire file)
+**Severity:** HIGH
+
+The `io` (Socket.IO server) is injected via constructor but **never used**. Battle Claw tasks are invisible on the ABCC dashboard — no `task_created`, `task_assigned`, `task_completed`, or `agent_status_changed` events.
+
+**Fix:** Emit standard lifecycle events at each step (matches existing `taskQueue.ts` pattern).
+
+---
+
+### High Severity Issues
+
+#### H1. Dead Code in Routes
+**Location:** `battle-claw.ts:17-18,22`
+
+```typescript
+import { ExecutorService } from '../services/executor.js';
+import type { Server as SocketIOServer } from 'socket.io';
+const executor = new ExecutorService();
+```
+
+`ExecutorService` instantiated at module load but only used for health check. `SocketIOServer` type imported but unused. The `executor` instance duplicates what `BattleClawService` already has internally.
+
+#### H2. File Name Collision Risk
+**Location:** `battleClawService.ts:386-397`
+
+`generateFileName()` creates names from description words: `"a quick fix"` → `"task.py"`, `"write hello world"` → `"hello_world.py"`. No uniqueness guarantee — concurrent requests with similar descriptions overwrite each other's files.
+
+**Fix:** Include task ID prefix: `${taskId.slice(0,8)}_${baseName}.py`
+
+#### H3. Stats Calculation Always Uses Zero Cost
+**Location:** `battleClawService.ts:347`
+
+```typescript
+const savings = calculateSavings(complexity, 0); // Always zero!
+```
+
+`getStats()` hardcodes `0` for actual cost instead of querying execution logs. If a task escalated to Haiku/Sonnet, the real cost is lost. This inflates savings numbers.
+
+#### H4. Timeout Mismatch Between Services
+**Location:** `battleClawService.ts:56-58` vs `executor.ts`
+
+Battle Claw default timeout: 120s. Executor service timeout: 600s. The executor HTTP call has no timeout matching Battle Claw's timeout. If an agent takes 3 minutes, Battle Claw's Express request may hang (no client-side AbortController).
+
+#### H5. ABCC Response Not Validated on Skill Side
+**Location:** `index.mjs:68-103`
+
+The skill assumes `result.files`, `result.cost`, `result.complexity`, `result.execution` all exist with correct shapes. No runtime validation. If ABCC changes its response format, the skill crashes at runtime with unhelpful errors.
+
+---
+
+### Medium Severity Issues
+
+#### M1. Race Condition in Cost Tracker
+**Location:** `cost-tracker.mjs:43-86`
+
+`updateStats()` reads from disk → modifies in memory → writes back. No file locking. Concurrent OpenClaw instances (multiple terminals) can corrupt the stats file.
+
+#### M2. Stats File Referenced But Missing
+**Location:** `package.json:11`
+
+```json
+"test": "node test/smoke.mjs"
+```
+
+References `test/smoke.mjs` which doesn't exist. Running `npm test` fails immediately.
+
+#### M3. Error Type Discrimination Lost
+**Location:** `battleClawService.ts:223-254`
+
+All errors (network, database, validation, agent crash) return the same error shape with `complexity: { score: 0, source: 'error' }` and `tier: 'ollama'`. Callers can't distinguish between "agent timed out" vs "database down" vs "no agents available".
+
+#### M4. BattleClawResponse Allows Contradictory States
+**Location:** `battleClawService.ts:35-52`
+
+Type allows `success: true` + `error: 'some error'` and `validated: false` (which could mean "validation not requested" or "validation ran and failed"). Should use discriminated union.
+
+#### M5. Health Check Doesn't Reflect Battle Claw Readiness
+**Location:** `battle-claw.ts:50-66`
+
+Health endpoint checks executor service health (agents at :8000) but doesn't verify:
+- Database connectivity (Prisma)
+- Available idle agents
+- BattleClawService initialization
+
+An ABCC with healthy agents but crashed Postgres would report "ready".
+
+---
+
+### Low Severity Issues
+
+| # | Issue | Location | Description |
+|---|-------|----------|-------------|
+| L1 | Publish workflow stub | `.github/workflows/publish.yml:23` | TODO comment, manual install only |
+| L2 | No input sanitization | `index.mjs:68` | Description passed directly to API |
+| L3 | Hardcoded default language | `index.mjs:17` | Always `python`, not configurable |
+| L4 | Missing JSDoc types | `index.mjs:22,143` | `params` and `ctx` are untyped |
+| L5 | Inconsistent error shapes | `index.mjs:31-34,60-63,77-80,105-109` | Different return shapes per error path |
+| L6 | Empty string env var handling | `battleClawService.ts:401` | `OLLAMA_MODEL=""` bypasses fallback |
+| L7 | No request deduplication | `battle-claw.ts:34` | Identical requests create duplicate tasks |
+| L8 | DateTime not ISO-formatted | `battleClawService.ts:118,142` | `new Date()` vs ISO strings in JSON |
+
+---
+
+### What Works Well
+
+1. **Graceful fallback** — If ABCC is down, skill returns `{ fallback: true }` and OpenClaw uses cloud routing. User never gets stuck.
+2. **Clean separation** — ABCC endpoint vs OpenClaw skill are properly decoupled across repos.
+3. **Input validation** — Zod schema on ABCC side with proper error responses.
+4. **Cost estimation** — `costSavingsCalculator.ts` is well-documented with conservative estimates grounded in actual benchmark data.
+5. **File extraction** — Multi-layer strategy (execution logs → task result → regex fallback) is resilient.
+6. **Local stats tracking** — Persistent savings across sessions with streak tracking and language breakdown.
+7. **Documentation** — README, SKILL.md, CLAUDE.md, and manifest.json are all thorough and consistent.
+
+---
+
+### MVP Verdict
+
+**Battle Claw is a functional MVP suitable for demos and personal use.**
+
+It proves the concept: a single API call wraps ABCC's entire task lifecycle and returns generated code with cost savings. The OpenClaw skill handles graceful fallback, file writing, and stats tracking.
+
+**NOT production-ready due to:**
+- Auto-retry pipeline bypassed (90% vs 98% pass rate)
+- Race conditions under concurrent load
+- Tasks invisible on dashboard (no socket events)
+- Stuck task recovery gap (assigned tasks never recovered)
+- Zero test coverage
+
+**Recommended path to production:**
+
+| Priority | Fix | Effort | Impact |
+|----------|-----|--------|--------|
+| P0 | Integrate auto-retry pipeline | 2-3 hours | 90% → 98% pass rate |
+| P0 | Atomic agent assignment | 30 min | Prevents double-booking |
+| P1 | Set task to `in_progress` before execution | 15 min | Stuck task recovery works |
+| P1 | Emit WebSocket events | 1 hour | Tasks visible on dashboard |
+| P2 | Fix stats cost tracking | 30 min | Accurate savings numbers |
+| P2 | Add smoke tests | 1-2 hours | Basic confidence |
+| P3 | File name collision prevention | 15 min | Safe under concurrency |
+| P3 | Remove dead code from routes | 10 min | Clean codebase |
+
+**Estimated effort to production-ready: ~8 hours of focused work.**
+
+---
+
+### API Endpoints
+
 - `POST /api/battle-claw/execute` — Single-call coding task execution
 - `GET /api/battle-claw/health` — Service health + capabilities
 - `GET /api/battle-claw/stats` — Cumulative task stats & savings
