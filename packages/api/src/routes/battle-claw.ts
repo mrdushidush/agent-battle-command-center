@@ -29,7 +29,19 @@ const executeSchema = z.object({
 });
 
 battleClawRouter.post('/execute', asyncHandler(async (req, res) => {
-  const data = executeSchema.parse(req.body);
+  let data;
+  try {
+    data = executeSchema.parse(req.body);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({
+        error: 'Invalid request parameters',
+        details: err.errors.map((e) => ({ field: e.path.join('.'), message: e.message })),
+      });
+      return;
+    }
+    throw err;
+  }
 
   const service = req.app.get('battleClawService') as BattleClawService;
   if (!service) {
