@@ -4,6 +4,7 @@ import { TaskCard } from '../shared/TaskCard';
 import { TaskQueueSkeleton } from '../shared/Skeleton';
 import { useUIStore } from '../../store/uiState';
 import { CreateTaskModal } from './CreateTaskModal';
+import { useTheme } from '../../themes/index';
 
 // Helper to check if a date is today
 function isToday(date: Date | string | null | undefined): boolean {
@@ -21,6 +22,7 @@ function isToday(date: Date | string | null | undefined): boolean {
 
 export function TaskQueue() {
   const { tasks, isLoading } = useUIStore();
+  const theme = useTheme();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'coder' | 'qa'>('all');
   const [showCompleted, setShowCompleted] = useState(false);
@@ -73,7 +75,7 @@ export function TaskQueue() {
       <div className="p-3 border-b border-command-border flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="font-display text-sm uppercase tracking-wider text-gray-400" id="task-queue-heading">
-            Task Queue
+            {theme.panels.taskQueue}
           </h2>
           <span className="text-xs text-gray-500" aria-live="polite">
             {showCompleted

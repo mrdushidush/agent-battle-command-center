@@ -1,11 +1,17 @@
-import { Code, TestTube, Briefcase, Pause, Play, Square } from 'lucide-react';
+import { Code, TestTube, Briefcase, Pause, Play, Square, Sword, Shield, Crown, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import type { Agent, AgentType, ModelOverride } from '@abcc/shared';
 import { AGENT_MODEL_OPTIONS } from '@abcc/shared';
 import { useUIStore } from '../../store/uiState';
 import { useAgents } from '../../hooks/useAgents';
+import { useTheme } from '../../themes/index';
+import type { LucideIcon } from 'lucide-react';
 
-const agentTypeIcons: Record<AgentType, typeof Code> = {
+const ICON_MAP: Record<string, LucideIcon> = {
+  Code, TestTube, Briefcase, Sword, Shield, Crown, Zap,
+};
+
+const fallbackIcons: Record<AgentType, LucideIcon> = {
   coder: Code,
   qa: TestTube,
   cto: Briefcase,
@@ -45,7 +51,9 @@ export function AgentCard({ agent, compact = false, showControls = false, grokEn
   const { pauseAgent, resumeAgent, abortAgentTask, updateAgentConfig } = useAgents();
   const isSelected = selectedAgentId === agent.id;
 
-  const AgentIcon = agentTypeIcons[agent.type] || Code;
+  const theme = useTheme();
+  const themeIconName = theme.agentIcons[agent.type];
+  const AgentIcon = (themeIconName && ICON_MAP[themeIconName]) || fallbackIcons[agent.type] || Code;
   const colors = agentTypeColors[agent.type] || agentTypeColors.coder;
   const currentTask = agent.currentTaskId
     ? tasks.find(t => t.id === agent.currentTaskId)

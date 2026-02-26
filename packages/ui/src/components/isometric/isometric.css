@@ -1,0 +1,266 @@
+/* ============================================================
+   Isometric Battlefield — Math-Based Projection
+   No CSS 3D transforms. All positioning via worldToScreen() math.
+   ============================================================ */
+
+/* --- Glitch jitter for heavily damaged targets --- */
+@keyframes iso-glitch {
+  0%   { clip-path: inset(0 0 0 0); }
+  10%  { clip-path: inset(20% 0 40% 0); }
+  20%  { clip-path: inset(0 0 0 0); }
+  30%  { clip-path: inset(60% 0 5% 0); }
+  40%  { clip-path: inset(0 0 0 0); }
+  50%  { clip-path: inset(10% 0 70% 0); }
+  60%  { clip-path: inset(0 0 0 0); }
+  70%  { clip-path: inset(50% 0 20% 0); }
+  80%  { clip-path: inset(0 0 0 0); }
+  90%  { clip-path: inset(5% 0 50% 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+/* --- Success explosion: green burst scaling out --- */
+@keyframes iso-explode-success {
+  0%   { transform: scale(0.5); opacity: 1; }
+  40%  { transform: scale(2.5); opacity: 0.8; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* --- Failure explosion: red collapse shrinking --- */
+@keyframes iso-explode-failure {
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  50%  { transform: scale(0.5) rotate(90deg); opacity: 0.6; }
+  100% { transform: scale(0) rotate(180deg); opacity: 0; }
+}
+
+/* --- Projectile flying fade --- */
+@keyframes iso-bolt-fly {
+  0%   { opacity: 1; }
+  80%  { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* --- Diagonal scanline sweep across diamond grid --- */
+@keyframes iso-scanline-diag {
+  0%   { offset-distance: 0%; opacity: 0; }
+  5%   { opacity: 0.5; }
+  95%  { opacity: 0.5; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* Fallback scanline for browsers without offset-path */
+@keyframes iso-scanline-fallback {
+  0%   { transform: translateX(-100%) translateY(-100%); opacity: 0; }
+  5%   { opacity: 0.4; }
+  95%  { opacity: 0.4; }
+  100% { transform: translateX(100%) translateY(100%); opacity: 0; }
+}
+
+/* --- Tank / agent idle bob --- */
+@keyframes iso-tank-idle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+/* --- Muzzle flash pulse --- */
+@keyframes iso-tank-fire {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.8) drop-shadow(0 0 6px var(--color-hud-green)); }
+}
+
+/* --- Siege pulse (amber dashed outline) --- */
+@keyframes iso-siege-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.8; }
+}
+
+/* --- Repair shield glow --- */
+@keyframes iso-repair-glow {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.7; }
+}
+
+/* --- Label pulse for active states --- */
+@keyframes iso-label-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* --- Success ring expand --- */
+@keyframes iso-ring-expand {
+  0%   { transform: scale(0.5); opacity: 0.8; border-width: 3px; }
+  100% { transform: scale(3.5); opacity: 0; border-width: 1px; }
+}
+
+/* --- Agent fade-in --- */
+@keyframes iso-fade-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* --- Hex glow ring pulse for agent tokens --- */
+@keyframes iso-hex-glow {
+  0%, 100% { opacity: 0.3; filter: blur(2px); }
+  50%      { opacity: 0.8; filter: blur(4px); }
+}
+
+/* --- Energy beam pulse (projectile muzzle) --- */
+@keyframes iso-energy-beam {
+  0%   { opacity: 1; transform: scaleX(1); }
+  50%  { opacity: 0.6; transform: scaleX(1.2); }
+  100% { opacity: 0; transform: scaleX(0.5); }
+}
+
+/* --- Building crenellation shimmer --- */
+@keyframes iso-crenellation {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* ============================================================
+   Damage Phase Classes (applied to building SVG wrappers)
+   ============================================================ */
+
+.iso-target--phase-1 {
+  opacity: 1;
+  filter: none;
+}
+
+.iso-target--phase-2 {
+  opacity: 0.85;
+  filter: hue-rotate(15deg);
+}
+
+.iso-target--phase-3 {
+  opacity: 0.65;
+  filter: hue-rotate(35deg) saturate(1.4);
+}
+
+.iso-target--phase-4 {
+  opacity: 0.45;
+  filter: hue-rotate(55deg) saturate(2);
+  animation: iso-glitch 0.3s steps(1) infinite;
+}
+
+/* ============================================================
+   Projectile
+   ============================================================ */
+
+.iso-projectile {
+  position: absolute;
+  transition: left 500ms linear, top 500ms linear;
+  animation: iso-bolt-fly 500ms linear forwards;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Explosion Particles & Ring
+   ============================================================ */
+
+.iso-explosion-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.iso-explosion-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid;
+  pointer-events: none;
+  animation: iso-ring-expand 1.2s ease-out forwards;
+}
+
+/* ============================================================
+   Siege Outline — SVG-based dashed diamond
+   ============================================================ */
+
+.iso-siege-outline {
+  animation: iso-siege-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Hex glow ring
+   ============================================================ */
+
+.iso-hex-glow-ring {
+  animation: iso-hex-glow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Scanline overlay
+   ============================================================ */
+
+.iso-scanline {
+  animation: iso-scanline-fallback 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Atmosphere — vignette, particles, ambient glow
+   ============================================================ */
+
+/* Dark vignette around edges */
+.iso-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.3) 70%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* Floating ambient particles */
+@keyframes iso-particle-float {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(-120px) translateX(30px); opacity: 0; }
+}
+
+.iso-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #00ff88;
+  pointer-events: none;
+  animation: iso-particle-float linear infinite;
+}
+
+/* Pulsing ground marker under entities */
+@keyframes iso-ground-ping {
+  0%, 100% { transform: scale(1); opacity: 0.15; }
+  50%      { transform: scale(1.15); opacity: 0.3; }
+}
+
+.iso-ground-marker {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: iso-ground-ping 3s ease-in-out infinite;
+}
+
+/* Subtle horizontal scan line */
+@keyframes iso-hscan {
+  0%   { top: -2px; opacity: 0; }
+  5%   { opacity: 0.08; }
+  95%  { opacity: 0.08; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.iso-hscan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00ff8844, transparent);
+  pointer-events: none;
+  animation: iso-hscan 8s linear infinite;
+}

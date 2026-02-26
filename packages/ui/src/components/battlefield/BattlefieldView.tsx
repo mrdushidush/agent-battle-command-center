@@ -1,45 +1,57 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { TaskQueue } from '../main-view/TaskQueue';
-import { useBattlefieldState } from '../../hooks/useBattlefieldState';
+import { IsometricBattlefield } from '../isometric/IsometricBattlefield';
+import { useUIStore } from '../../store/uiState';
 
 // Lazy-load the heavy 3D canvas (Three.js ~600KB) for code splitting
 const BattlefieldCanvas = lazy(() => import('./BattlefieldCanvas'));
 
 /**
- * Main battlefield orchestrator.
- * - Renders BOTH TaskQueue (cards) and R3F Canvas
- * - Crossfades between them based on active task state
- * - Falls back to TaskQueue on any WebGL error
- * - Lazy-loads Three.js bundle only when battlefield first activates
+ * Main battlefield dispatcher.
+ * - 'cards' mode → TaskQueue
+ * - 'isometric' mode (default) → CSS sprite battlefield
+ * - '3d' mode → legacy Three.js canvas (lazy-loaded)
  */
 export function BattlefieldView() {
-  const [everActivated, setEverActivated] = useState(false);
-  const { hasActiveTasks } = useBattlefieldState();
+  const battlefieldEnabled = useUIStore((s) => s.battlefieldEnabled);
+  const viewMode = useUIStore((s) => s.battlefieldViewMode);
+  const [ever3D, setEver3D] = useState(false);
 
-  // Show 3D when there are active tasks
-  const show3D = hasActiveTasks;
-
-  // Track if we've ever activated (to start lazy loading)
-  const wasActive = useRef(false);
+  // Track if we've ever switched to 3D (to trigger lazy load)
+  const was3D = useRef(false);
   useEffect(() => {
-    if (show3D && !wasActive.current) {
-      wasActive.current = true;
-      setEverActivated(true);
+    if (battlefieldEnabled && viewMode === '3d' && !was3D.current) {
+      was3D.current = true;
+      setEver3D(true);
     }
-  }, [show3D]);
+  }, [battlefieldEnabled, viewMode]);
+
+  const showIsometric = battlefieldEnabled && viewMode === 'isometric';
+  const show3D = battlefieldEnabled && viewMode === '3d';
+  const showCards = !battlefieldEnabled;
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* TaskQueue cards - always mounted, fades out when 3D active */}
+      {/* TaskQueue cards — shown when battlefield disabled */}
       <div
         className="absolute inset-0 transition-opacity duration-300"
-        style={{ opacity: show3D ? 0 : 1, pointerEvents: show3D ? 'none' : 'auto' }}
+        style={{ opacity: showCards ? 1 : 0, pointerEvents: showCards ? 'auto' : 'none' }}
       >
         <TaskQueue />
       </div>
 
-      {/* 3D Battlefield Canvas - lazy loaded on first activation */}
-      {everActivated && (
+      {/* Isometric Battlefield — default battlefield mode */}
+      <div
+        className="absolute inset-0 transition-opacity duration-300"
+        style={{ opacity: showIsometric ? 1 : 0, pointerEvents: showIsometric ? 'auto' : 'none' }}
+      >
+        {(showIsometric || (battlefieldEnabled && viewMode === 'isometric')) && (
+          <IsometricBattlefield />
+        )}
+      </div>
+
+      {/* 3D Battlefield Canvas — lazy loaded on first switch to 3D */}
+      {ever3D && (
         <div
           className="absolute inset-0 transition-opacity duration-300"
           style={{ opacity: show3D ? 1 : 0, pointerEvents: show3D ? 'auto' : 'none' }}
@@ -56,9 +68,7 @@ export function BattlefieldView() {
               </div>
             }
           >
-            <BattlefieldCanvas
-              show3D={show3D}
-            />
+            <BattlefieldCanvas show3D={show3D} />
           </Suspense>
         </div>
       )}

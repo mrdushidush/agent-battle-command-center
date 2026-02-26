@@ -4,10 +4,12 @@ import { useUIStore } from '../../store/uiState';
 import { audioManager } from '../../audio/audioManager';
 import { apiPost } from '../../lib/api';
 import { defaultVoicePack } from '../../audio/voicePacks';
+import { useTheme, getThemeList } from '../../themes/index';
 
 type SettingsTab = 'audio' | 'budget' | 'display' | 'theme';
 
 export function SettingsModal() {
+  const theme = useTheme();
   const {
     settingsModalOpen,
     toggleSettingsModal,
@@ -31,16 +33,8 @@ export function SettingsModal() {
     }
   }, [settingsModalOpen, budget.dailyLimitCents]);
 
-  // Apply theme to CSS variables
-  useEffect(() => {
-    const themeColors = {
-      green: '#00ff88',
-      blue: '#00aaff',
-      amber: '#ffaa00',
-    };
-    const accentColor = themeColors[settings.themeAccent as keyof typeof themeColors] || themeColors.green;
-    document.documentElement.style.setProperty('--hud-accent', accentColor);
-  }, [settings.themeAccent]);
+  const setTheme = useUIStore((s) => s.setTheme);
+  const themeId = useUIStore((s) => s.themeId);
 
   if (!settingsModalOpen) return null;
 
@@ -122,7 +116,7 @@ export function SettingsModal() {
       <div className="relative bg-command-panel border border-command-border rounded-lg w-[600px] max-h-[80vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-command-border bg-linear-to-r from-hud-green/5 to-transparent">
-          <h2 className="font-display text-lg tracking-wider text-hud-green">SETTINGS</h2>
+          <h2 className="font-display text-lg tracking-wider text-hud-green">{theme.panels.appTitle} SETTINGS</h2>
           <button
             onClick={toggleSettingsModal}
             className="p-2 hover:bg-command-accent rounded-lg transition-colors"
@@ -334,35 +328,22 @@ export function SettingsModal() {
 
           {activeTab === 'theme' && (
             <div className="space-y-6">
-              {/* Theme Accent */}
+              {/* Theme Selection */}
               <div>
-                <label className="text-sm font-medium text-gray-200 block mb-3">Accent Color</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {([
-                    { id: 'green', color: '#00ff88', label: 'Matrix Green' },
-                    { id: 'blue', color: '#00aaff', label: 'Cyber Blue' },
-                    { id: 'amber', color: '#ffaa00', label: 'Warning Amber' },
-                  ] as const).map((theme) => (
+                <label className="text-sm font-medium text-gray-200 block mb-3">Theme</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {getThemeList().map((t) => (
                     <button
-                      key={theme.id}
-                      onClick={() => updateSettings({ themeAccent: theme.id })}
-                      className={`p-4 rounded-lg border transition-colors ${
-                        settings.themeAccent === theme.id
-                          ? 'border-2'
+                      key={t.id}
+                      onClick={() => setTheme(t.id)}
+                      className={`p-4 rounded-lg border transition-colors text-left ${
+                        themeId === t.id
+                          ? 'border-2 border-hud-green bg-hud-green/10'
                           : 'border-command-border hover:border-gray-600'
                       }`}
-                      style={{
-                        borderColor: settings.themeAccent === theme.id ? theme.color : undefined,
-                        backgroundColor: settings.themeAccent === theme.id ? `${theme.color}10` : undefined,
-                      }}
                     >
-                      <div
-                        className="w-8 h-8 rounded-full mx-auto mb-2"
-                        style={{ backgroundColor: theme.color }}
-                      />
-                      <span className="block text-sm" style={{ color: theme.color }}>
-                        {theme.label}
-                      </span>
+                      <span className="block text-sm font-medium text-gray-200">{t.name}</span>
+                      <span className="block text-xs text-gray-500 mt-1">{t.description}</span>
                     </button>
                   ))}
                 </div>
@@ -372,15 +353,9 @@ export function SettingsModal() {
               <div className="p-4 bg-command-bg rounded-lg border border-command-border">
                 <p className="text-sm text-gray-400 mb-2">Preview</p>
                 <div className="flex items-center gap-4">
-                  <div
-                    className="w-4 h-4 rounded-full animate-pulse"
-                    style={{ backgroundColor: settings.themeAccent === 'green' ? '#00ff88' : settings.themeAccent === 'blue' ? '#00aaff' : '#ffaa00' }}
-                  />
-                  <span
-                    className="font-display tracking-wider"
-                    style={{ color: settings.themeAccent === 'green' ? '#00ff88' : settings.themeAccent === 'blue' ? '#00aaff' : '#ffaa00' }}
-                  >
-                    COMMAND CENTER
+                  <div className="w-4 h-4 rounded-full animate-pulse bg-hud-green" />
+                  <span className="font-display tracking-wider text-hud-green">
+                    {theme.logo.text}
                   </span>
                 </div>
               </div>

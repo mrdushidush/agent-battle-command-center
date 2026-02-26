@@ -284,6 +284,16 @@ def create_subtask(
     """Create an atomic subtask for a parent task. One subtask = one file/function.
     Args: parent_task_id, title, description, acceptance_criteria, validation_command, context_notes, suggested_agent, priority."""
     try:
+        import os
+        import re
+
+        # Auto-fill parent_task_id from CURRENT_TASK_ID if agent passed a non-UUID value
+        uuid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+        if not uuid_pattern.match(parent_task_id):
+            env_task_id = os.environ.get("CURRENT_TASK_ID", "")
+            if uuid_pattern.match(env_task_id):
+                parent_task_id = env_task_id
+
         # Map suggested_agent to requiredAgent
         agent_type_map = {
             "coder": "coder",
@@ -332,7 +342,6 @@ def create_subtask(
             task = response.json()
 
             # Rate limit mitigation: delay between subtask creations if env var set
-            import os
             import time
             delay_seconds = int(os.environ.get("SUBTASK_CREATION_DELAY", "0"))
             if delay_seconds > 0:

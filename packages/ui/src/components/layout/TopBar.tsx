@@ -1,4 +1,4 @@
-import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle, Crosshair } from 'lucide-react';
+import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle, LayoutGrid, Map, Box } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { useState, useEffect, useRef } from 'react';
 import { audioManager } from '../../audio/audioManager';
@@ -6,6 +6,8 @@ import { SettingsModal } from '../modals/SettingsModal';
 import { AnimatedCurrency } from '../shared/AnimatedCounter';
 import { apiGet, apiPost } from '../../lib/api';
 import { getAvailableVoicePacks, VoicePackId } from '../../audio/voicePacks';
+import { useTheme } from '../../themes/index';
+import { ThemeSelector } from './ThemeSelector';
 
 export function TopBar() {
   const {
@@ -26,6 +28,8 @@ export function TopBar() {
     toggleSettingsModal,
     battlefieldEnabled,
     toggleBattlefield,
+    battlefieldViewMode,
+    setBattlefieldViewMode,
   } = useUIStore();
   const unacknowledgedAlerts = alerts.filter(a => a && a.acknowledged === false).length;
   const [resetting, setResetting] = useState(false);
@@ -94,15 +98,21 @@ export function TopBar() {
     }
   };
 
+  const theme = useTheme();
+
   return (
     <header className="h-14 bg-command-panel border-b border-command-border flex items-center px-4 gap-6">
       {/* Logo/Title */}
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-sm bg-hud-green/20 flex items-center justify-center">
-          <Zap className="w-5 h-5 text-hud-green" />
-        </div>
+        {theme.logo.icon === 'custom' && theme.logo.customSrc ? (
+          <img src={theme.logo.customSrc} alt={theme.logo.text} className="w-8 h-8 rounded-sm object-contain" />
+        ) : (
+          <div className="w-8 h-8 rounded-sm bg-hud-green/20 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-hud-green" />
+          </div>
+        )}
         <span className="font-display text-lg tracking-wider text-hud-green hidden lg:block">
-          COMMAND CENTER
+          {theme.logo.text}
         </span>
       </div>
 
@@ -191,6 +201,9 @@ export function TopBar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2" role="toolbar" aria-label="Main controls">
+        {/* Theme Selector */}
+        <ThemeSelector />
+
         {/* Voice Pack Selector */}
         <div className="relative" ref={voicePackDropdownRef}>
           <button
@@ -246,18 +259,45 @@ export function TopBar() {
           <span className="sr-only">{audioSettings.muted ? 'Unmute' : 'Mute'} audio</span>
         </button>
 
-        {/* Battlefield Toggle */}
-        <button
-          className={`relative p-2 hover:bg-command-accent rounded transition-colors ${
-            battlefieldEnabled ? 'bg-hud-green/20' : ''
-          }`}
-          onClick={toggleBattlefield}
-          aria-label={battlefieldEnabled ? 'Disable 3D battlefield' : 'Enable 3D battlefield'}
-          aria-pressed={battlefieldEnabled}
-          title={battlefieldEnabled ? '3D Battlefield ON' : '3D Battlefield OFF'}
-        >
-          <Crosshair className={`w-5 h-5 ${battlefieldEnabled ? 'text-hud-green' : 'text-gray-400'}`} aria-hidden="true" />
-        </button>
+        {/* View Mode Switcher: Cards / Isometric / 3D */}
+        <div className="flex items-center bg-command-bg rounded border border-command-border" role="radiogroup" aria-label="View mode">
+          <button
+            className={`px-2 py-1.5 text-xs font-mono flex items-center gap-1 rounded-l transition-colors ${
+              !battlefieldEnabled ? 'bg-hud-green/20 text-hud-green' : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => { if (battlefieldEnabled) toggleBattlefield(); }}
+            role="radio"
+            aria-checked={!battlefieldEnabled}
+            title="Card grid view"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden lg:inline">Cards</span>
+          </button>
+          <button
+            className={`px-2 py-1.5 text-xs font-mono flex items-center gap-1 border-x border-command-border transition-colors ${
+              battlefieldEnabled && battlefieldViewMode === 'isometric' ? 'bg-hud-green/20 text-hud-green' : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => { if (!battlefieldEnabled) toggleBattlefield(); setBattlefieldViewMode('isometric'); }}
+            role="radio"
+            aria-checked={battlefieldEnabled && battlefieldViewMode === 'isometric'}
+            title="Isometric sprite battlefield"
+          >
+            <Map className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden lg:inline">Iso</span>
+          </button>
+          <button
+            className={`px-2 py-1.5 text-xs font-mono flex items-center gap-1 rounded-r transition-colors ${
+              battlefieldEnabled && battlefieldViewMode === '3d' ? 'bg-hud-green/20 text-hud-green' : 'text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => { if (!battlefieldEnabled) toggleBattlefield(); setBattlefieldViewMode('3d'); }}
+            role="radio"
+            aria-checked={battlefieldEnabled && battlefieldViewMode === '3d'}
+            title="3D holographic battlefield"
+          >
+            <Box className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden lg:inline">3D</span>
+          </button>
+        </div>
 
         {/* Tool Log Button */}
         <button

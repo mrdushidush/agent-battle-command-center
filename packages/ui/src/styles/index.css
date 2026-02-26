@@ -180,6 +180,20 @@
   }
 }
 
+/* BattleClaw theme overrides */
+[data-theme="battleclaw"] {
+  --color-command-bg: #0a0f1c;
+  --color-command-panel: #0f172a;
+  --color-command-border: #1e2937;
+  --color-command-accent: #2d3b4f;
+  --color-hud-green: #14f5c7;
+  --color-hud-blue: #06b6d4;
+  --color-hud-amber: #facc15;
+  --color-agent-coder: #14f5c7;
+  --color-agent-qa: #facc15;
+  --font-mono: 'Roboto Mono', 'JetBrains Mono', monospace;
+}
+
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still

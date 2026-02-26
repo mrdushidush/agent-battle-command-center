@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Flame, Zap, TrendingUp, DollarSign } from 'lucide-react';
 import { apiGet } from '../../lib/api';
+import { useTheme } from '../../themes/index';
 
 interface TokenEntry {
   id: string;
@@ -77,6 +78,7 @@ function generateMockEntries(): TokenEntry[] {
 }
 
 export function TokenBurnLog() {
+  const theme = useTheme();
   const [entries, setEntries] = useState<TokenEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -197,7 +199,7 @@ export function TokenBurnLog() {
         <div className="flex items-center gap-2">
           <Flame className="w-4 h-4 text-orange-400" />
           <h3 className="font-display text-sm uppercase tracking-wider text-gray-400">
-            Token Burn Rate
+            {theme.panels.tokenBurn}
           </h3>
           {useMockData && (
             <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-sm">DEMO</span>

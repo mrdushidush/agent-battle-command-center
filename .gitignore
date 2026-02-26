@@ -82,6 +82,9 @@ docs/UI_FEATURE_SHOWCASE.md
 packages/agents/TEST_TOOLS.md
 packages/api/prisma/migrations/*/CODE_CHANGES.md
 
+# Archive (source sprite sheets, extraction scripts, old assets)
+archive/
+
 # Backups
 backups/
 

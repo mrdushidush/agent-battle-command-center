@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/uiState';
 import { ActiveMissionsSkeleton } from '../shared/Skeleton';
 import type { Agent, Task } from '@abcc/shared';
 import { useEffect, useState } from 'react';
+import { useTheme } from '../../themes/index';
 
 interface CompactMissionProps {
   agent: Agent;
@@ -128,6 +129,7 @@ function CompactMission({ agent, task }: CompactMissionProps) {
 
 export function ActiveMissions() {
   const { tasks, agents, isLoading } = useUIStore();
+  const theme = useTheme();
 
   const activeTasks = tasks.filter(t =>
     ['assigned', 'in_progress', 'needs_human'].includes(t.status)
@@ -151,7 +153,7 @@ export function ActiveMissions() {
       <div className="px-3 py-2 border-t border-command-border flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="font-display text-xs uppercase tracking-wider text-gray-400" id="active-missions-heading">
-            Running
+            {theme.panels.activeMissions}
           </h2>
           <span className="text-[10px] text-gray-500" aria-live="polite">
             {missions.length} active

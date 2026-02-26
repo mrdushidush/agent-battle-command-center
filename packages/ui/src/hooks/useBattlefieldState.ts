@@ -1,9 +1,9 @@
 import { useMemo, useRef } from 'react';
 import { useUIStore } from '../store/uiState';
+import { GRID_RANGE } from '../components/isometric/isoProjection';
 import {
   getBuildingTier,
   getAgentTier,
-  hashTaskPosition,
   BUILDING_TIERS,
   type BattlefieldBuilding,
   type BattlefieldSquad,
@@ -39,11 +39,11 @@ export function useBattlefieldState() {
     [tasks, agents],
   );
 
-  // All non-completed tasks get buildings
-  const visibleTasks = useMemo(
-    () => tasks.filter((t) => !['completed', 'failed', 'aborted'].includes(t.status)),
-    [tasks],
-  );
+  // Only show ONE active task at a time (assigned or in_progress)
+  const visibleTasks = useMemo(() => {
+    const active = tasks.filter((t) => ['assigned', 'in_progress'].includes(t.status));
+    return active.length > 0 ? [active[0]] : [];
+  }, [tasks]);
 
   // Recently completed/failed tasks (for destruction animations) - last 10 seconds
   const recentlyFinished = useMemo(() => {
@@ -58,7 +58,7 @@ export function useBattlefieldState() {
   // Build positioned building data
   const buildings: BattlefieldBuilding[] = useMemo(() => {
     const existingPositions: [number, number][] = [];
-    const allTasks = [...visibleTasks, ...recentlyFinished];
+    const allTasks = [...visibleTasks];
     const now = Date.now();
     const prevIter = prevIterationsRef.current;
     const repairState = repairStateRef.current;
@@ -74,7 +74,10 @@ export function useBattlefieldState() {
       const complexity = (task as any).complexity ?? task.priority ?? 5;
       const tier = getBuildingTier(complexity);
       const tierConfig = BUILDING_TIERS[tier];
-      const [x, z] = hashTaskPosition(task.id, 30, tierConfig.scale * 2.5, existingPositions);
+
+      // Only 1 task on screen — place building dead center
+      const x = 0;
+      const z = 0;
       existingPositions.push([x, z]);
 
       const assignedAgent = task.assignedAgentId
@@ -123,26 +126,27 @@ export function useBattlefieldState() {
         const agent = b.assignedAgent!;
         const tier = getAgentTier(agent);
 
-        // Squad approaches from the edge toward the building
-        const edgeX = b.position[0] > 0 ? 18 : -18;
-        const edgeZ = b.position[2] > 0 ? 18 : -18;
-
-        // Target position: 2 units from the building
-        const dx = b.position[0] - edgeX;
-        const dz = b.position[2] - edgeZ;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        const stopDist = 2 * b.scale;
-        const ratio = dist > 0 ? Math.max(0, (dist - stopDist) / dist) : 0;
-
-        const targetX = edgeX + dx * ratio;
-        const targetZ = edgeZ + dz * ratio;
+        // Agent fades in offset from building — no scrolling
+        const offsetDist = 5; // world units (~350px screen distance)
+        // Pick a direction based on TASK id hash (varies per task, not per agent)
+        let hash = 0;
+        for (let i = 0; i < b.taskId.length; i++) {
+          hash = ((hash << 5) - hash) + b.taskId.charCodeAt(i);
+          hash |= 0;
+        }
+        const angle = (Math.abs(hash) % 8) * (Math.PI / 4) + Math.PI / 8; // 8 directions for variety
+        const rawX = b.position[0] + Math.cos(angle) * offsetDist;
+        const rawZ = b.position[2] + Math.sin(angle) * offsetDist;
+        // Clamp to grid bounds so agent stays within background area
+        const targetX = Math.max(-GRID_RANGE + 1, Math.min(GRID_RANGE - 1, rawX));
+        const targetZ = Math.max(-GRID_RANGE + 1, Math.min(GRID_RANGE - 1, rawZ));
 
         return {
           agentId: agent.id,
           agent,
           tier,
           targetTaskId: b.taskId,
-          position: [edgeX, 0, edgeZ] as [number, number, number],
+          position: [b.position[0], 0, b.position[2]] as [number, number, number],
           targetPosition: [targetX, 0, targetZ] as [number, number, number],
           moveProgress: b.task.status === 'in_progress' ? 1 : 0,
           firing: b.task.status === 'in_progress',

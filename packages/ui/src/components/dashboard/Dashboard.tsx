@@ -3,12 +3,15 @@ import { SuccessRateChart } from './SuccessRateChart';
 import { AgentComparison } from './AgentComparison';
 import { ComplexityDistribution } from './ComplexityDistribution';
 import { MemoryApproval } from './MemoryApproval';
+import { useTheme } from '../../themes/index';
 
 export function Dashboard() {
+  const theme = useTheme();
+
   return (
     <div className="h-full flex flex-col bg-command-bg overflow-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-command-text mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-command-text mb-2">{theme.panels.dashboard}</h1>
         <p className="text-command-text-secondary">
           System-wide analytics and performance metrics
         </p>

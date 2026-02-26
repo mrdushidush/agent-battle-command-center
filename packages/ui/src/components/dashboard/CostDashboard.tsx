@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { costMetricsApi } from '../../api/client';
 import { useUIStore } from '../../store/uiState';
+import { useTheme } from '../../themes/index';
 
 interface CostMetrics {
   totalCost: number;
@@ -30,6 +31,7 @@ interface PieSlice {
 }
 
 export function CostDashboard() {
+  const theme = useTheme();
   const [metrics, setMetrics] = useState<CostMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +90,7 @@ export function CostDashboard() {
   return (
     <div className="h-full flex flex-col p-6 bg-command-bg overflow-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-command-text mb-2">Cost Tracking</h1>
+        <h1 className="text-2xl font-bold text-command-text mb-2">{theme.panels.costTracking}</h1>
         <p className="text-command-text-secondary">
           Monitor LLM usage costs across model tiers
         </p>

@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import type { Task, Agent, Alert, UIMode } from '@abcc/shared';
 import type { VoicePackId } from '../audio/voicePacks';
+import { DEFAULT_THEME } from '../themes/index';
 
 interface Settings {
   toolLogOpenByDefault: boolean;
   minimapStyle: 'timeline' | 'grid' | 'flow';
-  themeAccent: 'green' | 'blue' | 'amber';
 }
 
 interface UIState {
@@ -32,6 +32,12 @@ interface UIState {
   toggleSettingsModal: () => void;
   battlefieldEnabled: boolean;
   toggleBattlefield: () => void;
+  battlefieldViewMode: 'isometric' | '3d';
+  setBattlefieldViewMode: (mode: 'isometric' | '3d') => void;
+
+  // Theme
+  themeId: string;
+  setTheme: (id: string) => void;
 
   // Settings
   settings: Settings;
@@ -170,12 +176,27 @@ export const useUIStore = create<UIState>((set) => ({
   toggleSettingsModal: () => set((state) => ({ settingsModalOpen: !state.settingsModalOpen })),
   battlefieldEnabled: true,
   toggleBattlefield: () => set((state) => ({ battlefieldEnabled: !state.battlefieldEnabled })),
+  battlefieldViewMode: 'isometric',
+  setBattlefieldViewMode: (mode) => set({ battlefieldViewMode: mode }),
+
+  // Theme
+  themeId: (() => {
+    try {
+      const stored = localStorage.getItem('abcc-theme');
+      if (stored && (stored === 'battleclaw' || stored === 'classic')) return stored;
+    } catch {}
+    return DEFAULT_THEME;
+  })(),
+  setTheme: (id) => {
+    document.documentElement.setAttribute('data-theme', id);
+    localStorage.setItem('abcc-theme', id);
+    set({ themeId: id });
+  },
 
   // Settings
   settings: {
     toolLogOpenByDefault: true,
     minimapStyle: 'timeline',
-    themeAccent: 'green',
   },
   updateSettings: (newSettings) =>
     set((state) => ({

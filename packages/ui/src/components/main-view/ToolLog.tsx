@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Terminal, CheckCircle, XCircle, Clock, Download } from 'lucide-react';
 import { apiGet } from '../../lib/api';
+import { useTheme } from '../../themes/index';
 
 interface ExecutionLogEntry {
   id: string;
@@ -15,6 +16,7 @@ interface ExecutionLogEntry {
 }
 
 export function ToolLog() {
+  const theme = useTheme();
   const [logs, setLogs] = useState<ExecutionLogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -128,7 +130,7 @@ export function ToolLog() {
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-hud-green" />
           <h3 className="font-display text-sm uppercase tracking-wider text-gray-400">
-            Tool Execution Log
+            {theme.panels.toolLog}
           </h3>
           <span className="text-xs text-gray-500">
             {logs.length} actions

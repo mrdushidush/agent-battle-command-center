@@ -1,6 +1,7 @@
 import { X, AlertTriangle, Info, AlertCircle, CheckCircle } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import type { Alert } from '@abcc/shared';
+import { useTheme } from '../../themes/index';
 
 const severityIcons = {
   info: Info,
@@ -51,6 +52,7 @@ function AlertItem({ alert, onAcknowledge }: { alert: Alert; onAcknowledge: () =
 
 export function AlertPanel() {
   const { alerts, acknowledgeAlert, clearAlerts, toggleAlertsPanel } = useUIStore();
+  const theme = useTheme();
 
   return (
     <div className="h-full flex flex-col bg-command-panel">
@@ -58,7 +60,7 @@ export function AlertPanel() {
       <div className="p-3 border-b border-command-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-hud-amber" />
-          <span className="font-display text-sm uppercase tracking-wider">Alerts</span>
+          <span className="font-display text-sm uppercase tracking-wider">{theme.panels.alerts}</span>
           <span className="text-xs text-gray-500">
             ({alerts.filter(a => a && a.acknowledged === false).length})
           </span>
