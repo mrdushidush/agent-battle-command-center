@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, MessageSquare, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { X, MessageSquare, Plus, Trash2, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { useChat } from '../../hooks/useChat';
@@ -29,9 +29,17 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
     handleStreamError,
   } = useChat();
 
-  const { activeChatAgentId, setActiveChatAgent } = useUIStore();
+  const { activeChatAgentId, setActiveChatAgent, missions } = useUIStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showAgentSelect, setShowAgentSelect] = useState(false);
+
+  // Check if current conversation has a mission awaiting approval
+  const missionAwaitingApproval = useMemo(() => {
+    if (!activeConversation) return null;
+    return Object.entries(missions).find(
+      ([, m]) => m.status === 'awaiting_approval'
+    )?.[0] || null;
+  }, [activeConversation, missions]);
 
   // Get the currently selected agent
   const selectedAgent = agents.find((a) => a.id === activeChatAgentId) || agents[0];
@@ -259,6 +267,29 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Mission Approval Bar */}
+          {missionAwaitingApproval && (
+            <div className="mx-3 mb-2 p-3 border border-amber-500/30 bg-amber-500/5 rounded-lg flex items-center justify-between gap-2">
+              <span className="text-sm text-amber-400">Mission awaiting approval</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSendMessage('approve')}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 rounded text-sm transition-colors"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleSendMessage('reject')}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded text-sm transition-colors"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Reject
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Input */}
           <ChatInput

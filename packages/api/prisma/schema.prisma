@@ -79,6 +79,8 @@ model Task {
   complexityReasoning  String?   @map("complexity_reasoning") @db.Text // Explanation of score
   errorCategory        String?   @map("error_category") @db.VarChar(50) // Error categorization for failures
 
+  missionId         String?  @map("mission_id")
+
   assignedAgent     Agent?          @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
   escalatedToAgent  Agent?          @relation("EscalatedAgent", fields: [escalatedToAgentId], references: [id])
   parentTask        Task?           @relation("SubTasks", fields: [parentTaskId], references: [id])
@@ -86,10 +88,12 @@ model Task {
   taskExecutions    TaskExecution[]
   executionLogs     ExecutionLog[]
   fileLocks         FileLock[]
+  mission           Mission?        @relation("MissionTasks", fields: [missionId], references: [id])
 
   @@index([status])
   @@index([requiredAgent])
   @@index([priority])
+  @@index([missionId])
   @@map("tasks")
 }
 
@@ -276,6 +280,32 @@ model TrainingDataset {
   @@index([humanReviewed])
   @@index([createdAt])
   @@map("training_datasets")
+}
+
+model Mission {
+  id              String    @id @default(uuid())
+  prompt          String    @db.Text
+  language        String    @default("python") @db.VarChar(20)
+  status          String    @default("decomposing") @db.VarChar(30)
+  conversationId  String?   @map("conversation_id")
+  autoApprove     Boolean   @default(false) @map("auto_approve")
+  plan            Json?
+  subtaskCount    Int       @default(0) @map("subtask_count")
+  completedCount  Int       @default(0) @map("completed_count")
+  failedCount     Int       @default(0) @map("failed_count")
+  reviewResult    Json?     @map("review_result")
+  reviewScore     Float?    @map("review_score")
+  totalCost       Decimal   @default(0) @map("total_cost") @db.Decimal(10, 6)
+  totalTimeMs     Int       @default(0) @map("total_time_ms")
+  error           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  completedAt     DateTime? @map("completed_at")
+  tasks           Task[]    @relation("MissionTasks")
+
+  @@index([status])
+  @@index([conversationId])
+  @@map("missions")
 }
 
 // Cross-task memory for agent learning

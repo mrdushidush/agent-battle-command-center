@@ -144,6 +144,19 @@ interface UIState {
   };
   updateBudget: (budget: Partial<UIState['budget']>) => void;
 
+  // Mission tracking
+  missions: Record<string, {
+    status: string;
+    prompt?: string;
+    subtaskCount?: number;
+    completedCount?: number;
+    failedCount?: number;
+    reviewScore?: number;
+    error?: string;
+  }>;
+  updateMission: (id: string, data: Partial<UIState['missions'][string]>) => void;
+  clearMissions: () => void;
+
   // Loading states
   isLoading: {
     tasks: boolean;
@@ -353,6 +366,17 @@ export const useUIStore = create<UIState>((set) => ({
     set((state) => ({
       budget: { ...state.budget, ...budget },
     })),
+
+  // Mission tracking
+  missions: {},
+  updateMission: (id, data) =>
+    set((state) => ({
+      missions: {
+        ...state.missions,
+        [id]: { ...state.missions[id], ...data },
+      },
+    })),
+  clearMissions: () => set({ missions: {} }),
 
   // Loading states
   isLoading: {

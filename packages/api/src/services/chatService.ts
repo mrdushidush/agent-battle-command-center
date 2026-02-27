@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { prisma } from '../db/client.js';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { Conversation, ChatMessage } from '../types/index.js';
+import type { OrchestratorService } from './orchestratorService.js';
 
 interface ChatStreamMessage {
   chunk?: string;
@@ -11,10 +12,19 @@ interface ChatStreamMessage {
 export class ChatService {
   private baseUrl: string;
   private io: SocketIOServer;
+  private orchestratorService: OrchestratorService | null = null;
 
   constructor(io: SocketIOServer) {
     this.baseUrl = config.agents.url;
     this.io = io;
+  }
+
+  /**
+   * Inject orchestrator service (called from index.ts after both are instantiated).
+   * Avoids circular dependency.
+   */
+  setOrchestratorService(service: OrchestratorService): void {
+    this.orchestratorService = service;
   }
 
   async createConversation(
@@ -94,6 +104,67 @@ export class ChatService {
       },
     });
 
+    // ── 1. Check for mission awaiting approval on this conversation ────
+    if (this.orchestratorService) {
+      const activeMission = await prisma.mission.findFirst({
+        where: { conversationId, status: 'awaiting_approval' },
+      });
+
+      if (activeMission) {
+        const normalized = content.trim().toLowerCase();
+        if (['approve', 'yes', 'lgtm', 'looks good'].includes(normalized)) {
+          await this.orchestratorService.approveMission(activeMission.id);
+        } else if (['reject', 'no', 'cancel'].includes(normalized)) {
+          await this.orchestratorService.rejectMission(activeMission.id, content);
+        } else {
+          await this.postNonStreamingMessage(
+            conversationId,
+            'Type **"approve"** to accept the mission, or **"reject"** to cancel it. You can also describe specific changes needed.',
+          );
+        }
+
+        // Update conversation timestamp
+        await prisma.conversation.update({
+          where: { id: conversationId },
+          data: { updatedAt: new Date() },
+        });
+        return;
+      }
+    }
+
+    // ── 2. CTO conversation → start new mission ────────────────────────
+    if (this.orchestratorService && conversation.agentId.startsWith('cto')) {
+      // Check if there's already an active mission on this conversation
+      const existingMission = await prisma.mission.findFirst({
+        where: {
+          conversationId,
+          status: { in: ['decomposing', 'executing', 'reviewing'] },
+        },
+      });
+
+      if (existingMission) {
+        await this.postNonStreamingMessage(
+          conversationId,
+          '⏳ A mission is already in progress on this conversation. Please wait for it to complete.',
+        );
+      } else {
+        await this.orchestratorService.startMission({
+          prompt: content,
+          conversationId,
+          autoApprove: false,
+        });
+      }
+
+      // Update conversation timestamp
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+      return;
+    }
+
+    // ── 3. Default: existing streaming chat (coder/qa agents) ──────────
+
     // Get task context if linked
     let taskContext: string | undefined;
     if (conversation.taskId) {
@@ -154,6 +225,29 @@ export class ChatService {
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { updatedAt: new Date() },
+    });
+  }
+
+  /**
+   * Post a non-streaming assistant message and emit via WebSocket.
+   */
+  private async postNonStreamingMessage(conversationId: string, content: string): Promise<void> {
+    const message = await prisma.chatMessage.create({
+      data: {
+        conversationId,
+        role: 'assistant',
+        content,
+      },
+    });
+
+    this.io.emit('chat_message_complete', {
+      type: 'chat_message_complete',
+      payload: {
+        conversationId,
+        messageId: message.id,
+        fullContent: content,
+      },
+      timestamp: new Date(),
     });
   }
 

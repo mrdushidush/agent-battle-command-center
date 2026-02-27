@@ -328,6 +328,50 @@ export function useSocket() {
       playWithDelay(() => playDecomposition('cto'));
     });
 
+    // Mission lifecycle events
+    socket.on('mission_started', (event: { payload: { id: string; status: string; prompt: string } }) => {
+      useUIStore.getState().updateMission(event.payload.id, {
+        status: event.payload.status as 'decomposing',
+        prompt: event.payload.prompt,
+      });
+      playWithDelay(() => playDecomposition('cto'));
+    });
+
+    socket.on('mission_decomposed', (event: { payload: { id: string; subtaskCount: number } }) => {
+      useUIStore.getState().updateMission(event.payload.id, {
+        status: 'executing',
+        subtaskCount: event.payload.subtaskCount,
+      });
+    });
+
+    socket.on('mission_subtask_completed', (event: { payload: { missionId: string; index: number; total: number; passed: boolean } }) => {
+      const { missionId, index, passed } = event.payload;
+      useUIStore.getState().updateMission(missionId, {
+        completedCount: index + 1,
+        failedCount: passed ? undefined : (useUIStore.getState().missions[missionId]?.failedCount || 0) + 1,
+      });
+    });
+
+    socket.on('mission_review_complete', (event: { payload: { missionId: string; review: { score: number; approved: boolean } } }) => {
+      useUIStore.getState().updateMission(event.payload.missionId, {
+        status: 'awaiting_approval',
+        reviewScore: event.payload.review.score,
+      });
+    });
+
+    socket.on('mission_approved', (event: { payload: { missionId: string } }) => {
+      useUIStore.getState().updateMission(event.payload.missionId, { status: 'approved' });
+      playWithDelay(() => playTaskCompleted('cto'));
+    });
+
+    socket.on('mission_failed', (event: { payload: { missionId: string; error: string } }) => {
+      useUIStore.getState().updateMission(event.payload.missionId, {
+        status: 'failed',
+        error: event.payload.error,
+      });
+      playWithDelay(() => playTaskFailed('cto'));
+    });
+
     socketRef.current = socket;
     setGlobalSocket(socket);
   }, []); // No dependencies - connect once

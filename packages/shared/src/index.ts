@@ -384,3 +384,87 @@ export interface ChatMessageCompleteEvent extends WSEvent<ChatStreamComplete> {
 export interface ChatErrorEvent extends WSEvent<ChatError> {
   type: 'chat_error';
 }
+
+// ── Mission Types ───────────────────────────────────────────────────────────
+
+export type MissionStatus =
+  | 'decomposing'
+  | 'executing'
+  | 'reviewing'
+  | 'awaiting_approval'
+  | 'approved'
+  | 'failed';
+
+export interface MissionSubtaskPlan {
+  title: string;
+  description: string;
+  fileName: string;
+  validationCommand: string;
+  complexity: number;
+  language: string;
+}
+
+export interface MissionReviewResult {
+  approved: boolean;
+  score: number;
+  summary: string;
+  findings: Array<{
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    file: string;
+    issue: string;
+    suggestion: string;
+  }>;
+}
+
+export interface Mission {
+  id: string;
+  prompt: string;
+  language: string;
+  status: MissionStatus;
+  conversationId: string | null;
+  autoApprove: boolean;
+  plan: MissionSubtaskPlan[] | null;
+  subtaskCount: number;
+  completedCount: number;
+  failedCount: number;
+  reviewResult: MissionReviewResult | null;
+  reviewScore: number | null;
+  totalCost: number;
+  totalTimeMs: number;
+  error: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+  tasks?: Task[];
+}
+
+export interface StartMissionRequest {
+  prompt: string;
+  language?: string;
+  autoApprove?: boolean;
+  waitForCompletion?: boolean;
+  conversationId?: string;
+}
+
+export interface MissionResponse {
+  id: string;
+  status: MissionStatus;
+  subtaskCount: number;
+  completedCount: number;
+  failedCount: number;
+  reviewScore: number | null;
+  totalCost: number;
+  totalTimeMs: number;
+  error: string | null;
+  files?: Record<string, string>;
+}
+
+// Mission WebSocket Events
+export type MissionWSEventType =
+  | 'mission_started'
+  | 'mission_decomposed'
+  | 'mission_subtask_started'
+  | 'mission_subtask_completed'
+  | 'mission_review_complete'
+  | 'mission_approved'
+  | 'mission_failed';

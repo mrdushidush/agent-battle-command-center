@@ -19,6 +19,7 @@ import { memoriesRouter } from './routes/memories.js';
 import { budgetRouter } from './routes/budget.js';
 import { validationRouter } from './routes/validation.js';
 import { battleClawRouter } from './routes/battle-claw.js';
+import { missionsRouter } from './routes/missions.js';
 import { setupWebSocket } from './websocket/handler.js';
 import { budgetService } from './services/budgetService.js';
 import { TaskQueueService } from './services/taskQueue.js';
@@ -30,6 +31,7 @@ import { SchedulerService } from './services/schedulerService.js';
 import { StuckTaskRecoveryService } from './services/stuckTaskRecovery.js';
 import { AsyncValidationService } from './services/asyncValidationService.js';
 import { BattleClawService } from './services/battleClawService.js';
+import { OrchestratorService } from './services/orchestratorService.js';
 import { mcpBridge } from './services/mcpBridge.js';
 import { requireApiKey } from './middleware/auth.js';
 import { standardRateLimiter } from './middleware/rateLimiter.js';
@@ -114,6 +116,12 @@ const battleClawService = new BattleClawService(prisma, io);
 app.set('battleClawService', battleClawService);
 console.log('Battle Claw service: enabled');
 
+// Initialize Orchestrator service (CTO mission-based decomposition & execution)
+const orchestratorService = new OrchestratorService(prisma, io);
+app.set('orchestratorService', orchestratorService);
+chatService.setOrchestratorService(orchestratorService);
+console.log('Orchestrator service: enabled');
+
 // Routes
 app.use('/api/tasks', tasksRouter);
 app.use('/api/agents', agentsRouter);
@@ -130,6 +138,7 @@ app.use('/api/memories', memoriesRouter);
 app.use('/api/budget', budgetRouter);
 app.use('/api/validation', validationRouter);
 app.use('/api/battle-claw', battleClawRouter);
+app.use('/api/missions', missionsRouter);
 
 // Health check
 app.get('/health', (req, res) => {

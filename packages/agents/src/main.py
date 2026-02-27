@@ -72,6 +72,22 @@ app.add_middleware(
 
 
 
+from src.orchestrator import decompose_prompt, review_results
+
+
+# ── Orchestration request/response models ────────────────────────────────────
+
+class DecomposeRequest(BaseModel):
+    prompt: str
+    language: str = "python"
+    context: str | None = None
+
+
+class ReviewRequest(BaseModel):
+    prompt: str
+    subtasks: list[dict]
+
+
 class ExecuteRequest(BaseModel):
     task_id: str
     agent_id: str
@@ -602,6 +618,26 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/orchestrate/decompose")
+async def orchestrate_decompose(request: DecomposeRequest):
+    """Decompose a user prompt into atomic subtasks using Sonnet."""
+    try:
+        subtasks = decompose_prompt(request.prompt, request.language, request.context)
+        return {"success": True, "subtasks": subtasks}
+    except Exception as e:
+        return {"success": False, "error": str(e), "subtasks": []}
+
+
+@app.post("/orchestrate/review")
+async def orchestrate_review(request: ReviewRequest):
+    """Review completed subtask results against original prompt."""
+    try:
+        result = review_results(request.prompt, request.subtasks)
+        return {"success": True, "review": result}
+    except Exception as e:
+        return {"success": False, "error": str(e), "review": {"approved": False, "score": 0, "summary": str(e), "findings": []}}
 
 
 @app.get("/health")

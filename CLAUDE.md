@@ -758,7 +758,70 @@ See "Auto-Retry Pipeline" section above for full details.
 **Remaining failure:** `flatten_list` — model uses list comprehension that doesn't handle
 mixed types (`[1, [2,3]]`). Persists through Ollama retry and Haiku escalation.
 
-### Phase 5: Small Apps & Landing Pages (NEXT)
+### Phase 5: CTO Mission Orchestrator (IMPLEMENTED Feb 27, 2026)
+
+**Purpose:** CTO (Sonnet) becomes a true orchestrator. User prompt → decompose → execute → review → approve.
+
+**Architecture:**
+```
+User Prompt (chat or API)
+    → OrchestratorService.startMission()
+    → POST agents:8000/orchestrate/decompose (Sonnet direct SDK)
+    → Create Task records (linked via missionId)
+    → Sequential execution: route → assign coder → execute → auto-retry
+    → POST agents:8000/orchestrate/review (Sonnet)
+    → Status → awaiting_approval (or autoApprove)
+```
+
+**New Files:**
+- `packages/agents/src/orchestrator.py` — Stateless decompose + review (Anthropic SDK)
+- `packages/api/src/services/orchestratorService.ts` — Mission lifecycle pipeline
+- `packages/api/src/routes/missions.ts` — REST endpoints
+
+**Modified Files:**
+- `packages/api/prisma/schema.prisma` — Mission model + Task.missionId
+- `packages/agents/src/main.py` — /orchestrate/decompose + /orchestrate/review routes
+- `packages/api/src/services/chatService.ts` — Mission-aware CTO routing + approval
+- `packages/api/src/index.ts` — Register orchestratorService + missions routes
+- `packages/shared/src/index.ts` — Mission types
+- `packages/ui/src/hooks/useSocket.ts` — Mission WebSocket events
+- `packages/ui/src/components/chat/ChatPanel.tsx` — Approval buttons
+- `packages/ui/src/api/client.ts` — missionsApi
+- `packages/ui/src/store/uiState.ts` — Mission state tracking
+- `D:\dev\battle-claw\scripts\execute.sh` — unchanged (Battle Claw remains the 3rd-party API)
+
+**DB: Mission Model:**
+```
+Mission { id, prompt, language, status, conversationId, autoApprove, plan (JSON),
+          subtaskCount, completedCount, failedCount, reviewResult, reviewScore,
+          totalCost, totalTimeMs, error, createdAt, updatedAt, completedAt }
+Task.missionId → Mission (optional FK)
+```
+
+**Statuses:** decomposing → executing → reviewing → awaiting_approval → approved | failed
+
+**Chat Integration:**
+- CTO conversations auto-start missions
+- "approve" / "reject" commands handled inline
+- Live progress: "[2/5] PASS: Create user model"
+
+**API Endpoints:**
+```
+POST   /api/missions              — Start mission (blocking or non-blocking)
+GET    /api/missions              — List missions
+GET    /api/missions/:id          — Get mission detail
+POST   /api/missions/:id/approve  — Approve
+POST   /api/missions/:id/reject   — Reject
+GET    /api/missions/:id/files    — Get generated files
+```
+
+**Blocking mode:** `waitForCompletion=true` polls until terminal state — replaces `/api/battle-claw/execute`.
+
+**Cost:** ~$0.04/mission (Sonnet decompose ~$0.02 + review ~$0.02 + Ollama FREE)
+
+**Test script:** `node scripts/test-mission.js`
+
+### Phase 5b: Small Apps & Landing Pages
 
 Graduate from single-function tasks to real deliverables:
 - Multi-file mini-projects (CTO decomposes → Coder builds → QA validates)
@@ -805,6 +868,12 @@ OpenClaw Agent → /battle-claw skill (index.mjs)
 
 **Deployment:** Localhost only. User runs ABCC + Ollama on their own machine via Docker.
 Requires 8GB+ VRAM GPU. Cloud-hosted option deferred to future phase.
+
+**TODO (next session):** Upgrade Battle Claw to use the full CTO mission pipeline internally:
+- `POST /api/battle-claw/execute` → calls `OrchestratorService.startMission(autoApprove=true, waitForCompletion=true)` instead of `BattleClawService.executeTask()`
+- Same API contract (send description, get code back), but multi-subtask decomposition under the hood
+- `BattleClawService` becomes a thin wrapper around `OrchestratorService`
+- Benefits: complex prompts get decomposed into subtasks, CTO review catches issues, higher quality output
 
 ### Backlog
 - **MCP Full Fix** - Complete MCP integration with all issues resolved
@@ -916,16 +985,30 @@ curl http://localhost:3001/api/queue/resources
 # Clear resource pool (reset stuck resources)
 curl -X POST http://localhost:3001/api/queue/resources/clear
 
-# Battle Claw - test execute endpoint
+# Mission - start (blocking, autoApprove)
+curl -X POST http://localhost:3001/api/missions \
+  -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
+  -d '{"prompt":"Create add and subtract functions","language":"python","autoApprove":true,"waitForCompletion":true}'
+
+# Mission - list
+curl http://localhost:3001/api/missions -H "X-API-Key: $API_KEY"
+
+# Mission - get detail
+curl http://localhost:3001/api/missions/MISSION_ID -H "X-API-Key: $API_KEY"
+
+# Mission - approve
+curl -X POST http://localhost:3001/api/missions/MISSION_ID/approve -H "X-API-Key: $API_KEY"
+
+# Mission - get generated files
+curl http://localhost:3001/api/missions/MISSION_ID/files -H "X-API-Key: $API_KEY"
+
+# Run mission test suite
+node scripts/test-mission.js
+
+# Battle Claw - execute (3rd party API for OpenClaw)
 curl -X POST http://localhost:3001/api/battle-claw/execute \
   -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
   -d '{"description":"Create a function that reverses a string","language":"python"}'
-
-# Battle Claw - health check
-curl http://localhost:3001/api/battle-claw/health -H "X-API-Key: $API_KEY"
-
-# Battle Claw - cumulative stats
-curl http://localhost:3001/api/battle-claw/stats -H "X-API-Key: $API_KEY"
 
 # Check backup status
 docker logs abcc-backup --tail 20

@@ -420,6 +420,60 @@ export interface CodeReviewStats {
   totalCost: string;
 }
 
+// Missions API
+export const missionsApi = {
+  start: (data: { prompt: string; language?: string; autoApprove?: boolean; waitForCompletion?: boolean; conversationId?: string }) =>
+    request<{ id: string; status: string }>('/missions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  list: (params?: { status?: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.limit) query.set('limit', String(params.limit));
+    return request<MissionSummary[]>(`/missions?${query}`);
+  },
+
+  get: (id: string) =>
+    request<MissionDetail>(`/missions/${id}`),
+
+  approve: (id: string) =>
+    request<{ id: string; status: string }>(`/missions/${id}/approve`, { method: 'POST' }),
+
+  reject: (id: string, reason?: string) =>
+    request<{ id: string; status: string }>(`/missions/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  getFiles: (id: string) =>
+    request<Record<string, string>>(`/missions/${id}/files`),
+};
+
+export interface MissionSummary {
+  id: string;
+  prompt: string;
+  language: string;
+  status: string;
+  subtaskCount: number;
+  completedCount: number;
+  failedCount: number;
+  reviewScore: number | null;
+  totalCost: number;
+  totalTimeMs: number;
+  error: string | null;
+  createdAt: string;
+  tasks: Array<{ id: string; title: string; status: string; complexity: number | null }>;
+}
+
+export interface MissionDetail extends MissionSummary {
+  plan: Array<{ title: string; description: string; file_name: string; validation_command: string; complexity: number; language: string }> | null;
+  reviewResult: { approved: boolean; score: number; summary: string; findings: Array<{ severity: string; file: string; issue: string; suggestion: string }> } | null;
+  autoApprove: boolean;
+  conversationId: string | null;
+}
+
 // Cost Metrics API
 export const costMetricsApi = {
   summary: () =>
