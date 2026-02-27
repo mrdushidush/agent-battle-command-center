@@ -217,7 +217,7 @@ export const useUIStore = create<UIState>((set) => ({
     })),
 
   // Chat state
-  activeChatAgentId: null,
+  activeChatAgentId: 'cto-01',
   activeConversationId: null,
   setActiveChatAgent: (agentId) => set({ activeChatAgentId: agentId }),
   setActiveConversation: (conversationId) => set({ activeConversationId: conversationId }),

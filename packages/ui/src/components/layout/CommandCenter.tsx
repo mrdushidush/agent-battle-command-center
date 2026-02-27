@@ -99,7 +99,7 @@ export function CommandCenter() {
 
         {/* Chat Panel */}
         {chatPanelOpen && (
-          <div className="w-80 border-l border-command-border">
+          <div className="w-[480px] border-l border-command-border">
             <ComponentErrorBoundary componentName="Chat Panel">
               <ChatPanel agents={agents} onClose={toggleChatPanel} />
             </ComponentErrorBoundary>
