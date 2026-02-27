@@ -25,6 +25,8 @@ export interface BattlefieldBuilding {
   repairFromDamage: number;
   /** Timestamp when repair started */
   repairStartTime: number;
+  /** Direction building faces toward expected agent approach */
+  facingDirection: 'E' | 'W';
 }
 
 /** Squad state for an agent working on a task */

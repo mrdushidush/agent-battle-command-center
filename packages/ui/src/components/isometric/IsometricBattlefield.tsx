@@ -326,18 +326,13 @@ export function IsometricBattlefield() {
           {/* Target buildings (tanks) — retreat away from attacker */}
           {buildings.map((b) => {
             const screen = worldToScreen(b.position[0], b.position[2], originX, originY);
-            // Determine direction: face toward attacking agent
-            // Sprites only have left (W) and right (E) variants
-            let dir: 'N' | 'E' | 'S' | 'W' = 'W';
+            // Direction comes pre-computed from useBattlefieldState (same hash as agent offset)
+            const dir = b.facingDirection;
             let retreatSx = 0;
             let retreatSy = 0;
             if (b.underSiege) {
               const squad = squads.find((s) => s.targetTaskId === b.taskId);
               if (squad) {
-                // Face toward agent: E if agent is to the right, W if to the left
-                const agentScreen = worldToScreen(squad.targetPosition[0], squad.targetPosition[2], originX, originY);
-                dir = agentScreen.sx > screen.sx ? 'E' : 'W';
-
                 const dx = squad.targetPosition[0] - b.position[0];
                 const dz = squad.targetPosition[2] - b.position[2];
                 // Retreat: target drifts away from attacker as damage increases

@@ -80,6 +80,18 @@ export function useBattlefieldState() {
       const z = 0;
       existingPositions.push([x, z]);
 
+      // Pre-compute which direction the agent will approach from (same hash as squad offset)
+      let taskHash = 0;
+      for (let i = 0; i < task.id.length; i++) {
+        taskHash = ((taskHash << 5) - taskHash) + task.id.charCodeAt(i);
+        taskHash |= 0;
+      }
+      const agentAngle = (Math.abs(taskHash) % 8) * (Math.PI / 4) + Math.PI / 8;
+      const agentOffsetX = Math.cos(agentAngle) * 5;
+      const agentOffsetZ = Math.sin(agentAngle) * 5;
+      // In isometric, screen-x = (wx - wz) * TILE_HW — agent is right of building when offsetX > offsetZ
+      const facingDirection: 'E' | 'W' = (agentOffsetX - agentOffsetZ) > 0 ? 'E' : 'W';
+
       const assignedAgent = task.assignedAgentId
         ? agents.find((a) => a.id === task.assignedAgentId) ?? null
         : null;
@@ -112,6 +124,7 @@ export function useBattlefieldState() {
         repairing,
         repairFromDamage: activeRepair?.fromDamage ?? 0,
         repairStartTime: activeRepair?.startTime ?? 0,
+        facingDirection,
       };
     });
 
