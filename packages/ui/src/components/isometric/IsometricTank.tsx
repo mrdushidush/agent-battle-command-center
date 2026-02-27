@@ -60,13 +60,17 @@ export const IsometricTank = memo(function IsometricTank({ squad, originX, origi
     [squad.targetPosition[0], squad.targetPosition[2], originX, originY],
   );
 
-  // Direction: face toward the building (position = building, targetPosition = agent offset)
-  const direction = useMemo(() => {
+  // Direction: face toward the building — simple horizontal check for E/W sprites
+  const direction = useMemo((): Direction => {
     const buildingScreen = worldToScreen(squad.position[0], squad.position[2], originX, originY);
+    if (squad.tier === 'coder') {
+      // Coder only has E/W sprites — just check horizontal
+      return buildingScreen.sx > screen.sx ? 'E' : 'W';
+    }
     const dx = buildingScreen.sx - screen.sx;
     const dy = buildingScreen.sy - screen.sy;
     return getDirection(dx, dy);
-  }, [squad.position[0], squad.position[2], screen.sx, screen.sy, originX, originY]);
+  }, [squad.position[0], squad.position[2], screen.sx, screen.sy, originX, originY, squad.tier]);
 
   const spriteUrl = getSpriteUrl(squad.tier, direction, squad.firing, !squad.firing);
 

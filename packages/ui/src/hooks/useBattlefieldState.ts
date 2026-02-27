@@ -4,6 +4,7 @@ import { GRID_RANGE } from '../components/isometric/isoProjection';
 import {
   getBuildingTier,
   getAgentTier,
+  hashTaskPosition,
   BUILDING_TIERS,
   type BattlefieldBuilding,
   type BattlefieldSquad,
@@ -39,11 +40,11 @@ export function useBattlefieldState() {
     [tasks, agents],
   );
 
-  // Only show ONE active task at a time (assigned or in_progress)
-  const visibleTasks = useMemo(() => {
-    const active = tasks.filter((t) => ['assigned', 'in_progress'].includes(t.status));
-    return active.length > 0 ? [active[0]] : [];
-  }, [tasks]);
+  // Show all non-completed tasks as buildings on the battlefield
+  const visibleTasks = useMemo(
+    () => tasks.filter((t) => !['completed', 'failed', 'aborted'].includes(t.status)),
+    [tasks],
+  );
 
   // Recently completed/failed tasks (for destruction animations) - last 10 seconds
   const recentlyFinished = useMemo(() => {
@@ -75,9 +76,8 @@ export function useBattlefieldState() {
       const tier = getBuildingTier(complexity);
       const tierConfig = BUILDING_TIERS[tier];
 
-      // Only 1 task on screen — place building dead center
-      const x = 0;
-      const z = 0;
+      // Spread buildings across center area with spacing
+      const [x, z] = hashTaskPosition(task.id, GRID_RANGE, tierConfig.scale * 1.5, existingPositions);
       existingPositions.push([x, z]);
 
       // Pre-compute which direction the agent will approach from (same hash as squad offset)
