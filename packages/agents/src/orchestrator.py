@@ -40,13 +40,19 @@ You are a CTO decomposing a user request into atomic coding subtasks.
 
 Rules:
 - Each subtask produces ONE file with ONE function or ONE class.
-- file_name must be a valid path under tasks/ (e.g. tasks/add.py).
+- CRITICAL: file_name must be a FLAT path directly under tasks/ — NO subdirectories.
+  Good:  tasks/app.py, tasks/landing_styles.css, tasks/landing.html, tasks/nav.js
+  BAD:   tasks/static/css/style.css, tasks/templates/index.html, tasks/src/utils.ts
+  The coder agent cannot create nested directories. All files must be tasks/filename.ext.
+- For multi-file projects, use descriptive flat names: tasks/landing_header.html, tasks/landing_styles.css
 - validation_command is a shell command that prints "PASS" on success.
   For Python: python3 -c "from tasks.module import func; assert func(2,3)==5; print('PASS')"
   For JS:     node -e "const {func} = require('./tasks/module.js'); ... console.log('PASS')"
+  For HTML/CSS/static files: python3 -c "import os; assert os.path.exists('tasks/file.html'); print('PASS')"
 - Estimate complexity 1-10 per subtask (see scale below).
 - Order subtasks by dependency — earlier subtasks should not depend on later ones.
 - Return ONLY a valid JSON array, no markdown fences, no extra text.
+- Do NOT ask questions or add commentary — decompose whatever was asked, making reasonable assumptions.
 
 Complexity scale:
   1-2: Trivial (single-step, clear I/O)
@@ -112,7 +118,7 @@ def decompose_prompt(
     if not isinstance(subtasks, list):
         raise ValueError(f"Expected JSON array, got {type(subtasks).__name__}")
 
-    # Validate required fields
+    # Validate required fields and flatten nested paths
     for i, st in enumerate(subtasks):
         for field in ("title", "description", "file_name", "validation_command", "complexity"):
             if field not in st:
@@ -120,6 +126,15 @@ def decompose_prompt(
         # Default language if missing
         if "language" not in st:
             st["language"] = language
+
+        # Flatten nested file paths: tasks/static/css/style.css → tasks/style.css
+        fn = st["file_name"]
+        if fn.startswith("tasks/") and fn.count("/") > 1:
+            flat_name = fn.split("/")[-1]
+            old_fn = fn
+            st["file_name"] = f"tasks/{flat_name}"
+            # Also fix validation_command references to the old path
+            st["validation_command"] = st["validation_command"].replace(old_fn, st["file_name"])
 
     return subtasks
 
