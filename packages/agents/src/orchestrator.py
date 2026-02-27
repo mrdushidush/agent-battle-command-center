@@ -96,6 +96,18 @@ def decompose_prompt(
         lines = [l for l in lines if not l.strip().startswith("```")]
         raw = "\n".join(lines).strip()
 
+    # If response contains conversational text before JSON, extract the JSON array.
+    # Sonnet sometimes prepends questions/commentary before the actual JSON output.
+    if not raw.startswith("["):
+        bracket_idx = raw.find("\n[")
+        if bracket_idx != -1:
+            raw = raw[bracket_idx + 1:].strip()
+        else:
+            raise ValueError(
+                "Response did not contain a JSON array. Model returned conversational text. "
+                "Try rephrasing as a concrete coding task."
+            )
+
     subtasks = json.loads(raw)
     if not isinstance(subtasks, list):
         raise ValueError(f"Expected JSON array, got {type(subtasks).__name__}")
