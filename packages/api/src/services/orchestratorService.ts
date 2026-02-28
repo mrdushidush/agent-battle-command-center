@@ -54,9 +54,12 @@ interface MissionFiles {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const AGENTS_URL = config.agents.url;
-const DECOMPOSE_TIMEOUT_MS = 60_000;
-const REVIEW_TIMEOUT_MS = 60_000;
+const DECOMPOSE_TIMEOUT_MS = parseInt(process.env.DECOMPOSE_TIMEOUT_MS || '300000', 10);  // 5 min default
+const REVIEW_TIMEOUT_MS = parseInt(process.env.REVIEW_TIMEOUT_MS || '300000', 10);        // 5 min default
 const SUBTASK_TIMEOUT_MS = 600_000; // 10 min per subtask
+const SUBTASK_REST_DELAY_MS = 3_000;     // 3s rest between subtasks (prevents Ollama context pollution)
+const SUBTASK_EXTENDED_REST_MS = 8_000;  // 8s extended rest every 5th subtask
+const SUBTASK_REST_EVERY_N = 5;          // Trigger extended rest interval
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -173,7 +176,17 @@ export class OrchestratorService {
 
       for (let i = 0; i < taskIds.length; i++) {
         const taskId = taskIds[i];
-        const plan = subtasks[i];
+        const plan = { ...subtasks[i] };  // Clone so we can augment description
+
+        // ── Fix 4: Pass inter-subtask context ────────────────────────
+        // Append code from completed subtasks so later files can reference earlier ones
+        const prevContext = results
+          .filter((r) => r.validation_passed && r.code)
+          .map((r) => `--- ${r.file_name} ---\n${r.code}`)
+          .join('\n\n');
+        if (prevContext) {
+          plan.description += `\n\nAlready-written files (reference these, do NOT rewrite):\n${prevContext}`;
+        }
 
         this.emitMissionEvent('mission_subtask_started', {
           missionId,
@@ -216,6 +229,15 @@ export class OrchestratorService {
             mission.conversationId,
             `${icon} [${i + 1}/${taskIds.length}] ${result.validation_passed ? 'PASS' : 'FAIL'}: ${plan.title}`,
           );
+        }
+
+        // ── Fix 2: Rest delays between subtasks ──────────────────────
+        // Prevents Ollama context pollution that causes syntax errors in later subtasks
+        if (i < taskIds.length - 1) {
+          const isExtendedRest = (i + 1) % SUBTASK_REST_EVERY_N === 0;
+          const restMs = isExtendedRest ? SUBTASK_EXTENDED_REST_MS : SUBTASK_REST_DELAY_MS;
+          console.log(`[Orchestrator] Subtask ${i + 1}/${taskIds.length} done, resting ${restMs}ms${isExtendedRest ? ' (extended)' : ''}`);
+          await new Promise((resolve) => setTimeout(resolve, restMs));
         }
       }
 

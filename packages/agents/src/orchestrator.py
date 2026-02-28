@@ -11,6 +11,7 @@ Called exactly twice per mission: once to decompose, once to review.
 
 import json
 import os
+import re
 from typing import Any
 
 import anthropic
@@ -39,7 +40,10 @@ DECOMPOSE_SYSTEM = """\
 You are a CTO decomposing a user request into atomic coding subtasks.
 
 Rules:
-- Each subtask produces ONE file with ONE function or ONE class.
+- Maximum 5 subtasks per mission. Prefer fewer, larger subtasks over many small ones.
+- For web projects: combine HTML structure + CSS into a single file where possible.
+  Example: one tasks/landing.html with inline <style> is better than separate HTML + CSS files.
+- Each subtask produces ONE file with ONE function, ONE class, or ONE complete page/component.
 - CRITICAL: file_name must be a FLAT path directly under tasks/ — NO subdirectories.
   Good:  tasks/app.py, tasks/landing_styles.css, tasks/landing.html, tasks/nav.js
   BAD:   tasks/static/css/style.css, tasks/templates/index.html, tasks/src/utils.ts
@@ -105,9 +109,9 @@ def decompose_prompt(
     # If response contains conversational text before JSON, extract the JSON array.
     # Sonnet sometimes prepends questions/commentary before the actual JSON output.
     if not raw.startswith("["):
-        bracket_idx = raw.find("\n[")
-        if bracket_idx != -1:
-            raw = raw[bracket_idx + 1:].strip()
+        match = re.search(r'\[', raw)
+        if match:
+            raw = raw[match.start():]
         else:
             raise ValueError(
                 "Response did not contain a JSON array. Model returned conversational text. "
@@ -117,6 +121,12 @@ def decompose_prompt(
     subtasks = json.loads(raw)
     if not isinstance(subtasks, list):
         raise ValueError(f"Expected JSON array, got {type(subtasks).__name__}")
+
+    # Hard cap: truncate to 7 subtasks max (prompt says 5, but allow small overflow)
+    MAX_SUBTASKS = 7
+    if len(subtasks) > MAX_SUBTASKS:
+        print(f"[Orchestrator] WARNING: {len(subtasks)} subtasks exceeds cap of {MAX_SUBTASKS}, truncating")
+        subtasks = subtasks[:MAX_SUBTASKS]
 
     # Validate required fields and flatten nested paths
     for i, st in enumerate(subtasks):
