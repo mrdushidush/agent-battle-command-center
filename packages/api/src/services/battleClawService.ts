@@ -20,6 +20,7 @@ import { ExecutorService } from './executor.js';
 import { AutoRetryService } from './autoRetryService.js';
 import { calculateTotalCost } from './costCalculator.js';
 import { calculateSavings, type CostSavings } from './costSavingsCalculator.js';
+import { generateMissionZip } from './zipService.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export interface BattleClawRequest {
   fileName?: string;
   validationCommand?: string;
   maxTimeoutMs?: number;
+  includeZip?: boolean;
 }
 
 export interface BattleClawResponse {
@@ -49,6 +51,7 @@ export interface BattleClawResponse {
     timeMs: number;
   };
   cost: CostSavings;
+  zipBase64?: string;
   error?: string;
 }
 
@@ -237,6 +240,29 @@ export class BattleClawService {
         };
       }
 
+      // Generate zip if requested and files exist
+      let zipBase64: string | undefined;
+      if (request.includeZip && Object.keys(files).length > 0) {
+        try {
+          const zipBuffer = await generateMissionZip(files, {
+            missionId: task.id,
+            prompt: request.description,
+            language: request.language,
+            reviewScore: null,
+            totalCost: savings.actualCostUSD,
+            totalTimeMs: elapsed,
+            subtaskCount: 1,
+            completedCount: validated ? 1 : 0,
+            failedCount: validated ? 0 : 1,
+            plan: null,
+            taskStatuses: {},
+          });
+          zipBase64 = zipBuffer.toString('base64');
+        } catch {
+          // Zip generation is best-effort
+        }
+      }
+
       return {
         success: validated,
         taskId: task.id,
@@ -253,6 +279,7 @@ export class BattleClawService {
           timeMs: elapsed,
         },
         cost: savings,
+        zipBase64,
         error: validated ? undefined : 'Validation failed after retries',
       };
     } catch (error) {

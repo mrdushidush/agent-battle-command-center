@@ -449,6 +449,36 @@ export const missionsApi = {
 
   getFiles: (id: string) =>
     request<Record<string, string>>(`/missions/${id}/files`),
+
+  download: async (id: string) => {
+    const url = `${API_BASE}/missions/${id}/download`;
+    const headers: Record<string, string> = {};
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (apiKey) headers['X-API-Key'] = apiKey;
+
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Download failed' }));
+      throw new Error(err.error || `HTTP ${response.status}`);
+    }
+
+    const blob = await response.blob();
+
+    // Extract filename from Content-Disposition header
+    const disposition = response.headers.get('Content-Disposition');
+    const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
+    const filename = filenameMatch?.[1] || `mission-${id.slice(0, 8)}.zip`;
+
+    // Trigger browser download
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(objectUrl);
+  },
 };
 
 export interface MissionSummary {

@@ -26,6 +26,7 @@ const executeSchema = z.object({
   fileName: z.string().max(200).optional(),
   validationCommand: z.string().max(2000).optional(),
   maxTimeoutMs: z.number().min(5000).max(300000).optional(),
+  includeZip: z.boolean().default(false).optional(),
 });
 
 battleClawRouter.post('/execute', asyncHandler(async (req, res) => {

@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle, XCircle, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, ChevronRight, AlertTriangle, Download } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { missionsApi } from '../../api/client';
 import { useState } from 'react';
@@ -63,6 +63,17 @@ export function MissionProgressTracker(_props: MissionProgressTrackerProps) {
       await missionsApi.reject(missionId);
     } catch {
       // Fallback handled elsewhere
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDownload = async () => {
+    setActionLoading('download');
+    try {
+      await missionsApi.download(missionId);
+    } catch {
+      // Download error — silent
     } finally {
       setActionLoading(null);
     }
@@ -138,7 +149,7 @@ export function MissionProgressTracker(_props: MissionProgressTrackerProps) {
         </div>
       )}
 
-      {/* Approve/Reject Buttons */}
+      {/* Approve/Reject/Download Buttons */}
       {mission.status === 'awaiting_approval' && (
         <div className="px-3 pb-2 flex items-center gap-2">
           <button
@@ -165,6 +176,18 @@ export function MissionProgressTracker(_props: MissionProgressTrackerProps) {
             )}
             Reject
           </button>
+          <button
+            onClick={handleDownload}
+            disabled={actionLoading !== null}
+            className="flex items-center gap-1.5 px-4 py-1.5 ml-auto bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {actionLoading === 'download' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            Download ZIP
+          </button>
         </div>
       )}
 
@@ -178,9 +201,23 @@ export function MissionProgressTracker(_props: MissionProgressTrackerProps) {
 
       {/* Complete indicator */}
       {isComplete && (
-        <div className="px-3 pb-2 flex items-center gap-1.5 text-xs text-green-400">
-          <CheckCircle className="w-3.5 h-3.5" />
-          <span className="font-medium">Mission complete</span>
+        <div className="px-3 pb-2 flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-green-400">
+            <CheckCircle className="w-3.5 h-3.5" />
+            <span className="font-medium">Mission complete</span>
+          </div>
+          <button
+            onClick={handleDownload}
+            disabled={actionLoading !== null}
+            className="flex items-center gap-1 ml-auto px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded text-xs font-medium transition-colors disabled:opacity-50"
+          >
+            {actionLoading === 'download' ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
+            Download ZIP
+          </button>
         </div>
       )}
     </div>
