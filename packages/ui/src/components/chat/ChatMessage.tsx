@@ -1,4 +1,4 @@
-import { User, Bot } from 'lucide-react';
+import { User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatRole } from '@abcc/shared';
@@ -9,7 +9,40 @@ interface ChatMessageProps {
   content: string;
   isStreaming?: boolean;
   timestamp?: Date;
+  agentType?: 'coder' | 'qa' | 'cto';
 }
+
+// Military rank icons as SVG components
+function GeneralStar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2l2.9 6.3L22 9.2l-5 4.9 1.2 6.9L12 17.8l-6.2 3.2L7 14.1 2 9.2l7.1-0.9L12 2z" />
+    </svg>
+  );
+}
+
+function MajorChevrons({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="4 15 12 9 20 15" />
+      <polyline points="4 20 12 14 20 20" />
+    </svg>
+  );
+}
+
+function PrivateChevron({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="4 18 12 10 20 18" />
+    </svg>
+  );
+}
+
+const RANK_CONFIG = {
+  cto: { Icon: GeneralStar, color: 'text-hud-amber', bg: 'bg-hud-amber/20', label: 'General' },
+  qa: { Icon: MajorChevrons, color: 'text-hud-green', bg: 'bg-hud-green/20', label: 'Major' },
+  coder: { Icon: PrivateChevron, color: 'text-hud-blue', bg: 'bg-hud-blue/20', label: 'Private' },
+} as const;
 
 const markdownComponents: Components = {
   h1: ({ children }) => (
@@ -88,21 +121,25 @@ const markdownComponents: Components = {
   hr: () => <hr className="border-command-border my-3" />,
 };
 
-export function ChatMessage({ role, content, isStreaming, timestamp }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, timestamp, agentType }: ChatMessageProps) {
   const isUser = role === 'user';
+  const rank = !isUser && agentType ? RANK_CONFIG[agentType] : null;
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
       <div
         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser ? 'bg-hud-blue/20' : 'bg-hud-green/20'
+          isUser ? 'bg-hud-blue/20' : rank?.bg || 'bg-hud-green/20'
         }`}
+        title={rank?.label}
       >
         {isUser ? (
           <User className="w-4 h-4 text-hud-blue" />
+        ) : rank ? (
+          <rank.Icon className={`w-4 h-4 ${rank.color}`} />
         ) : (
-          <Bot className="w-4 h-4 text-hud-green" />
+          <PrivateChevron className="w-4 h-4 text-hud-green" />
         )}
       </div>
 

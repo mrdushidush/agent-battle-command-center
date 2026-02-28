@@ -269,6 +269,7 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.createdAt}
+                agentType={msg.role === 'assistant' ? selectedAgent?.type as 'coder' | 'qa' | 'cto' : undefined}
               />
             ))}
             {streamingMessage && streamingMessage.isStreaming && (
@@ -276,6 +277,7 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
                 role="assistant"
                 content={streamingMessage.content}
                 isStreaming
+                agentType={selectedAgent?.type as 'coder' | 'qa' | 'cto'}
               />
             )}
             <div ref={messagesEndRef} />
