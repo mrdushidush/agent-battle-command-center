@@ -527,6 +527,7 @@ packages/
 │       ├── resourcePool.ts   # Parallel execution resource management
 │       ├── battleClawService.ts    # OpenClaw single-call orchestration (NEW)
 │       ├── costSavingsCalculator.ts # Cloud equivalent savings (NEW)
+│       ├── zipService.ts        # Mission ZIP bundle generation
 │       └── trainingDataService.ts
 ├── agents/src/
 │   ├── agents/
@@ -776,6 +777,7 @@ User Prompt (chat or API)
 **New Files:**
 - `packages/agents/src/orchestrator.py` — Stateless decompose + review (Anthropic SDK)
 - `packages/api/src/services/orchestratorService.ts` — Mission lifecycle pipeline
+- `packages/api/src/services/zipService.ts` — ZIP bundle generation (jszip) + README template
 - `packages/api/src/routes/missions.ts` — REST endpoints
 
 **Modified Files:**
@@ -813,6 +815,7 @@ GET    /api/missions/:id          — Get mission detail
 POST   /api/missions/:id/approve  — Approve
 POST   /api/missions/:id/reject   — Reject
 GET    /api/missions/:id/files    — Get generated files
+GET    /api/missions/:id/download — Download ZIP bundle (code + README)
 ```
 
 **Blocking mode:** `waitForCompletion=true` polls until terminal state — replaces `/api/battle-claw/execute`.
@@ -1002,6 +1005,9 @@ curl -X POST http://localhost:3001/api/missions/MISSION_ID/approve -H "X-API-Key
 # Mission - get generated files
 curl http://localhost:3001/api/missions/MISSION_ID/files -H "X-API-Key: $API_KEY"
 
+# Mission - download ZIP bundle
+curl -o mission.zip http://localhost:3001/api/missions/MISSION_ID/download -H "X-API-Key: $API_KEY"
+
 # Run mission test suite
 node scripts/test-mission.js
 
@@ -1009,6 +1015,11 @@ node scripts/test-mission.js
 curl -X POST http://localhost:3001/api/battle-claw/execute \
   -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
   -d '{"description":"Create a function that reverses a string","language":"python"}'
+
+# Battle Claw - execute with ZIP (returns zipBase64 in response)
+curl -X POST http://localhost:3001/api/battle-claw/execute \
+  -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
+  -d '{"description":"Create a function that reverses a string","language":"python","includeZip":true}'
 
 # Check backup status
 docker logs abcc-backup --tail 20
