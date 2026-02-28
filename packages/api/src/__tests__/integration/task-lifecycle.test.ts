@@ -103,6 +103,7 @@ const createTask = (overrides: Partial<Task> = {}): Task => ({
   complexitySource: null,
   complexityReasoning: null,
   errorCategory: null,
+  missionId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
