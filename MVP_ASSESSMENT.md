@@ -1,6 +1,6 @@
 # Agent Battle Command Center - Full Architecture Assessment
 
-**Date:** 2026-02-06 (Updated: 2026-02-27 — v0.8.0: CTO Mission Orchestrator)
+**Date:** 2026-02-06 (Updated: 2026-02-28 — v0.8.1: Chat UI/UX Overhaul)
 **Assessor:** Software Architecture Review (Claude Sonnet 4.6)
 **Codebase Snapshot:** main branch, clean working tree
 **Previous Score:** 7.2 / 10 (Strong Alpha, Pre-MVP)
@@ -15,12 +15,12 @@ The Agent Battle Command Center (ABCC) is a **multi-agent AI orchestration platf
 
 Since the initial assessment earlier today, **significant improvements** have been made across security, testing, error handling, and infrastructure. Multiple critical and high-severity items from the original assessment have been addressed.
 
-### Overall Score: **8.8 / 10** (Strong MVP)
+### Overall Score: **8.9 / 10** (Strong MVP)
 
 | Category | Previous | Current | Delta | Status |
 |----------|----------|---------|-------|--------|
-| Core Architecture | 8/10 | 9/10 | +1.0 | Dynamic context routing, C9→Ollama |
-| Feature Completeness | 7/10 | 8/10 | +1.0 | Settings modal, Flow minimap, Validation UI |
+| Core Architecture | 8/10 | 9/10 | +1.0 | Dynamic context routing, CTO orchestrator |
+| Feature Completeness | 7/10 | 8.5/10 | +1.5 | Chat overhaul, Mission UX, Markdown rendering |
 | Code Quality | 6.5/10 | 7/10 | +0.5 | Auth middleware, error boundaries |
 | Test Coverage | 3/10 | 5/10 | +2.0 | 10 API tests + 2 Python test suites |
 | Documentation | 7/10 | 7.5/10 | +0.5 | CHANGELOG exists, LICENSE added |
@@ -28,7 +28,7 @@ Since the initial assessment earlier today, **significant improvements** have be
 | DevOps / CI | 7/10 | 8.5/10 | +1.5 | Docker Hub publishing, CI/CD, backup healthy |
 | Community Readiness | 4/10 | 7/10 | +3.0 | Docker Hub, setup script, README, LICENSE |
 
-**Score improvement: +1.6 points (7.2 -> 8.8)**
+**Score improvement: +1.7 points (7.2 -> 8.9)**
 
 ---
 
@@ -106,7 +106,7 @@ Since the initial assessment earlier today, **significant improvements** have be
 - Global `os.environ` for request context (not thread-safe)
 - `api_credits_used: 0.1` placeholder still returns hardcoded value
 
-### 2.5 UI (8/10, was 7.5/10)
+### 2.5 UI (8.5/10, was 8/10)
 
 **Improvements:**
 - **Error boundaries implemented** — Two components:
@@ -124,6 +124,33 @@ Since the initial assessment earlier today, **significant improvements** have be
   - Zustand `validationStatus` map for real-time per-task tracking
   - `validationApi` client with `getStatus`, `getResult`, `triggerRetry`, `getRetryResults`
   - Tasks created from the UI now get the same validation + auto-retry treatment as stress test tasks
+- **NEW: Chat UI/UX Overhaul — CTO-First Mission Experience** (Feb 28, 2026):
+  - **Wider chat panel** — `w-80` (320px) → `w-[480px]` for comfortable reading
+  - **Markdown rendering** — `react-markdown` + `remark-gfm` with military-themed component overrides:
+    - Code blocks: `command-bg` bg, `command-border` outline, `hud-green/90` text
+    - Inline code: `command-accent` bg, `hud-amber` text
+    - Headings: `font-display` (Orbitron), `hud-green`
+    - Links: `hud-blue`, underline, `target="_blank"`
+    - Blockquotes: left `hud-amber/50` border
+    - Tables, lists, bold, italic — all styled for military theme
+  - **Mission Progress Tracker** (`MissionProgressTracker.tsx`) — replaces simple approval bar:
+    - 5-stage pipeline: Decomposing → Executing → Reviewing → Approval → Complete
+    - Active stage: amber bg with spinning Loader2 icon
+    - Past stages: green CheckCircle, failed: red XCircle
+    - Subtask progress bar during executing stage (e.g., "2/5 subtasks")
+    - Review score display (color-coded: green ≥7, amber ≥5, red <5)
+    - Approve/Reject buttons with loading state, calling `missionsApi` directly
+    - Error display with AlertTriangle on failure
+  - **CTO Welcome Hero** (`CTOWelcome.tsx`) — shown when chat opens with no conversations:
+    - Terminal icon in amber circle
+    - "MISSION BRIEFING" heading (Orbitron)
+    - "Describe what you want to build..." description
+    - 3 example mission buttons (clickable → auto-sends message)
+  - **CTO-First Default** — `activeChatAgentId` defaults to `'cto-01'` (was `null`)
+  - **Header rebrand** — "Chat" → "Mission Control" with Crosshair icon
+  - **Compact agent selector** — moved from full-width dropdown to inline button in header
+  - **Input placeholder** — "What do you want to build?" (was generic)
+  - **Conversation titles** — "Untitled mission" (was "Untitled conversation")
 
 **Remaining Concerns:**
 - Zero UI tests
@@ -436,6 +463,12 @@ The system has crossed the MVP threshold. All critical blockers from the previou
 1. ~~Validation pipeline UI integration~~ **DONE** — `validationCommand` field in CreateTaskModal, real-time validation status in TaskDetail/TaskCard via WebSocket, validation API client, Zustand state tracking
 2. ~~UI parity with stress tests~~ **DONE** — Tasks created from dashboard now get identical validation + auto-retry pipeline treatment as programmatic stress test tasks
 
+### Completed (2026-02-28)
+1. ~~Chat UI/UX Overhaul~~ **DONE** — Wider panel (480px), ReactMarkdown with military-themed components, MissionProgressTracker (5-stage pipeline), CTOWelcome hero, CTO-first default agent, compact header rebrand
+2. ~~Orchestrator JSON parsing fix~~ **DONE** — Extract JSON array from Sonnet responses with leading conversational text
+3. ~~Flat file path enforcement~~ **DONE** — DECOMPOSE_SYSTEM prompt updated + runtime path flattening for decomposed subtasks
+4. ~~First real mission test~~ **DONE** — BMBY CRM landing page: 3 files (HTML + CSS + JS), ~4,500 tokens generated, ~$0.60 total cost (Sonnet decompose + review + Ollama coding)
+
 ### Do Next (This Week)
 1. Purge coder-02 from agent registry (30 min)
 2. Add E2E tests (Playwright)
@@ -456,18 +489,29 @@ Updated Assessment (Evening):  8.1 / 10 (MVP Ready)
 Docker Hub Update (Feb 12):    8.5 / 10 (Strong MVP)
 Dynamic Context (Feb 18):      8.7 / 10 (Strong MVP)
 Validation UI (Feb 22):        8.8 / 10 (Strong MVP)
+Chat UI Overhaul (Feb 28):     8.9 / 10 (Strong MVP)
                                ─────────
-                 Total Delta: +1.6 points
+                 Total Delta: +1.7 points
 
 Key Improvements (cumulative):
   Community:    4.0 → 7.0  (+3.0)  ███████████████
   Security:     5.0 → 7.5  (+2.5)  ████████████▌
   Testing:      3.0 → 5.0  (+2.0)  ██████████
   DevOps:       7.0 → 8.5  (+1.5)  ███████▌
+  Features:     7.0 → 8.5  (+1.5)  ███████▌
   Architecture: 8.0 → 9.0  (+1.0)  █████
-  Features:     7.0 → 8.0  (+1.0)  █████
   Code Quality: 6.5 → 7.0  (+0.5)  ██▌
   Documentation:7.0 → 7.5  (+0.5)  ██▌
+
+Feb 28 Improvements:
+  Features: 8.0 → 8.5  (+0.5)  Chat UI/UX Overhaul — CTO-First Mission Experience
+    - Wider panel: 320px → 480px for comfortable markdown reading
+    - ReactMarkdown: military-themed code blocks, headings, links, blockquotes
+    - MissionProgressTracker: 5-stage pipeline with subtask progress bar
+    - CTOWelcome: hero screen with example missions (calculator, todo, utils)
+    - CTO-first: default agent is CTO, "Mission Control" branding
+    - Orchestrator fixes: JSON extraction from conversational responses, flat file paths
+    - First real mission: BMBY CRM landing page (3 files, ~4,500 tokens, ~$0.60)
 
 Feb 22 Improvements:
   Features: 7.5 → 8.0  (+0.5)  Validation pipeline surfaced in UI
@@ -492,8 +536,8 @@ Feb 18 Improvements:
 
 ---
 
-*Assessment updated: 2026-02-25 (Battle Claw v2 — Real OpenClaw Skill Format Rewrite)*
-*Project version: v0.4.6+*
+*Assessment updated: 2026-02-28 (Chat UI/UX Overhaul — CTO-First Mission Experience)*
+*Project version: v0.8.1+*
 *Docker Hub: dushidush/api, dushidush/agents, dushidush/ui*
 *Ollama models: qwen2.5-coder:8k, :16k, :32k (dynamic by complexity)*
 *Total source files reviewed: ~135 across 5 packages + battle-claw skill*
