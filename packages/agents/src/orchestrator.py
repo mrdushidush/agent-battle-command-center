@@ -152,12 +152,10 @@ def decompose_prompt(
         val_cmd = st["validation_command"]
 
         # Extract basename for checking
-        import os
         expected_basename = os.path.basename(file_name)
 
         # Check if validation_command references this file
         if "exists" in val_cmd and "'" in val_cmd:
-            import re
             # Try to extract filename from: assert os.path.exists('tasks/schema.prisma')
             matches = re.findall(r"exists\('([^']+)'\)", val_cmd)
             if matches:
