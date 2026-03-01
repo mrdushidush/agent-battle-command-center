@@ -18,7 +18,8 @@
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
-    "tsup": "^8.0.1",
+    "rollup": "^4.59.0",
+    "tsup": "^8.3.0",
     "typescript": "^5.3.3"
   }
 }
