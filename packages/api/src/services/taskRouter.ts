@@ -4,7 +4,7 @@
  * ACADEMIC COMPLEXITY SCALE (1-10):
  * =================================
  * Based on Campbell's Task Complexity Theory and Ollama stress testing (Feb 2026).
- * Key finding: Ollama achieves 100% on C1-C6 with 3s rest delays + reset every 5 tasks.
+ * Key finding: Ollama achieves 100% on C1-C6+ with 16K context + 3s rest delays.
  *
  * | Score | Level    | Characteristics                                          | Model   |
  * |-------|----------|----------------------------------------------------------|---------|
@@ -15,12 +15,13 @@
  * | 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | Ollama  |
  * | 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Sonnet  |
  *
- * TIER ROUTING (Execution) - Updated Feb 2026 for dynamic context:
- * =============================================================
- * - Trivial (1-6)    → Ollama 8K context (FREE, ~12s/task)
- * - Complex (7-8)    → Ollama 16K context (FREE, ~15s/task)
- * - Extreme (9)      → Ollama 32K context (FREE, ~28s/task)
- * - Decomposition(10)→ Sonnet (~$0.005/task)
+ * TIER ROUTING (Execution) - Updated Mar 2026 for optimal context:
+ * ==============================================================
+ * - Trivial-Complex (1-6)  → Ollama 16K context (FREE, ~13s/task, best for multi-file projects)
+ * - Complex-Extreme (7-8)  → Ollama 32K context (FREE, ~18s/task, max context headroom)
+ * - Extreme (9)            → Ollama 32K context (FREE, ~28s/task, max for single-class)
+ * - Decomposition (10)     → Sonnet (~$0.005/task)
+ * - NOTE: 8K context deprecated (insufficient for complex multi-component projects)
  * - NOTE: Opus NEVER writes code - decomposition & reviews only
  *
  * DECOMPOSITION:
@@ -364,7 +365,8 @@ export class TaskRouter {
     }
 
     // LOCAL OLLAMA (C1-C6 always, C7-C9 when no remote): Coding tasks → Local Ollama (FREE)
-    // Context size adapts to complexity: 8K (C1-C6), 16K (C7-C8), 32K (C9)
+    // Context size adapts to complexity: 16K (C1-C6, default), 32K (C7+)
+    // 8K context deprecated - insufficient for complex multi-component projects
     // Also route here if Claude is blocked due to budget
     const localMaxComplexity = remoteEnabled ? REMOTE_OLLAMA_MIN_COMPLEXITY : 10;
     if (!selectedAgent && (complexity < localMaxComplexity || claudeBlocked)) {
@@ -374,10 +376,10 @@ export class TaskRouter {
           reason = `⚠️ Budget exceeded - routing ${complexity.toFixed(1)}/10 task to Ollama (free)`;
           confidence = 0.7; // Lower confidence for forced routing
         } else {
-          const ctxSize = complexity >= 9 ? '32K' : complexity >= 7 ? '16K' : '8K';
+          const ctxSize = complexity >= 7 ? '32K' : '16K';
           const level = complexity < 3 ? 'Trivial' : complexity < 5 ? 'Low' : complexity < 7 ? 'Moderate' : complexity < 9 ? 'Complex' : 'Extreme';
           reason = `${level} complexity (${complexity.toFixed(1)}/10) → Ollama (free, ${ctxSize} context)`;
-          confidence = complexity < 7 ? 0.95 : complexity < 9 ? 0.85 : 0.80;
+          confidence = complexity < 7 ? 0.93 : complexity < 9 ? 0.88 : 0.85;
         }
         modelTier = 'ollama';
         estimatedCost = 0;

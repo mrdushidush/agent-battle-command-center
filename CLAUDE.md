@@ -405,27 +405,30 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
 - **Smart weighting (Feb 2026):** When Haiku rates 2+ points higher than router, use Haiku's score directly
   - This prevents averaging down semantically complex tasks (e.g., "LRU cache" keywords miss but Haiku sees)
 - For extreme tasks (9+), only QA agent is allowed - NO fallback to Ollama
-- C1-C8 all routed to Ollama with 16K context (Feb 17, 2026 upgrade)
+- C1-C6 all routed to Ollama with 16K context (Mar 2026 update - 8K deprecated)
+- C7+ routed to Ollama with 32K context (optimal for complex/extreme tasks)
 
 **Academic Complexity Scale (3-Tier Routing):**
 
 | Score | Level    | Characteristics                                          | Tier           | Model (example)         | Cost/Task |
 |-------|----------|----------------------------------------------------------|----------------|-------------------------|-----------|
-| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Local Ollama   | qwen2.5-coder:8k       | FREE      |
-| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Local Ollama   | qwen2.5-coder:8k       | FREE      |
-| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Local Ollama   | qwen2.5-coder:8k       | FREE      |
-| 7-8   | Complex  | Multiple functions; algorithms; data structures          | **Remote***    | qwen2.5-coder:70b      | ~FREE     |
-| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | **Remote***    | qwen2.5-coder:70b      | ~FREE     |
+| 1-2   | Trivial  | Single-step; clear I/O; no decision-making               | Local Ollama   | qwen2.5-coder:16k      | FREE      |
+| 3-4   | Low      | Linear sequences; well-defined domain; no ambiguity      | Local Ollama   | qwen2.5-coder:16k      | FREE      |
+| 5-6   | Moderate | Multiple conditions; validation; helper logic            | Local Ollama   | qwen2.5-coder:16k      | FREE      |
+| 7-8   | Complex  | Multiple functions; algorithms; data structures          | **Remote***    | qwen2.5-coder:32k      | ~FREE     |
+| 9     | Extreme  | Single-class tasks (Stack, LRU, RPN)                     | **Remote***    | qwen2.5-coder:32k      | ~FREE     |
 | 10    | Decomp   | Multi-class; fuzzy goals; architectural scope            | Claude (Sonnet)| claude-sonnet-4-5       | ~$0.01    |
 
-*Remote = Remote Ollama if `REMOTE_OLLAMA_URL` is set, otherwise falls back to Local Ollama (16K/32K context).
+*Remote = Remote Ollama if `REMOTE_OLLAMA_URL` is set, otherwise falls back to Local Ollama with 32K context.
 
-**Note:** Opus is reserved for decomposition (9+) and code reviews only - it never writes code.
+**Note:** 8K context deprecated (Mar 2026) - insufficient for complex multi-component projects like React apps. Opus is reserved for decomposition (9+) and code reviews only - it never writes code.
 
-**Complexity Keywords (Feb 2026 update):**
+**Complexity Keywords (Mar 2026 update):**
+- **Component complexity (5-6):** component, module, integration, validation, helper
 - **High complexity (7-8):** cache, lru, linked list, hash map, tree, graph, queue, stack, heap,
   binary, sorting, searching, o(1), o(n), o(log, time complexity, space complexity,
-  async, concurrent, parallel, recursive, algorithm, data structure
+  async, concurrent, parallel, recursive, algorithm, data structure,
+  react, component, context, hooks (for multi-component projects)
 - **Extreme complexity (9-10):** architect, design system, framework, distributed, microservice,
   migration, security, authentication, real-time
 
@@ -435,20 +438,22 @@ Tasks are scored 1-10 using **dual assessment** (router + Haiku AI):
    - Number of steps mentioned (Step 1, Step 2, etc.)
    - File count (.py, .ts, .js files mentioned)
    - Function/class definitions expected
+   - Multi-component projects (React, Vue, etc.) = at least C7
 
 2. **Coordinative Complexity** (Dependencies)
    - Import/require statements
    - Multiple outputs expected
    - Cross-file interactions
+   - React Context, state management = at least C7
 
 3. **Dynamic Complexity** (Semantic)
    - Keywords indicating complexity level
    - Task type (code < test < review < decomposition)
    - Failure history (retries indicate hidden complexity)
 
-**Routing tiers (Updated Feb 18, 2026 - dynamic context routing):**
-- Trivial/Moderate (1-6) → Coder (Local Ollama 8K) - FREE, ~12s/task avg
-- Complex (7-8) → Coder (Remote Ollama* or Local 16K) - FREE, ~15s/task avg
+**Routing tiers (Updated Mar 2026 - optimized context windows):**
+- Trivial/Moderate (1-6) → Coder (Local Ollama 16K) - FREE, ~13s/task avg (best for multi-file projects)
+- Complex (7-8) → Coder (Remote Ollama* or Local 32K) - FREE, ~18s/task avg
 - Extreme (9) → Coder (Remote Ollama* or Local 32K) - FREE, ~28s/task avg
 - Decomposition (10) → QA (Sonnet) - ~$0.01/task
 - Decomposition (9+) → CTO (Opus) - ~$0.02/task (no coding)

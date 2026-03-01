@@ -107,11 +107,9 @@ export class AutoRetryService {
         'ollama',
       );
 
-      // Determine Ollama model from complexity
+      // Determine Ollama model from complexity (16K default, 32K for C7+, 8K deprecated)
       const cx = task.complexity || 5;
-      const ollamaModel = cx >= 9 ? 'qwen2.5-coder:32k'
-                        : cx >= 7 ? 'qwen2.5-coder:16k'
-                        : 'qwen2.5-coder:8k';
+      const ollamaModel = cx >= 7 ? 'qwen2.5-coder:32k' : 'qwen2.5-coder:16k';
 
       const execResult = await this.executor.executeTask({
         taskId,

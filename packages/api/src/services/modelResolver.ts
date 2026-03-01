@@ -38,12 +38,11 @@ export function resolveModelOverride(
 
   switch (preferredModel) {
     case 'ollama': {
-      // Dynamic context routing by complexity (same as default)
-      const model = complexity >= 9
+      // Dynamic context routing by complexity (16K default, 32K for C7+)
+      // 8K context deprecated - insufficient for complex multi-component projects
+      const model = complexity >= 7
         ? 'qwen2.5-coder:32k'
-        : complexity >= 7
-          ? 'qwen2.5-coder:16k'
-          : 'qwen2.5-coder:8k';
+        : 'qwen2.5-coder:16k';
       return {
         useClaude: false,
         model,

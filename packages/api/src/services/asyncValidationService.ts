@@ -222,9 +222,7 @@ export class AsyncValidationService {
 
         const retryDesc = this.buildRetryDescription(entry.description, entry.validationError, entry.failedCode, 'ollama');
         const cx = entry.complexity || 5;
-        const ollamaModel = cx >= 9 ? 'qwen2.5-coder:32k'
-                          : cx >= 7 ? 'qwen2.5-coder:16k'
-                          : 'qwen2.5-coder:8k';
+        const ollamaModel = cx >= 7 ? 'qwen2.5-coder:32k' : 'qwen2.5-coder:16k';
 
         const execResult = await this.executor.executeTask({
           taskId: entry.taskId,

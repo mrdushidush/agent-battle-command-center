@@ -311,8 +311,9 @@ describe('TaskRouter', () => {
       expect(decision.estimatedCost).toBe(0);
     });
 
-    it('should route complex tasks (7-8) to coder/ollama with 16K context', async () => {
-      // With 16K context upgrade (Feb 2026), C1-C8 all route to Ollama
+    it('should route complex tasks (7-8) to coder/ollama with 32K context', async () => {
+      // With context window upgrade (Mar 2026), C7+ routes to 32K context
+      // C1-C6 uses 16K (default), C7+ uses 32K (max context for complex projects)
       // Calculation: base 1 + test type 1.5 + iteration 2 (3) + high keyword 'refactor' (2) = 7.5
       const task = createTask({
         description: 'Refactor the output logic for this function',
@@ -326,7 +327,7 @@ describe('TaskRouter', () => {
 
       const decision = await router.routeTask('task-1');
 
-      // C7-C8 now routes to Ollama (free, 16K context) instead of Haiku
+      // C7-C8 routes to Ollama with 32K context (free, optimal for complex tasks)
       expect(decision.agentId).toBe('coder-1');
       expect(decision.modelTier).toBe('ollama');
       expect(decision.estimatedCost).toBe(0);
