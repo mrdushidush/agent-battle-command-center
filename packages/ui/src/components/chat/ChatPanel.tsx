@@ -46,7 +46,7 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
     handleStreamError,
   } = useChat();
 
-  const { activeChatAgentId, setActiveChatAgent } = useUIStore();
+  const { activeChatAgentId, setActiveChatAgent, pendingClarification, quotedMessage, setQuotedMessage, missions } = useUIStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showAgentSelect, setShowAgentSelect] = useState(false);
 
@@ -93,17 +93,28 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
   };
 
   const handleSendMessage = async (content: string) => {
+    // Prepend quoted message as blockquote if present
+    let finalContent = content;
+    if (quotedMessage) {
+      const quotedLines = quotedMessage.content
+        .split('\n')
+        .map((line) => `> ${line}`)
+        .join('\n');
+      finalContent = `${quotedLines}\n\n${content}`;
+      setQuotedMessage(null); // Clear quote after sending
+    }
+
     if (!activeConversation) {
       if (!selectedAgent) return;
       try {
         const conv = await createConversation(selectedAgent.id);
-        await sendMessage(conv.id, content);
+        await sendMessage(conv.id, finalContent);
       } catch {
         // Error handled in hook
       }
     } else {
       try {
-        await sendMessage(activeConversation.id, content);
+        await sendMessage(activeConversation.id, finalContent);
       } catch {
         // Error handled in hook
       }
@@ -266,10 +277,12 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
             {activeConversation.messages.map((msg) => (
               <ChatMessage
                 key={msg.id}
+                messageId={msg.id}
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.createdAt}
                 agentType={msg.role === 'assistant' ? selectedAgent?.type as 'coder' | 'qa' | 'cto' : undefined}
+                onQuote={setQuotedMessage}
               />
             ))}
             {streamingMessage && streamingMessage.isStreaming && (
@@ -285,6 +298,61 @@ export function ChatPanel({ agents, onClose }: ChatPanelProps) {
 
           {/* Mission Progress Tracker */}
           <MissionProgressTracker conversationId={activeConversation.id} />
+
+          {/* Retry Hint */}
+          {(() => {
+            const activeMission = Object.entries(missions).find(
+              ([, m]) => m.status === 'awaiting_approval' && m.failedCount && m.failedCount > 0
+            );
+            return activeMission ? (
+              <div className="px-3 py-2 border-t border-command-border bg-blue-900/10 border-l-4 border-l-blue-500/50">
+                <p className="text-xs text-blue-400">
+                  💡 <span className="font-semibold">Tip:</span> Quote a failed task and type retry instructions to fix only those subtasks.
+                </p>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Quote Preview Bar */}
+          {quotedMessage && (
+            <div className="px-3 py-2 border-t border-command-border bg-amber-900/10 border-l-4 border-l-amber-500/50 flex items-center justify-between">
+              <div className="text-xs text-gray-400">
+                <span className="text-amber-400 font-semibold">Quoting:</span>{' '}
+                <span className="italic line-clamp-1">{quotedMessage.content.substring(0, 120)}...</span>
+              </div>
+              <button
+                onClick={() => setQuotedMessage(null)}
+                className="px-2 py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Clarification Buttons */}
+          {pendingClarification?.conversationId === activeConversation.id && (
+            <div className="px-3 py-2 border-t border-command-border bg-gray-900/30 flex gap-2">
+              <button
+                onClick={() => handleSendMessage('__lets_build__')}
+                className="flex-1 px-3 py-2 bg-hud-green/20 border border-hud-green/50 text-hud-green text-sm font-semibold rounded hover:bg-hud-green/30 transition-colors"
+              >
+                Let's Build
+              </button>
+              <button
+                onClick={() => {
+                  // Focus input and optionally pre-fill with "My answers: "
+                  const input = document.querySelector('[placeholder*="Message"]') as HTMLTextAreaElement;
+                  if (input) {
+                    input.focus();
+                    input.value = 'My answers: ';
+                  }
+                }}
+                className="flex-1 px-3 py-2 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-sm font-semibold rounded hover:bg-blue-500/30 transition-colors"
+              >
+                Let's Discuss
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <ChatInput

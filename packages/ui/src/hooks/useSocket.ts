@@ -244,6 +244,7 @@ export function useSocket() {
       isWarning: boolean;
       claudeBlocked: boolean;
       costPerTask?: { avgCostCents: number; todayTasks: number };
+      burnRateCentsPerMin?: number;
     } }) => {
       useUIStore.getState().updateBudget({
         dailySpentCents: event.payload.dailySpentCents,
@@ -255,6 +256,7 @@ export function useSocket() {
         claudeBlocked: event.payload.claudeBlocked,
         avgCostPerTaskCents: event.payload.costPerTask?.avgCostCents || 0,
         todayTasks: event.payload.costPerTask?.todayTasks || 0,
+        burnRateCentsPerMin: event.payload.burnRateCentsPerMin || 0,
       });
     });
 
@@ -334,6 +336,7 @@ export function useSocket() {
         status: event.payload.status as 'decomposing',
         prompt: event.payload.prompt,
       });
+      useUIStore.getState().clearMissionCodeFiles();
       playWithDelay(() => playDecomposition('cto'));
     });
 
@@ -344,12 +347,24 @@ export function useSocket() {
       });
     });
 
-    socket.on('mission_subtask_completed', (event: { payload: { missionId: string; index: number; total: number; passed: boolean } }) => {
-      const { missionId, index, passed } = event.payload;
+    socket.on('mission_subtask_completed', (event: { payload: { missionId: string; index: number; total: number; passed: boolean; fileName?: string; code?: string; language?: string; title?: string } }) => {
+      const { missionId, index, passed, fileName, code, language, title } = event.payload;
       useUIStore.getState().updateMission(missionId, {
         completedCount: index + 1,
         failedCount: passed ? undefined : (useUIStore.getState().missions[missionId]?.failedCount || 0) + 1,
       });
+      // Add code to live code window
+      if (fileName && code && language) {
+        useUIStore.getState().setMissionCodeFile(fileName, {
+          language,
+          code,
+          subtaskTitle: title || `Subtask ${index + 1}`,
+        });
+        // Auto-open code window when first code arrives
+        if (useUIStore.getState().missionCodeFiles && Object.keys(useUIStore.getState().missionCodeFiles).length === 1) {
+          useUIStore.getState().toggleCodeWindow();
+        }
+      }
     });
 
     socket.on('mission_review_complete', (event: { payload: { missionId: string; review: { score: number; approved: boolean } } }) => {
@@ -370,6 +385,13 @@ export function useSocket() {
         error: event.payload.error,
       });
       playWithDelay(() => playTaskFailed('cto'));
+    });
+
+    socket.on('clarification_requested', (event: { payload: { conversationId: string; questions: string[] } }) => {
+      useUIStore.getState().setPendingClarification({
+        conversationId: event.payload.conversationId,
+        questions: event.payload.questions,
+      });
     });
 
     socketRef.current = socket;

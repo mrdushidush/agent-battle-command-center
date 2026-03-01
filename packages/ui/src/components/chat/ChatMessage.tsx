@@ -1,4 +1,4 @@
-import { User } from 'lucide-react';
+import { User, Reply2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatRole } from '@abcc/shared';
@@ -10,6 +10,8 @@ interface ChatMessageProps {
   isStreaming?: boolean;
   timestamp?: Date;
   agentType?: 'coder' | 'qa' | 'cto';
+  onQuote?: (msg: { id: string; content: string; role: string }) => void;
+  messageId?: string;
 }
 
 // Military rank icons as SVG components
@@ -121,12 +123,18 @@ const markdownComponents: Components = {
   hr: () => <hr className="border-command-border my-3" />,
 };
 
-export function ChatMessage({ role, content, isStreaming, timestamp, agentType }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, timestamp, agentType, onQuote, messageId }: ChatMessageProps) {
   const isUser = role === 'user';
   const rank = !isUser && agentType ? RANK_CONFIG[agentType] : null;
 
+  const handleQuote = () => {
+    if (onQuote && messageId) {
+      onQuote({ id: messageId, content, role });
+    }
+  };
+
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
       <div
         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
@@ -143,30 +151,42 @@ export function ChatMessage({ role, content, isStreaming, timestamp, agentType }
         )}
       </div>
 
-      {/* Message bubble */}
-      <div
-        className={`max-w-[85%] rounded-lg px-4 py-2 ${
-          isUser
-            ? 'bg-hud-blue/20 border border-hud-blue/30'
-            : 'bg-command-accent border border-command-border'
-        }`}
-      >
-        <div className="text-sm wrap-break-word">
-          {isUser ? (
-            <span className="text-gray-200 whitespace-pre-wrap">{content}</span>
-          ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-              {content}
-            </ReactMarkdown>
-          )}
-          {isStreaming && (
-            <span className="inline-block w-2 h-4 ml-1 bg-hud-green animate-pulse" />
+      {/* Message bubble with reply button */}
+      <div className="relative max-w-[85%]">
+        <div
+          className={`rounded-lg px-4 py-2 ${
+            isUser
+              ? 'bg-hud-blue/20 border border-hud-blue/30'
+              : 'bg-command-accent border border-command-border'
+          }`}
+        >
+          <div className="text-sm wrap-break-word">
+            {isUser ? (
+              <span className="text-gray-200 whitespace-pre-wrap">{content}</span>
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {content}
+              </ReactMarkdown>
+            )}
+            {isStreaming && (
+              <span className="inline-block w-2 h-4 ml-1 bg-hud-green animate-pulse" />
+            )}
+          </div>
+          {timestamp && (
+            <div className="text-xs text-gray-500 mt-1">
+              {new Date(timestamp).toLocaleTimeString()}
+            </div>
           )}
         </div>
-        {timestamp && (
-          <div className="text-xs text-gray-500 mt-1">
-            {new Date(timestamp).toLocaleTimeString()}
-          </div>
+        {/* Hover Reply Button */}
+        {onQuote && messageId && !isStreaming && (
+          <button
+            onClick={handleQuote}
+            className={`absolute ${isUser ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-700 transition-all`}
+            title="Quote this message"
+          >
+            <Reply2 className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" />
+          </button>
         )}
       </div>
     </div>

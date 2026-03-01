@@ -1,4 +1,4 @@
-import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle, LayoutGrid, Map, Box } from 'lucide-react';
+import { Settings, Bell, Zap, MessageSquare, RefreshCcw, Volume2, VolumeX, Terminal, DollarSign, ChevronDown, HelpCircle, LayoutGrid, Map, Box, Code2 } from 'lucide-react';
 import { useUIStore } from '../../store/uiState';
 import { useState, useEffect, useRef } from 'react';
 import { audioManager } from '../../audio/audioManager';
@@ -17,6 +17,8 @@ export function TopBar() {
     toggleAlertsPanel,
     chatPanelOpen,
     toggleChatPanel,
+    codeWindowOpen,
+    toggleCodeWindow,
     toolLogOpen,
     toggleToolLog,
     audioSettings,
@@ -168,6 +170,19 @@ export function TopBar() {
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">Avg/Task</span>
         </div>
 
+        {/* Burn rate ticker (when active) */}
+        {budget.burnRateCentsPerMin > 0 && (
+          <div className="flex flex-col items-center px-2 animate-pulse">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-sm font-mono text-amber-400 font-bold">
+                ${(budget.burnRateCentsPerMin / 100).toFixed(3)}/min
+              </span>
+            </div>
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Burn Rate</span>
+          </div>
+        )}
+
         {/* Tasks today */}
         <div className="flex flex-col items-center px-2">
           <span className="text-sm font-mono text-gray-300 font-bold">
@@ -201,6 +216,21 @@ export function TopBar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2" role="toolbar" aria-label="Main controls">
+        {/* Code Window Toggle */}
+        <button
+          onClick={() => toggleCodeWindow()}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-sm transition-colors text-sm ${
+            codeWindowOpen
+              ? 'bg-hud-green/20 border border-hud-green/50 text-hud-green'
+              : 'hover:bg-command-accent text-gray-300'
+          }`}
+          aria-label="Toggle code window"
+          title="Live Code Window"
+        >
+          <Code2 className="w-4 h-4" />
+          <span className="hidden lg:inline text-xs">Code</span>
+        </button>
+
         {/* Theme Selector */}
         <ThemeSelector />
 

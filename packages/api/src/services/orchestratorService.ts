@@ -220,6 +220,9 @@ export class OrchestratorService {
           title: plan.title,
           passed: result.validation_passed,
           error: result.error,
+          fileName: result.file_name,
+          code: result.code,
+          language: subtasks[i].language,
         });
 
         // Post progress to chat
@@ -472,6 +475,8 @@ export class OrchestratorService {
    * Approve a mission — mark as approved and complete.
    */
   async approveMission(missionId: string): Promise<void> {
+    const mission = await this.prisma.mission.findUnique({ where: { id: missionId } });
+
     await this.prisma.mission.update({
       where: { id: missionId },
       data: {
@@ -480,9 +485,21 @@ export class OrchestratorService {
       },
     });
 
-    const mission = await this.prisma.mission.findUnique({ where: { id: missionId } });
     if (mission?.conversationId) {
+      // Post cost summary
+      const costStr = mission.totalCost ? `$${mission.totalCost.toFixed(4)}` : 'FREE (Ollama)';
+      const timeStr = mission.totalTimeMs ? `${(mission.totalTimeMs / 1000).toFixed(1)}s` : 'unknown';
+      const summary = `**Mission cost:** ${costStr} · ${timeStr} runtime · ${mission.subtaskCount} subtasks`;
+      await this.postToChat(mission.conversationId, summary);
+
+      // Post approval confirmation
       await this.postToChat(mission.conversationId, '✅ **Mission approved!** All files are ready in the workspace.');
+
+      // Post publish options
+      await this.postToChat(
+        mission.conversationId,
+        'Where would you like to export the code?\n\n• Reply **zip** to download a ZIP bundle\n• Reply **github** to create a GitHub repository',
+      );
     }
 
     this.emitMissionEvent('mission_approved', { missionId });
@@ -509,6 +526,68 @@ export class OrchestratorService {
     }
 
     this.emitMissionEvent('mission_failed', { missionId, error: reason || 'Rejected by user' });
+  }
+
+  /**
+   * Retry failed subtasks for a mission that's awaiting approval.
+   */
+  async retryFailedSubtasks(missionId: string, retryPrompt?: string): Promise<void> {
+    const mission = await this.prisma.mission.findUnique({ where: { id: missionId } });
+
+    if (!mission) {
+      throw new Error(`Mission ${missionId} not found`);
+    }
+
+    if (mission.status !== 'awaiting_approval') {
+      throw new Error(`Mission must be awaiting_approval to retry failed subtasks. Current status: ${mission.status}`);
+    }
+
+    // Find all failed tasks
+    const failedTasks = await this.prisma.task.findMany({
+      where: {
+        missionId,
+        status: { in: ['failed', 'aborted'] },
+      },
+    });
+
+    if (failedTasks.length === 0) {
+      throw new Error('No failed subtasks to retry');
+    }
+
+    // Reset failed tasks to pending, optionally append retry prompt
+    for (const task of failedTasks) {
+      let newDescription = task.description;
+      if (retryPrompt) {
+        newDescription += `\n\nRETRY NOTE: ${retryPrompt}`;
+      }
+
+      await this.prisma.task.update({
+        where: { id: task.id },
+        data: {
+          status: 'pending',
+          description: newDescription,
+          error: null,
+        },
+      });
+    }
+
+    // Reset mission to executing state and clear failed count
+    await this.prisma.mission.update({
+      where: { id: missionId },
+      data: {
+        status: 'executing',
+        failedCount: 0,
+      },
+    });
+
+    if (mission.conversationId) {
+      await this.postToChat(
+        mission.conversationId,
+        `🔄 **Retrying ${failedTasks.length} failed subtask(s)...**`,
+      );
+    }
+
+    this.emitMissionEvent('mission_retry_started', { missionId, failedCount: failedTasks.length });
   }
 
   /**

@@ -72,7 +72,7 @@ app.add_middleware(
 
 
 
-from src.orchestrator import decompose_prompt, review_results
+from src.orchestrator import decompose_prompt, review_results, clarify_intent
 
 
 # ── Orchestration request/response models ────────────────────────────────────
@@ -86,6 +86,10 @@ class DecomposeRequest(BaseModel):
 class ReviewRequest(BaseModel):
     prompt: str
     subtasks: list[dict]
+
+
+class ClarifyRequest(BaseModel):
+    prompt: str
 
 
 class ExecuteRequest(BaseModel):
@@ -638,6 +642,16 @@ async def orchestrate_review(request: ReviewRequest):
         return {"success": True, "review": result}
     except Exception as e:
         return {"success": False, "error": str(e), "review": {"approved": False, "score": 0, "summary": str(e), "findings": []}}
+
+
+@app.post("/orchestrate/clarify")
+async def orchestrate_clarify(request: ClarifyRequest):
+    """Generate clarifying questions for a user request."""
+    try:
+        result = clarify_intent(request.prompt)
+        return {"success": True, "questions": result.get("questions", [])}
+    except Exception as e:
+        return {"success": False, "error": str(e), "questions": []}
 
 
 @app.get("/health")

@@ -32,6 +32,11 @@ export interface DailySpend {
   taskCount: number;
 }
 
+interface CostEvent {
+  timestampMs: number;
+  costCents: number;
+}
+
 // Cost rates in cents per 1M tokens (Feb 2026 Anthropic pricing)
 // Note: Using current model versions (Haiku 4.5, Sonnet 4, Opus 4.5)
 const COST_RATES = {
@@ -52,6 +57,8 @@ class BudgetService {
 
   private dailySpend: Map<string, DailySpend> = new Map();
   private allTimeSpentCents: number = 0;
+  private costEventBuffer: CostEvent[] = []; // Ring buffer for burn rate calculation
+  private readonly BURN_RATE_WINDOW_MS = 60000; // 60 seconds
 
   private constructor() {
     // Load from database on init
@@ -180,12 +187,44 @@ class BudgetService {
   }
 
   /**
+   * Record cost event for burn rate calculation
+   */
+  private recordCostEvent(costCents: number): void {
+    const now = Date.now();
+    this.costEventBuffer.push({ timestampMs: now, costCents });
+
+    // Prune events older than BURN_RATE_WINDOW_MS
+    const cutoffMs = now - this.BURN_RATE_WINDOW_MS;
+    this.costEventBuffer = this.costEventBuffer.filter(event => event.timestampMs > cutoffMs);
+  }
+
+  /**
+   * Get current burn rate in cents per minute
+   */
+  getBurnRateCentsPerMin(): number {
+    const now = Date.now();
+    const cutoffMs = now - this.BURN_RATE_WINDOW_MS;
+
+    const recentEvents = this.costEventBuffer.filter(event => event.timestampMs > cutoffMs);
+    if (recentEvents.length === 0) return 0;
+
+    const totalCentsCost = recentEvents.reduce((sum, event) => sum + event.costCents, 0);
+    // Calculate prorated cost to 1 minute (60000ms)
+    const burnRatePerMin = (totalCentsCost / this.BURN_RATE_WINDOW_MS) * 60000;
+
+    return Math.round(burnRatePerMin * 100) / 100; // Round to cents
+  }
+
+  /**
    * Record API usage and update budget tracking
    */
   recordUsage(inputTokens: number, outputTokens: number, model: string): void {
     const costCents = this.calculateCostCents(inputTokens, outputTokens, model);
 
     if (costCents === 0) return; // Free model, no tracking needed
+
+    // Record cost event for burn rate calculation
+    this.recordCostEvent(costCents);
 
     const today = this.getTodayKey();
     const existing = this.dailySpend.get(today) || {
@@ -319,12 +358,14 @@ class BudgetService {
 
     const status = this.getStatus();
     const costPerTask = this.getCostPerTaskMetrics();
+    const burnRateCentsPerMin = this.getBurnRateCentsPerMin();
 
     this.io.emit('budget_updated', {
       type: 'budget_updated',
       payload: {
         ...status,
         costPerTask,
+        burnRateCentsPerMin,
       },
       timestamp: new Date(),
     });

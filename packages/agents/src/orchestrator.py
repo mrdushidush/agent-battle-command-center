@@ -228,3 +228,61 @@ def review_results(
     review.setdefault("findings", [])
 
     return review
+
+
+# ── Clarify ───────────────────────────────────────────────────────────────────
+
+CLARIFY_SYSTEM = """\
+You are a senior architect. Analyze the user's coding request for clarity and complexity.
+
+Your job: Assess how many guiding questions (0-5) would help the user clarify their intent.
+
+Criteria:
+- **Simple/Clear (0-1 questions)**: Single function, clear specification, no ambiguity
+  Examples: "Create a function that reverses strings", "Validate email addresses"
+- **Moderate (2-3 questions)**: Small app with some ambiguity, need to clarify features/design
+  Examples: "Build a todo app", "Create a calculator", "Make a web form"
+- **Complex (4-5 questions)**: System design, multiple integrations, architecture decisions needed
+  Examples: "Build a chat app", "Create a REST API with auth", "Design a marketplace"
+
+Return ONLY valid JSON (no markdown, no extra text):
+{
+  "questions": [
+    "Question 1?",
+    "Question 2?",
+    ...
+  ]
+}
+
+If the request is clear and complete, return empty questions list: {"questions": []}
+"""
+
+
+def clarify_intent(prompt: str) -> dict[str, Any]:
+    """Call Sonnet to generate clarifying questions for a user request."""
+    client = _get_client()
+
+    response = client.messages.create(
+        model=ORCHESTRATOR_MODEL,
+        max_tokens=512,
+        system=CLARIFY_SYSTEM,
+        messages=[{"role": "user", "content": f"User request:\n{prompt}"}],
+        temperature=0,
+    )
+
+    raw = response.content[0].text.strip()
+
+    # Strip markdown fences if present
+    if raw.startswith("```"):
+        lines = raw.split("\n")
+        lines = [line for line in lines if not line.strip().startswith("```")]
+        raw = "\n".join(lines).strip()
+
+    result = json.loads(raw)
+    if not isinstance(result, dict):
+        raise ValueError(f"Expected JSON object, got {type(result).__name__}")
+
+    # Ensure questions field exists
+    result.setdefault("questions", [])
+
+    return result

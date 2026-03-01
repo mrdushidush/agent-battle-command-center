@@ -191,6 +191,31 @@ missionsRouter.post('/:id/reject', asyncHandler(async (req, res) => {
   res.json({ id: mission.id, status: 'failed' });
 }));
 
+// ─── POST /:id/retry-failed — Retry failed subtasks ────────────────────────
+
+missionsRouter.post('/:id/retry-failed', asyncHandler(async (req, res) => {
+  const orchestrator = req.app.get('orchestratorService') as OrchestratorService;
+  if (!orchestrator) {
+    res.status(503).json({ error: 'Orchestrator service not initialized' });
+    return;
+  }
+
+  const mission = await prisma.mission.findUnique({ where: { id: req.params.id } });
+  if (!mission) {
+    res.status(404).json({ error: 'Mission not found' });
+    return;
+  }
+
+  const retryPrompt = req.body?.retryPrompt as string | undefined;
+
+  try {
+    await orchestrator.retryFailedSubtasks(mission.id, retryPrompt);
+    res.json({ id: mission.id, status: 'executing' });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to retry subtasks' });
+  }
+}));
+
 // ─── GET /:id/files — Get generated files ──────────────────────────────────
 
 missionsRouter.get('/:id/files', asyncHandler(async (req, res) => {

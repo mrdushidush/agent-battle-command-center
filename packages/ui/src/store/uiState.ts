@@ -26,6 +26,8 @@ interface UIState {
   toggleAlertsPanel: () => void;
   chatPanelOpen: boolean;
   toggleChatPanel: () => void;
+  codeWindowOpen: boolean;
+  toggleCodeWindow: () => void;
   toolLogOpen: boolean;
   toggleToolLog: () => void;
   settingsModalOpen: boolean;
@@ -141,6 +143,7 @@ interface UIState {
     claudeBlocked: boolean;
     avgCostPerTaskCents: number;
     todayTasks: number;
+    burnRateCentsPerMin: number;
   };
   updateBudget: (budget: Partial<UIState['budget']>) => void;
 
@@ -156,6 +159,19 @@ interface UIState {
   }>;
   updateMission: (id: string, data: Partial<UIState['missions'][string]>) => void;
   clearMissions: () => void;
+
+  // Live code window
+  missionCodeFiles: Record<string, { language: string; code: string; subtaskTitle: string }>;
+  setMissionCodeFile: (fileName: string, file: { language: string; code: string; subtaskTitle: string }) => void;
+  clearMissionCodeFiles: () => void;
+
+  // CTO clarification flow
+  pendingClarification: { conversationId: string; questions: string[] } | null;
+  setPendingClarification: (data: { conversationId: string; questions: string[] } | null) => void;
+
+  // Chat quote/reply
+  quotedMessage: { id: string; content: string; role: string } | null;
+  setQuotedMessage: (msg: { id: string; content: string; role: string } | null) => void;
 
   // Loading states
   isLoading: {
@@ -183,6 +199,8 @@ export const useUIStore = create<UIState>((set) => ({
   toggleAlertsPanel: () => set((state) => ({ alertsPanelOpen: !state.alertsPanelOpen })),
   chatPanelOpen: false,
   toggleChatPanel: () => set((state) => ({ chatPanelOpen: !state.chatPanelOpen })),
+  codeWindowOpen: false,
+  toggleCodeWindow: () => set((state) => ({ codeWindowOpen: !state.codeWindowOpen })),
   toolLogOpen: true,
   toggleToolLog: () => set((state) => ({ toolLogOpen: !state.toolLogOpen })),
   settingsModalOpen: false,
@@ -361,6 +379,7 @@ export const useUIStore = create<UIState>((set) => ({
     claudeBlocked: false,
     avgCostPerTaskCents: 0,
     todayTasks: 0,
+    burnRateCentsPerMin: 0,
   },
   updateBudget: (budget) =>
     set((state) => ({
@@ -377,6 +396,22 @@ export const useUIStore = create<UIState>((set) => ({
       },
     })),
   clearMissions: () => set({ missions: {} }),
+
+  // Live code window
+  missionCodeFiles: {},
+  setMissionCodeFile: (fileName, file) =>
+    set((state) => ({
+      missionCodeFiles: { ...state.missionCodeFiles, [fileName]: file },
+    })),
+  clearMissionCodeFiles: () => set({ missionCodeFiles: {} }),
+
+  // CTO clarification flow
+  pendingClarification: null,
+  setPendingClarification: (data) => set({ pendingClarification: data }),
+
+  // Chat quote/reply
+  quotedMessage: null,
+  setQuotedMessage: (msg) => set({ quotedMessage: msg }),
 
   // Loading states
   isLoading: {

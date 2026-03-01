@@ -8,12 +8,13 @@ import { ToolLog } from '../main-view/ToolLog';
 import { TokenBurnLog } from '../main-view/TokenBurnLog';
 import { AlertPanel } from '../resources/AlertPanel';
 import { ChatPanel } from '../chat/ChatPanel';
+import { CodeWindow } from '../code-window/CodeWindow';
 import { Dashboard } from '../dashboard/Dashboard';
 import { useUIStore } from '../../store/uiState';
 import { ComponentErrorBoundary } from '../ComponentErrorBoundary';
 
 export function CommandCenter() {
-  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, toolLogOpen, toggleChatPanel, agents, battlefieldEnabled } = useUIStore();
+  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, codeWindowOpen, toolLogOpen, toggleChatPanel, toggleCodeWindow, agents, battlefieldEnabled } = useUIStore();
 
   return (
     <div className="h-full flex flex-col command-bg-enhanced">
@@ -93,6 +94,15 @@ export function CommandCenter() {
           <div className="w-80 border-l border-command-border">
             <ComponentErrorBoundary componentName="Alerts Panel">
               <AlertPanel />
+            </ComponentErrorBoundary>
+          </div>
+        )}
+
+        {/* Code Window */}
+        {codeWindowOpen && (
+          <div className="w-[600px] border-l border-command-border">
+            <ComponentErrorBoundary componentName="Code Window">
+              <CodeWindow />
             </ComponentErrorBoundary>
           </div>
         )}
