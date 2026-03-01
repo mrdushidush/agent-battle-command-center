@@ -146,6 +146,34 @@ def decompose_prompt(
             # Also fix validation_command references to the old path
             st["validation_command"] = st["validation_command"].replace(old_fn, st["file_name"])
 
+        # ── Validate file_name matches validation_command (Mar 2, 2026 fix) ──
+        # Prevent mismatches like: file_name="payment_system.prisma" but validation expects "schema.prisma"
+        file_name = st["file_name"]
+        val_cmd = st["validation_command"]
+
+        # Extract basename for checking
+        import os
+        expected_basename = os.path.basename(file_name)
+
+        # Check if validation_command references this file
+        if "exists" in val_cmd and "'" in val_cmd:
+            import re
+            # Try to extract filename from: assert os.path.exists('tasks/schema.prisma')
+            matches = re.findall(r"exists\('([^']+)'\)", val_cmd)
+            if matches:
+                expected_file = matches[0]
+                expected_basename_in_cmd = os.path.basename(expected_file)
+
+                # If basenames don't match, raise error (CTO should fix this)
+                if expected_basename_in_cmd != expected_basename:
+                    raise ValueError(
+                        f"Subtask '{st['title']}': file_name mismatch!\n"
+                        f"  file_name will create: {file_name}\n"
+                        f"  validation_command expects: {expected_file}\n"
+                        f"  → Agent will create '{expected_basename}' but validation looks for '{expected_basename_in_cmd}'\n"
+                        f"  → Fix by aligning file_name and validation_command file references"
+                    )
+
     return subtasks
 
 

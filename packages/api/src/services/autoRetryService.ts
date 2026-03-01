@@ -44,6 +44,8 @@ const MAX_OLLAMA_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_OLLAMA_RETRIES ||
 const MAX_REMOTE_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_REMOTE_RETRIES || '1', 10);
 const MAX_HAIKU_RETRIES = parseInt(process.env.AUTO_RETRY_MAX_HAIKU_RETRIES || '1', 10);
 const VALIDATION_TIMEOUT_MS = parseInt(process.env.AUTO_RETRY_VALIDATION_TIMEOUT_MS || '15000', 10);
+// Hard limit: prevent infinite retry loops (Mar 2, 2026 fix)
+const MAX_TOTAL_RETRIES = 3;
 
 // ---------------------------------------------------------------------------
 // Service
@@ -95,8 +97,17 @@ export class AutoRetryService {
     // Read the failed code for context
     const failedCode = await this.readTaskFile(task);
 
+    // Track total retries across all phases (Mar 2, 2026 fix for infinite loops)
+    let totalRetries = 0;
+
     // ── Phase 1: Ollama retry with error context ─────────────────────────
     for (let attempt = 1; attempt <= MAX_OLLAMA_RETRIES; attempt++) {
+      // Hard limit: stop if we've exhausted max total retries
+      if (totalRetries >= MAX_TOTAL_RETRIES) {
+        console.log(`[AutoRetry] Reached max total retries (${MAX_TOTAL_RETRIES}) - aborting retry loop`);
+        break;
+      }
+      totalRetries++;
       this.emitEvent('auto_retry_attempt', taskId, { phase: 1, attempt, tier: 'ollama' });
       console.log(`[AutoRetry] Phase 1 attempt ${attempt}/${MAX_OLLAMA_RETRIES} (Ollama) for task ${taskId.substring(0, 8)}`);
 
@@ -146,6 +157,12 @@ export class AutoRetryService {
       const phase1Validation = await this.runValidation(validationCmd, language);
 
       for (let attempt = 1; attempt <= MAX_REMOTE_RETRIES; attempt++) {
+        // Hard limit: stop if we've exhausted max total retries
+        if (totalRetries >= MAX_TOTAL_RETRIES) {
+          console.log(`[AutoRetry] Reached max total retries (${MAX_TOTAL_RETRIES}) - skipping Phase 2`);
+          break;
+        }
+        totalRetries++;
         this.emitEvent('auto_retry_attempt', taskId, { phase: 2, attempt, tier: 'remote' });
         console.log(`[AutoRetry] Phase 2 attempt ${attempt}/${MAX_REMOTE_RETRIES} (Remote Ollama) for task ${taskId.substring(0, 8)}`);
 
@@ -190,7 +207,24 @@ export class AutoRetryService {
     const codeAfterPreviousPhases = await this.readTaskFile(task);
     const latestValidation = await this.runValidation(validationCmd, language);
 
+    // Check if we've hit the max retry limit before starting Phase 3
+    if (totalRetries >= MAX_TOTAL_RETRIES) {
+      console.log(`[AutoRetry] Reached max total retries (${MAX_TOTAL_RETRIES}) - skipping Phase 3 escalation`);
+      return {
+        validated: false,
+        phase: 'phase3',
+        finalError: `Max retries exceeded after ${totalRetries} attempts`,
+        attempts: totalRetries,
+      };
+    }
+
     for (let attempt = 1; attempt <= MAX_HAIKU_RETRIES; attempt++) {
+      // Hard limit: stop if we've exhausted max total retries
+      if (totalRetries >= MAX_TOTAL_RETRIES) {
+        console.log(`[AutoRetry] Reached max total retries (${MAX_TOTAL_RETRIES}) - aborting Phase 3`);
+        break;
+      }
+      totalRetries++;
       this.emitEvent('auto_retry_attempt', taskId, { phase: 3, attempt, tier: 'haiku' });
       console.log(`[AutoRetry] Phase 3 attempt ${attempt}/${MAX_HAIKU_RETRIES} (Haiku) for task ${taskId.substring(0, 8)}`);
 
