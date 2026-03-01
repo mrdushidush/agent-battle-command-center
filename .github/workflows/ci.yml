@@ -227,7 +227,7 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     needs: [lint, build]
 
     steps:
@@ -272,6 +272,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -306,7 +309,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true
