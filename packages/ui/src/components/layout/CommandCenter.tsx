@@ -14,7 +14,7 @@ import { useUIStore } from '../../store/uiState';
 import { ComponentErrorBoundary } from '../ComponentErrorBoundary';
 
 export function CommandCenter() {
-  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, codeWindowOpen, toolLogOpen, toggleChatPanel, toggleCodeWindow, agents, battlefieldEnabled } = useUIStore();
+  const { mode, sidebarCollapsed, alertsPanelOpen, chatPanelOpen, codeWindowOpen, toolLogOpen, toggleChatPanel, agents, battlefieldEnabled } = useUIStore();
 
   return (
     <div className="h-full flex flex-col command-bg-enhanced">

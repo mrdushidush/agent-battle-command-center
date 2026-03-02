@@ -1,7 +1,7 @@
 import { X, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { atomOneDark as oneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { useUIStore } from '../../store/uiState';
 
 export function CodeWindow() {

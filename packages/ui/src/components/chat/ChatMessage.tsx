@@ -1,4 +1,4 @@
-import { User, Reply2 } from 'lucide-react';
+import { User, CornerUpLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatRole } from '@abcc/shared';
@@ -185,7 +185,7 @@ export function ChatMessage({ role, content, isStreaming, timestamp, agentType, 
             className={`absolute ${isUser ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-700 transition-all`}
             title="Quote this message"
           >
-            <Reply2 className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" />
+            <CornerUpLeft className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" />
           </button>
         )}
       </div>
