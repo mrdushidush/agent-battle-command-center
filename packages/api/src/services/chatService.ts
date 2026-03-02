@@ -114,12 +114,12 @@ export class ChatService {
       if (normalized === 'zip' || normalized === 'download') {
         this.pendingPublish.delete(conversationId);
         try {
-          const downloadUrl = `${config.api.publicUrl}/api/missions/${missionId}/download`;
+          const downloadUrl = `/api/missions/${missionId}/download`;
           await this.postNonStreamingMessage(
             conversationId,
             `📦 **[Download Mission Files](${downloadUrl})** — Click the link to get your code as a ZIP bundle.`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to generate download link:', error);
           await this.postNonStreamingMessage(conversationId, '❌ Failed to generate download link.');
         }
@@ -163,7 +163,7 @@ export class ChatService {
               conversationId,
               `🚀 **[GitHub Repository Created](${repoUrl})** — Your code has been pushed to a new GitHub repository.`,
             );
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('Failed to create GitHub repository:', error);
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
             await this.postNonStreamingMessage(
@@ -302,7 +302,7 @@ export class ChatService {
               throw new Error(`Clarify failed: ${clarifyResponse.statusText}`);
             }
 
-            const clarifyData = await clarifyResponse.json();
+            const clarifyData = (await clarifyResponse.json()) as { questions?: string[] };
 
             if (clarifyData.questions && clarifyData.questions.length > 0) {
               // Save pending clarification
@@ -312,7 +312,7 @@ export class ChatService {
               });
 
               // Post questions to chat
-              const questionsText = clarifyData.questions
+              const questionsText = (clarifyData.questions || [])
                 .map((q: string, i: number) => `${i + 1}. ${q}`)
                 .join('\n');
 
@@ -326,7 +326,7 @@ export class ChatService {
                 type: 'clarification_requested',
                 payload: {
                   conversationId,
-                  questions: clarifyData.questions,
+                  questions: clarifyData.questions || [],
                 },
                 timestamp: new Date(),
               });
@@ -450,7 +450,7 @@ export class ChatService {
     });
 
     if (!createRepoResponse.ok) {
-      const error = await createRepoResponse.json();
+      const error = (await createRepoResponse.json()) as { message?: string };
       throw new Error(`GitHub API error: ${error.message || createRepoResponse.statusText}`);
     }
 
