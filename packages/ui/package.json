@@ -29,19 +29,19 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/vite": "^4.2.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.184.0",
-    "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/ui": "^4.0.18",
+    "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/ui": "^4.1.5",
     "jsdom": "^28.1.0",
-    "tailwindcss": "^4.2.1",
+    "tailwindcss": "^4.2.4",
     "typescript": "^5.3.3",
     "vite": "^7.3.2",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.5"
   }
 }
