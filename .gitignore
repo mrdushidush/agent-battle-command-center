@@ -90,3 +90,6 @@ backups/
 
 # Windows artifacts
 nul
+
+# Temporary task snapshots (root-level — scripts/ patterns above already cover that subtree)
+tasks_temp.json
