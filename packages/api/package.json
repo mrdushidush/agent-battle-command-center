@@ -22,11 +22,11 @@
   },
   "dependencies": {
     "@abcc/shared": "workspace:*",
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.95.2",
     "@prisma/client": "^5.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
-    "express": "^4.18.2",
+    "express": "^4.22.2",
     "express-rate-limit": "^7.1.5",
     "jszip": "^3.10.1",
     "redis": "^4.6.0",
