@@ -225,32 +225,41 @@ If you're deploying Agent Battle Command Center, **follow these practices:**
 
 ## Dependency Scanner Advisories
 
-GitHub's Dependabot flags advisories in both runtime and build-time dependencies, including transitives of dev tooling (Jest, Vitest, ESLint, Storybook, etc.). Triage policy for this repo in its stable-maintenance phase:
+GitHub's Dependabot flags advisories in both runtime and build-time dependencies, including transitives of dev tooling (Jest, Vitest, ESLint, Storybook, etc.). Triage policy for this repo:
 
-- **Runtime CRITICAL / HIGH** — fixed promptly via direct bumps or `pnpm.overrides`.
-- **Runtime MEDIUM / LOW** — fixed when a dependency naturally bumps; not chased individually.
-- **Build-time / dev-only transitives** — acknowledged but not chased. They don't affect users of the deployed app, and rewriting the dev tree is out of scope for maintenance mode. The public Dependabot count reflects this backlog.
+- **Runtime CRITICAL / HIGH** — fixed promptly via direct bumps or pnpm overrides in `pnpm-workspace.yaml`.
+- **Runtime MEDIUM / LOW** — fixed when a dependency naturally bumps; addressed in periodic sweeps when accumulated.
+- **Build-time / dev-only transitives** — also fixed via overrides where Dependabot doesn't have a direct path. The May 2026 sweep cleared the entire transitive backlog this way; the bar going forward is **zero open alerts** at the end of each sweep cycle.
 
-If you believe a flagged alert actually reaches runtime code (not dev tooling), please report it as a vulnerability via the private advisory flow above — that reframes it as a supported-scope issue and gets fixed.
+> **Override location.** Overrides live in `pnpm-workspace.yaml` (the v10+ home for that setting). The `pnpm.overrides` block in `package.json` is **silently ignored** by pnpm 10+ — earlier maintenance docs that referenced that location were inaccurate by the time the repo upgraded.
+
+If you believe a flagged alert reaches runtime code, please report it as a vulnerability via the private advisory flow above — that reframes it as a supported-scope issue and gets fixed.
 
 For the active successor project with a fresher, continuously-maintained dep tree, see [claudette](https://github.com/mrdushidush/claudette).
 
 ## Known Vulnerabilities
 
-### Current (v0.11.x, as of April 2026)
+### Current (v0.11.x, as of May 2026)
 
-Resolved via `pnpm.overrides` in root `package.json`:
+**Open alerts: 0** (verified post-sweep 2026-05-18). The full Dependabot and code-scanning alert lists are empty for both runtime and dev/transitive dependencies.
 
-- **handlebars** (CRITICAL GHSA — JS injection via AST type confusion) — forced to `>=4.7.9` in the lockfile.
-- **esbuild**, **minimatch** — forced to safe versions (prior polish passes).
+Resolved via overrides in `pnpm-workspace.yaml`:
 
-Residual transitive alerts remaining in the Dependabot backlog, per the triage policy above:
+- **handlebars** (CRITICAL GHSA — JS injection via AST type confusion) — forced to `>=4.7.9`.
+- **esbuild** `>=0.27.2`, **minimatch** `>=10.2.3` (prior polish passes).
+- **lodash** `^4.18.0` — closes prototype-pollution (`_.unset`/`_.omit`) and `_.template` code-injection advisories. *(May 2026 sweep.)*
+- **path-to-regexp** `^0.1.13` — closes ReDoS via malformed URL parameters (CVE-2026-4867). *(May 2026 sweep.)*
+- **socket.io-parser** `^4.2.6` — closes excessive-buffering DoS (CVE-2026-33151). *(May 2026 sweep.)*
+- **undici** `^7.24.0` — closes WebSocket `server_max_window_bits` validation crash. *(May 2026 sweep.)*
+- **brace-expansion** `^5.0.6` — closes `max`-protection bypass DoS, disclosed and patched same day. *(May 2026 sweep.)*
 
-- `lodash`, `undici`, `picomatch`, `flatted`, `socket.io-parser`, `brace-expansion` — transitives of dev/build tooling (Jest, Vitest, Storybook variants). Not reachable from runtime code paths.
+Resolved via direct dependency bumps:
 
-Resolved in the v0.11.x maintenance pass (April 2026):
+- **@anthropic-ai/sdk** — bumped `^0.90.0` → `^0.91.1` (security floor) → `^0.96.0` (latest) in `packages/api/package.json`. Closes the "Insecure Default File Permissions in Local Filesystem Memory Tool" advisory. *(May 2026 sweep.)*
 
-- `uuid` — removed entirely from `packages/api/package.json`; was a declared direct dep but never imported in source (the only "uuid" references were Zod's `z.string().uuid()` validator, which has no uuid-package dependency). Closed 2 Dependabot alerts.
+### Past resolutions
+
+- `uuid` — removed entirely from `packages/api/package.json` in the **April 2026 maintenance pass**; was declared as a direct dep but never imported (the only "uuid" references were Zod's `z.string().uuid()` validator, which has no uuid-package dependency). Closed 2 Dependabot alerts.
 
 ### Historical
 
@@ -312,5 +321,5 @@ We thank the following security researchers who have responsibly disclosed vulne
 
 This security policy is subject to change without notice. By using Agent Battle Command Center, you agree to follow responsible disclosure practices.
 
-**Last Updated**: 2026-04-23
-**Policy Version**: 1.1 (maintenance-mode triage + stable-status framing)
+**Last Updated**: 2026-05-18
+**Policy Version**: 1.2 (transitive overrides actively maintained; overrides home corrected to `pnpm-workspace.yaml`; zero-alert bar codified)
