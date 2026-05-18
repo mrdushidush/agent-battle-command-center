@@ -4,6 +4,36 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [v0.11.x security sweep] - 2026-05-18
+
+Second maintenance pass since v0.11.0 settled. Focus: drain the Dependabot backlog that the April triage policy had left "acknowledged but not chased", incorporate a fresh-disclosed brace-expansion advisory, and tidy the issue tracker for a new external contributor.
+
+### Security
+
+- **Dependabot alerts: 12 → 0.** Code-scanning alerts: 3 → 0. All four high-severity transitives the April policy had deferred (lodash, path-to-regexp, socket.io-parser, undici) are now resolved via pnpm overrides; @anthropic-ai/sdk medium-sev advisory closed via direct bump.
+- **pnpm overrides migrated to `pnpm-workspace.yaml`.** The `pnpm.overrides` block in root `package.json` was being **silently ignored** by pnpm 11 (which the repo runs locally and in CI) — pnpm 10+ moved overrides to `pnpm-workspace.yaml`. The April overrides (esbuild, minimatch, handlebars) had survived only by lockfile inertia; any genuine re-resolve would have dropped them. Migration commit also bumps `engines.pnpm` floor `>=8.0.0` → `>=10.0.0` and sets `allowBuilds` for the four trusted postinstalls (esbuild, prisma, @prisma/client, @prisma/engines).
+- **New overrides added** alongside the migration:
+  - `lodash` 4.17.23 → **4.18.1** (closes alerts #38 high, #39 medium)
+  - `path-to-regexp` 0.1.12 → **0.1.13** (closes #32 high, CVE-2026-4867)
+  - `socket.io-parser` 4.2.5 → **4.2.6** (closes #17 high, CVE-2026-33151)
+  - `undici` 7.22.0 → **7.25.0** (closes #15 high)
+  - `brace-expansion` 5.0.5 → **5.0.6** (closes #50 medium — disclosed 2026-05-18, landed within hours; CVE-2026-… see GHSA)
+- **`@anthropic-ai/sdk` bumped** in `packages/api`: `^0.90.0` → `^0.91.1` via the security PR (closes alerts #47/#48 medium — Filesystem Memory Tool file permissions), then onward to `^0.96.0` via the prod-deps Dependabot group.
+- **Python deps in `packages/agents` refreshed** alongside the JS work: anthropic ≥0.97.0, langchain-anthropic ≥0.3.22, httpx ≥0.28.1, pydantic ≥2.13.3, fastapi 0.136.1.
+- Landed across PRs **#185** (overrides + SDK), **#186** (prod-deps grouped), **#187** (brace-expansion), **#183** (dev-deps grouped including @types/node, rollup, vite, vitest, tailwindcss, three.js types), plus 5 Python Dependabot merges (#166–#171). 5 individual Dependabot PRs closed as subsets of the grouped ones (#173, #178, #179, #180, #181).
+
+### Documentation
+
+- **SECURITY.md triage policy rewritten.** The April-era "build-time / dev-only transitives — acknowledged but not chased" stance is replaced by the reality of the May sweep: those transitives are now actively chased via overrides, the alert count is genuinely zero, and the policy reflects the bar going forward.
+- **SECURITY.md Known Vulnerabilities section refreshed** with the May resolutions; outdated "pnpm.overrides in package.json" references corrected to point at `pnpm-workspace.yaml`.
+
+### Community
+
+- **Phase 3.6 Small Polish Roadmap** opened as tracking issue **#189**. 10 individual small-polish issues consolidated into the checklist (#41, #54, #59, #68, #69, #74, #75, #76, #77, #87) — same pattern as the earlier #119/#120 consolidations. Issue #53 (dark/light theme toggle) closed separately as already implemented (the existing `packages/ui/src/components/layout/ThemeSelector.tsx` covers it).
+- **First external contributor onboarded.** @Bawazier offered to take **#57 (Export task results as CSV/JSON)** with a Fridays-only cadence; issue assigned, with maintainer pointers added to the body (per-resource routes in `packages/api/src/routes/`, json2csv + streaming for large queries, Dashboard modal precedent).
+
+---
+
 ## [v0.11.x maintenance pass] - 2026-04-23
 
 Portfolio-hygiene sweep as the repo settled into stable-maintenance mode. No feature work — documentation, security, and housekeeping only.
