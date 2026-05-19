@@ -44,6 +44,12 @@ import { standardRateLimiter } from './middleware/rateLimiter.js';
 const app = express();
 const httpServer = createServer(app);
 
+// Behind a reverse proxy, req.ip would otherwise resolve to 127.0.0.1 — breaking
+// per-IP rate limits. Gated by TRUST_PROXY (same flag as HSTS) so dev/local stays safe.
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
 // Socket.io setup with CORS restrictions
 const io = new SocketIOServer(httpServer, {
   cors: {

@@ -16,6 +16,7 @@ import { asyncHandler } from '../types/index.js';
 import { prisma } from '../db/client.js';
 import { OrchestratorService } from '../services/orchestratorService.js';
 import { generateMissionZip, type ZipMissionMetadata } from '../services/zipService.js';
+import { strictRateLimiter } from '../middleware/rateLimiter.js';
 
 export const missionsRouter: RouterType = Router();
 
@@ -29,7 +30,9 @@ const startSchema = z.object({
   conversationId: z.string().uuid().optional(),
 });
 
-missionsRouter.post('/', asyncHandler(async (req, res) => {
+// Mission creation kicks off Sonnet decomposition + Ollama execution — expensive enough
+// to warrant a tighter cap than the app-wide rate limit (20/min instead of 100/min).
+missionsRouter.post('/', strictRateLimiter, asyncHandler(async (req, res) => {
   let data;
   try {
     data = startSchema.parse(req.body);

@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../types/index.js';
 import { BattleClawService } from '../services/battleClawService.js';
 import { ExecutorService } from '../services/executor.js';
+import { strictRateLimiter } from '../middleware/rateLimiter.js';
 
 export const battleClawRouter: RouterType = Router();
 
@@ -29,7 +30,9 @@ const executeSchema = z.object({
   includeZip: z.boolean().default(false).optional(),
 });
 
-battleClawRouter.post('/execute', asyncHandler(async (req, res) => {
+// 3rd-party-facing endpoint that runs a full mission per call — capped tighter (20/min)
+// than the standard limiter to absorb runaway scripts before they bury Ollama.
+battleClawRouter.post('/execute', strictRateLimiter, asyncHandler(async (req, res) => {
   let data;
   try {
     data = executeSchema.parse(req.body);
