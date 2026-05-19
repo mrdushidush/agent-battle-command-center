@@ -10,6 +10,8 @@
     "dev:agents": "pnpm --filter @abcc/agents dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
+    "test:api": "pnpm --filter @abcc/api test",
+    "prepare": "husky",
     "db:generate": "pnpm --filter @abcc/api db:generate",
     "db:push": "pnpm --filter @abcc/api db:push",
     "db:migrate": "pnpm --filter @abcc/api db:migrate",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
     "typescript": "^5.3.3"
   },
   "engines": {

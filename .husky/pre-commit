@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Lint only (not test) — keeps hook under ~10s so devs don't reach for --no-verify. CI runs tests.
+# `corepack pnpm -r lint` (not bare `pnpm`) so the hook works when pnpm isn't on PATH (e.g. fresh Windows installs).
+corepack pnpm -r lint
