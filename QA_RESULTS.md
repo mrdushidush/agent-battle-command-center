@@ -126,22 +126,7 @@ if 'test_' in path and 'tasks/' in path:
 
 | Item | Status | Details |
 |------|--------|---------|
-| task-lifecycle.test.ts created | PASS | 1013 lines, 43 test cases |
-| Task routing tests | PASS | Complexity 1-6 -> Ollama, 7-8 -> Haiku, 9-10 -> Sonnet |
-| Status transitions | PASS | pending -> assigned -> in_progress -> completed/failed |
-| Agent state management | PASS | busy/idle transitions, stats tracking |
-| File locking | PASS | Lock acquisition, conflict detection, release |
-| End-to-end lifecycle | PASS | Full success and failure paths tested |
-
-**Integration Test File:**
-- `packages/api/src/__tests__/integration/task-lifecycle.test.ts` (1013 lines, 43 test cases)
-
-**Test Categories:**
-1. Task Routing by Complexity (4 tests)
-2. Task Status Transitions (6 tests)
-3. Agent State Management (7 tests)
-4. File Locking (6 tests)
-5. End-to-End Lifecycle (2 tests)
+| task-lifecycle.test.ts | REMOVED | Deleted 2026-05-19: the 43 cases were `describe.skip`'d and mocked every collaborator (prismaMock, mcpBridge, ollamaOptimizer, complexityAssessor, socket.io), so the "integration" suite tested no integration. Real integration coverage requires a Postgres+Redis service-container job in CI; that's tracked separately. |
 
 ### Task #8: Set Up GitHub Actions CI Pipeline
 
@@ -151,7 +136,7 @@ if 'test_' in path and 'tasks/' in path:
 | lint job | PASS | TypeScript + Python (ruff) linting |
 | unit-tests job | PASS | Jest + pytest with coverage |
 | build job | PASS | Full package build verification |
-| integration-tests job | PASS | PostgreSQL + Redis services |
+| integration-tests job | REMOVED | The Postgres+Redis service-container job ran against the now-deleted `task-lifecycle.test.ts` skip-block, so it always reported zero failures regardless of code state. Job removed alongside the test file. |
 | docker-build job | PASS | All 3 Docker images tested |
 | security-scan job | PASS | npm audit + Trivy scanner |
 
@@ -181,10 +166,9 @@ if 'test_' in path and 'tasks/' in path:
 | taskRouter.test.ts | ~200 | 10 | Complexity routing |
 | taskQueue.test.ts | ~150 | 8 | Queue operations |
 | fileLock.test.ts | ~100 | 6 | File locking |
-| task-lifecycle.test.ts | 1013 | 43 | Integration tests |
 
-**Total Test Lines:** ~2,200 lines
-**Total Test Cases:** ~99 test cases
+**Total Test Lines:** ~1,186 lines (after 2026-05-19 graveyard cleanup)
+**Total Test Cases:** ~56 test cases
 
 ### Coverage by Service
 
@@ -328,9 +312,6 @@ packages/api/src/services/
 packages/api/src/services/__tests__/
   ollamaOptimizer.test.ts (344 lines)
   taskAssigner.test.ts (392 lines)
-
-packages/api/src/__tests__/integration/
-  task-lifecycle.test.ts (1013 lines)
 
 packages/api/src/__mocks__/
   prisma.ts (11 lines)

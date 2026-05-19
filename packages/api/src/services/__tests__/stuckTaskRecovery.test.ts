@@ -88,46 +88,6 @@ describe('StuckTaskRecoveryService', () => {
 
       expect(results).toEqual([]);
     });
-
-    // TODO: recoverStuckTask has complex internal dependencies (TaskAssigner, ResourcePool)
-    // that need more thorough mocking. Config/status tests pass fine.
-    it.skip('should recover a stuck task', async () => {
-      const stuckTask = {
-        id: 'task-1',
-        title: 'Stuck task',
-        status: 'in_progress',
-        complexity: 5,
-        assignedAgentId: 'agent-1',
-        assignedAt: new Date(Date.now() - 120000), // 2 minutes ago
-        filePaths: ['test.py'],
-        assignedAgent: {
-          id: 'agent-1',
-          name: 'Coder-01',
-          agentTypeId: 'type-1',
-          status: 'busy',
-          currentTaskId: 'task-1',
-          config: {},
-          stats: { tasksCompleted: 5, tasksFailed: 0 },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          agentType: { name: 'coder' },
-        },
-      };
-
-      (mockPrisma.task.findMany as any).mockResolvedValue([stuckTask]);
-      (mockPrisma.task.update as any).mockResolvedValue({ ...stuckTask, status: 'aborted' });
-      (mockPrisma.agent.update as any).mockResolvedValue({
-        ...stuckTask.assignedAgent,
-        status: 'idle',
-        currentTaskId: null,
-      });
-
-      const results = await service.checkAndRecoverStuckTasks();
-
-      expect(results).toHaveLength(1);
-      expect(results[0].taskId).toBe('task-1');
-      expect(results[0].agentId).toBe('agent-1');
-    });
   });
 
   describe('getStatus', () => {

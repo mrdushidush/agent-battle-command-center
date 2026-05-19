@@ -184,11 +184,9 @@ Since the initial assessment earlier today, **significant improvements** have be
 - `taskQueue.test.ts` — Task lifecycle
 - `taskAssigner.test.ts` — Agent assignment
 - `taskRouter.test.ts` — Complexity routing
-- `task-lifecycle.test.ts` (integration) — End-to-end task flow
-- **NEW: `auth.test.ts`** — API key authentication middleware
-- **NEW: `costCalculator.test.ts`** — Cost calculation logic
-- **NEW: `complexityAssessor.test.ts`** — Complexity assessment
-- **NEW: `cors.test.ts`** — CORS configuration validation
+- `auth.test.ts` — API key authentication middleware
+- `costCalculator.test.ts` — Cost calculation logic
+- `cors.test.ts` — CORS configuration validation
 
 **Python tests (2 files, 696 lines):**
 - **NEW: `test_action_history.py`** (294 lines) — Loop detection and action tracking
