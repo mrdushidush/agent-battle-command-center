@@ -6,8 +6,6 @@
  * - One task assigned to one agent at a time
  * - Wait for agent to become idle before next task
  * - 30 second delay between tasks for state reset
- *
- * See docs/TEST_RUNNER_GUIDE.md for details
  */
 
 const API = 'http://localhost:3001/api';
