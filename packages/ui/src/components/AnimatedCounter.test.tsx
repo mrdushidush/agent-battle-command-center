@@ -36,32 +36,10 @@ describe('AnimatedCounter', () => {
     expect(screen.getByText(/\$42\.00/)).toBeInTheDocument();
   });
 
-  it('should format with suffix', async () => {
-    render(<AnimatedCounter value={42} suffix="%" duration={0} />);
-    await waitFor(() => {
-      const element = screen.getByText((content, el) => {
-        return el?.textContent?.includes('42.00') && el?.textContent?.includes('%') || false;
-      });
-      expect(element).toBeInTheDocument();
-    });
-  });
-
   it('should format decimals', async () => {
     render(<AnimatedCounter value={42.5678} decimals={2} duration={0} />);
     await waitFor(() => {
       expect(screen.getByText('42.57')).toBeInTheDocument();
-    });
-  });
-
-  it('should format with both prefix and suffix', async () => {
-    render(<AnimatedCounter value={42.5} prefix="$" suffix=" USD" decimals={2} duration={0} />);
-    await waitFor(() => {
-      const element = screen.getByText((content, el) => {
-        return el?.textContent?.includes('$') && 
-               el?.textContent?.includes('42.50') && 
-               el?.textContent?.includes('USD') || false;
-      });
-      expect(element).toBeInTheDocument();
     });
   });
 

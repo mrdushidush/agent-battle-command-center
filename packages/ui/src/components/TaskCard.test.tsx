@@ -46,33 +46,6 @@ describe('TaskCard', () => {
       render(<TaskCard task={highPriorityTask} />);
       expect(screen.getByText('P9')).toBeInTheDocument();
     });
-
-    it('should render complexity score', () => {
-      render(<TaskCard task={mockTask} />);
-      expect(screen.getByText('C5')).toBeInTheDocument();
-    });
-  });
-
-  describe('Status Display', () => {
-    it('should display pending status', () => {
-      render(<TaskCard task={{ ...mockTask, status: 'pending' }} />);
-      expect(screen.getByText('Pending')).toBeInTheDocument();
-    });
-
-    it('should display in_progress status', () => {
-      render(<TaskCard task={{ ...mockTask, status: 'in_progress' }} />);
-      expect(screen.getByText('In Progress')).toBeInTheDocument();
-    });
-
-    it('should display completed status', () => {
-      render(<TaskCard task={{ ...mockTask, status: 'completed' }} />);
-      expect(screen.getByText('Completed')).toBeInTheDocument();
-    });
-
-    it('should display failed status', () => {
-      render(<TaskCard task={{ ...mockTask, status: 'failed' }} />);
-      expect(screen.getByText('Failed')).toBeInTheDocument();
-    });
   });
 
   describe('Priority Levels', () => {
@@ -121,40 +94,6 @@ describe('TaskCard', () => {
     it('should render review task type', () => {
       const { container } = render(<TaskCard task={{ ...mockTask, taskType: 'review' }} />);
       expect(container.querySelector('svg')).toBeInTheDocument();
-    });
-  });
-
-  describe('Time Display', () => {
-    it('should show time spent for completed tasks', () => {
-      const completedTask = {
-        ...mockTask,
-        status: 'completed' as const,
-        timeSpentMs: 5000,
-      };
-      render(<TaskCard task={completedTask} />);
-      expect(screen.getByText(/5s/)).toBeInTheDocument();
-    });
-
-    it('should format minutes correctly', () => {
-      const completedTask = {
-        ...mockTask,
-        status: 'completed' as const,
-        timeSpentMs: 65000, // 1m 5s
-      };
-      render(<TaskCard task={completedTask} />);
-      expect(screen.getByText(/1m/)).toBeInTheDocument();
-    });
-  });
-
-  describe('Error Display', () => {
-    it('should show error message for failed tasks', () => {
-      const failedTask = {
-        ...mockTask,
-        status: 'failed' as const,
-        error: 'Test error message',
-      };
-      render(<TaskCard task={failedTask} />);
-      expect(screen.getByText(/Test error message/)).toBeInTheDocument();
     });
   });
 

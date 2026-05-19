@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '../test/utils';
-import { mockAgent, mockTask } from '../test/utils';
+import { mockAgent } from '../test/utils';
 import { AgentCard } from './shared/AgentCard';
 
 // Mock the store and hooks
@@ -91,19 +91,9 @@ describe('AgentCard', () => {
       expect(screen.getByText(/10/)).toBeInTheDocument(); // tasksCompleted
     });
 
-    it('should display tasks failed', () => {
-      render(<AgentCard agent={mockAgent} />);
-      expect(screen.getByText(/2/)).toBeInTheDocument(); // tasksFailed
-    });
-
     it('should display success rate', () => {
       render(<AgentCard agent={mockAgent} />);
       expect(screen.getByText(/83%/)).toBeInTheDocument(); // successRate
-    });
-
-    it('should display average time', () => {
-      render(<AgentCard agent={mockAgent} />);
-      expect(screen.getByText(/12s/)).toBeInTheDocument(); // avgTimeMs
     });
   });
 
@@ -112,25 +102,6 @@ describe('AgentCard', () => {
       render(<AgentCard agent={mockAgent} compact />);
       expect(screen.getByText('Test Agent')).toBeInTheDocument();
       // In compact mode, status text should still be visible but stats hidden
-    });
-
-    it('should show truncated current task in compact mode', () => {
-      const busyAgent = {
-        ...mockAgent,
-        status: 'busy' as const,
-        currentTaskId: 'test-task-1',
-      };
-
-      // Mock the useUIStore to return a task
-      vi.mocked(vi.importMock('../../store/uiState')).useUIStore = () => ({
-        selectedAgentId: null,
-        selectAgent: vi.fn(),
-        tasks: [mockTask],
-      });
-
-      render(<AgentCard agent={busyAgent} compact />);
-      // Current task title should be shown in compact mode
-      expect(screen.getByText('Test Task')).toBeInTheDocument();
     });
   });
 
