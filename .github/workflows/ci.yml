@@ -237,6 +237,12 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "HIGH,CRITICAL"
+          # Required. Without it the action overrides the severity filter above
+          # to all severities so the SARIF is complete ("Building SARIF report
+          # with all severities"), while exit-code 1 still applies to every
+          # finding - so the job failed on LOW findings and the HIGH,CRITICAL
+          # filter was ignored for gating.
+          limit-severities-for-sarif: true
           exit-code: "1"
 
       - name: Upload Trivy scan results to GitHub Security tab
