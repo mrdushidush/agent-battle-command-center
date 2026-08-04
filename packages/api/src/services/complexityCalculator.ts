@@ -104,6 +104,22 @@ export function categorizeError(task: Task, logs: ExecutionLog[]): string | null
     return 'syntax_error';
   }
 
+  // Check for file/import errors
+  //
+  // This MUST stay above the runtime-error branch. Python spells import
+  // failures `ImportError:` and `ModuleNotFoundError:`, and Node spells its
+  // own `Error: Cannot find module` — all three contain the `'error:'`
+  // substring the runtime branch matches on, so ordering it second made this
+  // branch unreachable for every real import failure.
+  if (
+    errorMsg.includes('import') ||
+    errorMsg.includes('module not found') ||
+    errorMsg.includes('no module named') ||
+    errorMsg.includes('cannot find module')
+  ) {
+    return 'import_error';
+  }
+
   // Check for runtime errors
   if (
     errorMsg.includes('runtime error') ||
@@ -111,11 +127,6 @@ export function categorizeError(task: Task, logs: ExecutionLog[]): string | null
     errorMsg.includes('error:')
   ) {
     return 'runtime_error';
-  }
-
-  // Check for file/import errors
-  if (errorMsg.includes('import') || errorMsg.includes('module not found')) {
-    return 'import_error';
   }
 
   // Check for permission errors
