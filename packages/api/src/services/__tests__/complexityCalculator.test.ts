@@ -154,6 +154,34 @@ describe('Complexity Calculator', () => {
       expect(categorizeError(task, createLogs(2))).toBe('import_error');
     });
 
+    it('should categorize a Python ImportError as an import error', () => {
+      // 'ImportError:' also contains the 'error:' substring the runtime branch
+      // matches on. This passes only while the import branch is checked first.
+      const task = createTask({
+        status: 'failed',
+        error: 'ImportError: cannot import name foo',
+      });
+      expect(categorizeError(task, createLogs(2))).toBe('import_error');
+    });
+
+    it('should categorize a Python ModuleNotFoundError as an import error', () => {
+      // Matches none of the older patterns - 'module not found' is not a
+      // substring of 'ModuleNotFoundError: No module named x'.
+      const task = createTask({
+        status: 'failed',
+        error: 'ModuleNotFoundError: No module named requests',
+      });
+      expect(categorizeError(task, createLogs(2))).toBe('import_error');
+    });
+
+    it('should categorize a Node module resolution failure as an import error', () => {
+      const task = createTask({
+        status: 'failed',
+        error: 'Error: Cannot find module express',
+      });
+      expect(categorizeError(task, createLogs(2))).toBe('import_error');
+    });
+
     it('should categorize denied access as a permission error', () => {
       const task = createTask({ status: 'failed', error: 'Access denied to workspace' });
       expect(categorizeError(task, createLogs(2))).toBe('permission_error');
