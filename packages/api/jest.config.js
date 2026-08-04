@@ -10,7 +10,7 @@ export default {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
   },
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/*.test.ts'],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/__mocks__/**'],
   // Coverage thresholds disabled for initial setup; focus on tested services
   // coverageThreshold: {
