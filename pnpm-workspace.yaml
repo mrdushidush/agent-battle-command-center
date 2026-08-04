@@ -7,9 +7,18 @@ overrides:
   handlebars: '>=4.7.9'
   lodash: '^4.18.0'
   path-to-regexp: '^0.1.13'
-  socket.io-parser: '^4.2.6'
   undici: '^7.24.0'
   brace-expansion: '^5.0.6'
+  # socket.io transitives. socket.io 4.8.3 is already the latest release, so
+  # no direct-dependency bump reaches these - they can only be forced here.
+  # GHSA-2m8v-j782-fhvr / GHSA-r635-g3xr-vw7x / GHSA-96hv-2xvq-fx4p
+  socket.io-parser: '^4.2.7'
+  engine.io: '^6.6.7'
+  # Pinned exactly, not '^8.21.0'. A caret resolves to 8.21.2, published
+  # 2026-08-03, which pnpm 11's 24h minimumReleaseAge policy rejects on every
+  # subsequent command - including in CI. 8.21.1 is past the cooldown and is
+  # still >= 8.21.0, the patched floor. Safe to float once 8.21.2 ages out.
+  ws: '8.21.1'
 
 allowBuilds:
   '@prisma/client': true
