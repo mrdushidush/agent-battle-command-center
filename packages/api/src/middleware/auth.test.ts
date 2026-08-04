@@ -1,15 +1,21 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { Request, Response, NextFunction } from 'express';
-import { requireApiKey, optionalApiKey } from './auth.js';
+import type { Request, Response, NextFunction } from 'express';
 
-// Mock config
-jest.mock('../config.js', () => ({
+// This package is ESM ("type": "module" + extensionsToTreatAsEsm). `jest.mock`
+// is not hoisted for ES modules and silently does nothing - which is why these
+// tests were dead weight even once collected: `config.auth.apiKey` stayed
+// undefined and every request took the "not configured" 500 branch.
+// `unstable_mockModule` + a dynamic import is the ESM equivalent, and the
+// import must happen after the mock is registered.
+jest.unstable_mockModule('../config.js', () => ({
   config: {
     auth: {
       apiKey: 'test-api-key-12345',
     },
   },
 }));
+
+const { requireApiKey, optionalApiKey } = await import('./auth.js');
 
 describe('Auth Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -25,13 +31,13 @@ describe('Auth Middleware', () => {
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
-    };
+    } as unknown as Partial<Response>;
     nextFunction = jest.fn();
   });
 
   describe('requireApiKey', () => {
     it('should allow health check without API key', () => {
-      mockRequest.path = '/health';
+      mockRequest = { headers: {}, query: {}, path: '/health' };
 
       requireApiKey(
         mockRequest as Request,
@@ -88,7 +94,10 @@ describe('Auth Middleware', () => {
       expect(mockResponse.status).not.toHaveBeenCalled();
     });
 
-    it('should allow requests with valid API key in query param', () => {
+    it('should not accept an API key from the query param', () => {
+      // Query-param auth was removed deliberately: keys in a URL leak into
+      // access logs, Referer headers and browser history. Only X-API-Key is
+      // honoured, so a request carrying the correct key here is still 401.
       mockRequest.query = { api_key: 'test-api-key-12345' };
 
       requireApiKey(
@@ -97,11 +106,11 @@ describe('Auth Middleware', () => {
         nextFunction
       );
 
-      expect(nextFunction).toHaveBeenCalled();
-      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(nextFunction).not.toHaveBeenCalled();
     });
 
-    it('should prefer header over query param', () => {
+    it('should authenticate from the header and ignore the query param', () => {
       mockRequest.headers = { 'x-api-key': 'test-api-key-12345' };
       mockRequest.query = { api_key: 'wrong-key' };
 
