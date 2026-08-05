@@ -100,6 +100,9 @@ jobs:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/abcc_test?schema=public
 
+      - name: Run UI unit tests
+        run: pnpm --filter @abcc/ui test
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
