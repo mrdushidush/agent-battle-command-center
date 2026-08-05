@@ -72,14 +72,14 @@ describe('AgentCard', () => {
 
   describe('Agent Types', () => {
     it('should render coder agent', () => {
-      const coderAgent = { ...mockAgent, type: 'coder', agentType: { ...mockAgent.agentType, name: 'coder' } };
-      render(<AgentCard agent={coderAgent as any} />);
+      const coderAgent = { ...mockAgent, type: 'coder' as const };
+      render(<AgentCard agent={coderAgent} />);
       expect(screen.getByText('Test Agent')).toBeInTheDocument();
     });
 
     it('should render qa agent', () => {
-      const qaAgent = { ...mockAgent, type: 'qa', agentType: { ...mockAgent.agentType, name: 'qa' } };
-      render(<AgentCard agent={qaAgent as any} />);
+      const qaAgent = { ...mockAgent, type: 'qa' as const };
+      render(<AgentCard agent={qaAgent} />);
       expect(screen.getByText('Test Agent')).toBeInTheDocument();
     });
   });
@@ -107,15 +107,15 @@ describe('AgentCard', () => {
 
   describe('Agent Colors', () => {
     it('should apply coder color scheme', () => {
-      const coderAgent = { ...mockAgent, type: 'coder', agentType: { ...mockAgent.agentType, name: 'coder' } };
-      const { container } = render(<AgentCard agent={coderAgent as any} />);
+      const coderAgent = { ...mockAgent, type: 'coder' as const };
+      const { container } = render(<AgentCard agent={coderAgent} />);
       const icon = container.querySelector('.text-agent-coder');
       expect(icon).toBeInTheDocument();
     });
 
     it('should apply qa color scheme', () => {
-      const qaAgent = { ...mockAgent, type: 'qa', agentType: { ...mockAgent.agentType, name: 'qa' } };
-      const { container } = render(<AgentCard agent={qaAgent as any} />);
+      const qaAgent = { ...mockAgent, type: 'qa' as const };
+      const { container } = render(<AgentCard agent={qaAgent} />);
       const icon = container.querySelector('.text-agent-qa');
       expect(icon).toBeInTheDocument();
     });
