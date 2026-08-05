@@ -4,6 +4,43 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [v0.13.x security sweep] - 2026-08-05
+
+Closes every open Dependabot alert (25 → 0) and resolves every open Dependabot PR (10 → 0). Dependency resolution only; no source changes.
+
+### Security
+
+All 25 alerts were transitive npm dependencies that no direct-dependency bump reaches, so each could only be forced from the `overrides` block in `pnpm-workspace.yaml`. Three existing overrides had fallen below their current patched floor; six packages had no override at all.
+
+- **undici** `^7.24.0` → `^7.29.0` — 12 alerts, worst are high: SOCKS5 `ProxyAgent` dropping `requestTls` (TLS certificate validation bypass), cross-origin request routing via SOCKS5 pool reuse, cross-user disclosure via shared-cache whitespace handling, and a WebSocket fragment-count DoS.
+- **brace-expansion** `^5.0.6` → `^5.0.9` — 3 alerts (high): unbounded intermediate arrays and exponential-time expansion of consecutive non-expanding `{}` groups, both OOM-capable.
+- **postcss** *added* `^8.5.23` — 2 alerts (high): `sourceMappingURL` path traversal reading arbitrary `.map` files when `from` is unset.
+- **shell-quote** *added* `^1.9.0` — 2 alerts, one **critical**: `quote()` failing to escape newlines in object `.op` values, plus quadratic-complexity DoS in `parse()`.
+- **js-yaml@3** *added* `^3.15.0` — 2 alerts (high): merge-key alias chains forcing quadratic CPU consumption.
+- **esbuild** `>=0.27.2` → `>=0.28.1` — 1 alert (low): arbitrary file read from the dev server on Windows.
+- **body-parser@1** *added* `^1.20.6` — 1 alert (low): invalid `limit` value silently disabling size enforcement.
+- **@babel/core@7** *added* `^7.29.6` — 1 alert (low): arbitrary file read via `sourceMappingURL` comment.
+- **qs** *added* `^6.15.2` — 1 alert (medium): remotely triggerable `stringify` crash on null entries in comma-format arrays.
+
+Resolved versions now clear every patched floor: undici 7.29.0, postcss 8.5.25, brace-expansion 5.0.9, body-parser 1.20.6, js-yaml 3.15.1, shell-quote 1.10.0, esbuild 0.28.1, qs 6.15.2, @babel/core 7.29.7.
+
+`js-yaml@3`, `body-parser@1` and `@babel/core@7` use pnpm's **major-scoped selector** rather than a bare caret. Each has a live newer major with an incompatible API (js-yaml `safeLoad` vs `load`; body-parser 1 for express 4 vs 2 for express 5; babel 7 vs 8), and a bare caret would silently pin any future consumer of the newer major down onto the old one. Scoping to the major actually present today fixes the vulnerability without setting that trap.
+
+### Dependencies
+
+- **#220 applied** — the only open Dependabot PR whose targets the tree did not already meet. `@types/react-dom` `^19.2.3` → `^19.2.4` (direct) and `minimatch` 10.2.5 → 10.2.6, the latter landed by raising the override floor from `>=10.2.3` to `>=10.2.6`; the old floor was already satisfied by 10.2.5, so a plain reinstall would not have moved it. Both versions are past pnpm 11's 24h `minimumReleaseAge` cooldown, so this does not reintroduce the install-time failure the `ws` pin comment documents.
+- **#212, #211, #210, #209, #199, #192, #198, #195, #194 closed as superseded** — every version they propose is already equalled or beaten on `main`. #198/#195/#194 (fastapi 0.136.3, uvicorn 0.48.0, anthropic >=0.102.0, langchain >=0.3.30) are byte-identical no-ops against the current `requirements.txt`. Verified by semver comparison against the current manifests rather than by eye.
+
+### Verification
+
+- `pnpm -r lint` (tsc --noEmit, 3 packages): 0 errors.
+- `@abcc/api`: 251 tests / 17 suites passed. `@abcc/ui`: 53 tests / 5 files passed.
+- `pnpm -r build`: clean.
+- `codev-crlf-audit.py`: only the intended files report real content differences — this repo hides CRLF-vs-LF churn behind git's stat cache, so a clean `git status` is not sufficient evidence on its own.
+- Net −389 lockfile lines are dedup: qs 6.14.2, esbuild 0.27.2 and the second @babel/core all collapse away.
+
+---
+
 ## [v0.13.0] - 2026-05-19 (roast-response sprint, Theme 3)
 
 Response to `ROAST_REPORT.md` continues. Theme 3 is the security-headers + docs-honesty pass. Five commits land surgical fixes; Theme 4 (tests + CI honesty) follows.
