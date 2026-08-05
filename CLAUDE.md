@@ -91,7 +91,7 @@ Rest delays between tasks prevent context pollution (syntax errors after consecu
 
 Validates task output using `validationCommand`, retries with error context on failure.
 Pipeline: FAIL → Phase 1 (Ollama retry) → Phase 2 (Remote Ollama) → Phase 3 (Haiku escalation).
-Result: **88% raw → 98% with auto-retry (35/40 → 39/40)** on the 40-task C1-C9 stress benchmark. Canonical source: `scripts/QWEN25_CODER_7B_ULTIMATE_REPORT.md`.
+⚠️ The pipeline's effect on pass rate is **UNMEASURED**. `scripts/ollama-stress-test-40.js` runs each task exactly once with no retries, so neither the 88% (35/40, 2026-02-05, `scripts/QWEN25_CODER_7B_ULTIMATE_REPORT.md`) nor the 98% (39/40, 2026-02-20, `scripts/ollama-stress-results-40.json`) exercised it. Do not cite either number as evidence for auto-retry.
 
 **Files:** `autoRetryService.ts` (core), `main.py` (`POST /run-validation`)
 **Config:** `AUTO_RETRY_ENABLED`, `AUTO_RETRY_MAX_OLLAMA_RETRIES=1`, `AUTO_RETRY_MAX_REMOTE_RETRIES=1`, `AUTO_RETRY_MAX_HAIKU_RETRIES=1`, `AUTO_RETRY_VALIDATION_TIMEOUT_MS=15000`
@@ -365,7 +365,7 @@ Keep disabled until specific memory/context features are needed.
 
 ### Phase 2: Tier System Refinement (COMPLETED Feb 2026)
 
-**Best Results:** 98% pass rate (39/40) C1-C9 with auto-retry, 12s avg/task.
+**Best Results:** 98% single-pass (39/40) C1-C9 on 2026-02-20, 32.7s avg/task; the 2026-02-05 run scored 88% (35/40) at 54.4s avg. Neither run used auto-retry.
 - 7b is optimal for RTX 3060 Ti (14B: 40%, 30B MoE: 90% but too slow on 8GB VRAM)
 - Key optimizations: 16K context, CodeX-7 backstory, rest delays, periodic memory reset
 - Reports in `scripts/QWEN25_CODER_7B_*.md`, `scripts/QWEN3_30B_vs_7B_COMPARISON.md`
@@ -391,7 +391,7 @@ Keep disabled until specific memory/context features are needed.
 
 ### Phase 4: Auto-Retry Pipeline (COMPLETED v0.8.0)
 
-See "Auto-Retry Pipeline" section above. Result: **88% raw → 98% with retry (35/40 → 39/40)**.
+See "Auto-Retry Pipeline" section above. ⚠️ Its effect on pass rate is **unmeasured** — no benchmark exercises it.
 
 ### Phase 5: CTO Mission Orchestrator (IMPLEMENTED Feb 27, 2026)
 
