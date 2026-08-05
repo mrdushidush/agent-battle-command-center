@@ -4,22 +4,23 @@ import { mockTask } from '../test/utils';
 import { TaskCard } from './shared/TaskCard';
 
 // Mock the store and hooks
-vi.mock('../../store/uiState', () => ({
+vi.mock('../store/uiState', () => ({
   useUIStore: () => ({
     selectedTaskId: null,
     selectTask: vi.fn(),
     agents: [],
     agentHealth: {},
+    validationStatus: {},
   }),
 }));
 
-vi.mock('../../hooks/useTasks', () => ({
+vi.mock('../hooks/useTasks', () => ({
   useTasks: () => ({
     deleteTask: vi.fn(),
   }),
 }));
 
-vi.mock('../../api/client', () => ({
+vi.mock('../api/client', () => ({
   executeApi: vi.fn(),
 }));
 

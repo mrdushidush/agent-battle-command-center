@@ -4,7 +4,7 @@ import { mockAgent } from '../test/utils';
 import { AgentCard } from './shared/AgentCard';
 
 // Mock the store and hooks
-vi.mock('../../store/uiState', () => ({
+vi.mock('../store/uiState', () => ({
   useUIStore: () => ({
     selectedAgentId: null,
     selectAgent: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../../store/uiState', () => ({
   }),
 }));
 
-vi.mock('../../hooks/useAgents', () => ({
+vi.mock('../hooks/useAgents', () => ({
   useAgents: () => ({
     pauseAgent: vi.fn(),
     resumeAgent: vi.fn(),
