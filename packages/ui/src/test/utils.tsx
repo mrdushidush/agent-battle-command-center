@@ -1,6 +1,7 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
 import { vi } from 'vitest';
+import type { Agent, Task } from '@abcc/shared';
 
 /**
  * Custom render function that wraps components with necessary providers
@@ -15,65 +16,55 @@ export function renderWithProviders(
 /**
  * Mock task data for testing
  */
-export const mockTask = {
+export const mockTask: Task = {
   id: 'test-task-1',
   title: 'Test Task',
   description: 'Test task description',
-  taskType: 'code' as const,
-  status: 'pending' as const,
-  priority: 5,
-  complexity: 5,
-  routerComplexity: 5,
-  haikuComplexity: null,
-  finalComplexity: 5,
+  taskType: 'code',
   requiredAgent: null,
+  status: 'pending',
+  priority: 5,
+  maxIterations: 3,
+  currentIteration: 0,
   assignedAgentId: null,
   assignedAt: null,
-  currentIteration: 0,
-  maxIterations: 3,
+  needsHumanAt: null,
+  humanTimeoutMinutes: 30,
+  escalatedToAgentId: null,
   result: null,
   error: null,
-  errorCategory: null,
+  metrics: {
+    apiCreditsUsed: 0,
+    timeSpentMs: 0,
+    iterations: 0,
+  },
   lockedFiles: [],
-  acceptanceCriteria: null,
-  contextNotes: null,
-  validationCommand: null,
-  humanTimeoutMinutes: 30,
   parentTaskId: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  timeSpentMs: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
   completedAt: null,
-  apiCreditsUsed: 0,
 };
 
 /**
  * Mock agent data for testing
  */
-export const mockAgent = {
+export const mockAgent: Agent = {
   id: 'test-agent-1',
-  name: 'Test Agent',
   agentTypeId: 'coder',
-  status: 'idle' as const,
+  type: 'coder',
+  name: 'Test Agent',
+  status: 'idle',
   currentTaskId: null,
+  config: {},
   stats: {
     tasksCompleted: 10,
     tasksFailed: 2,
-    totalIterations: 15,
-    avgIterations: 1.5,
-    totalTimeMs: 120000,
-    avgTimeMs: 12000,
     successRate: 0.83,
+    totalApiCredits: 1.5,
+    totalTimeMs: 120000,
   },
-  config: {},
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  agentType: {
-    id: 'coder',
-    name: 'coder',
-    description: 'Coding agent',
-    capabilities: ['file_write', 'code_generation'],
-  },
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
 /**

@@ -43,7 +43,7 @@ describe('TaskCard', () => {
     });
 
     it('should render priority level', () => {
-      const highPriorityTask = { ...mockTask, priority: 9 };
+      const highPriorityTask = { ...mockTask, priority: 9 as const };
       render(<TaskCard task={highPriorityTask} />);
       expect(screen.getByText('P9')).toBeInTheDocument();
     });
@@ -51,19 +51,19 @@ describe('TaskCard', () => {
 
   describe('Priority Levels', () => {
     it('should show high priority for priority >= 8', () => {
-      const { container } = render(<TaskCard task={{ ...mockTask, priority: 8 }} />);
+      render(<TaskCard task={{ ...mockTask, priority: 8 }} />);
       const priorityBadge = screen.getByText('P8').closest('span');
       expect(priorityBadge).toHaveClass('bg-hud-red/20', 'text-hud-red');
     });
 
     it('should show medium priority for priority 5-7', () => {
-      const { container } = render(<TaskCard task={{ ...mockTask, priority: 6 }} />);
+      render(<TaskCard task={{ ...mockTask, priority: 6 }} />);
       const priorityBadge = screen.getByText('P6').closest('span');
       expect(priorityBadge).toHaveClass('bg-hud-amber/20', 'text-hud-amber');
     });
 
     it('should show low priority for priority < 5', () => {
-      const { container } = render(<TaskCard task={{ ...mockTask, priority: 3 }} />);
+      render(<TaskCard task={{ ...mockTask, priority: 3 }} />);
       const priorityBadge = screen.getByText('P3').closest('span');
       expect(priorityBadge).toHaveClass('bg-gray-500/20', 'text-gray-400');
     });
@@ -103,7 +103,7 @@ describe('TaskCard', () => {
       const onClick = vi.fn();
       render(<TaskCard task={mockTask} onClick={onClick} />);
 
-      const card = screen.getByText('Test Task').closest('.task-card');
+      const card = screen.getByText('Test Task').closest<HTMLElement>('.task-card');
       card?.click();
 
       expect(onClick).toHaveBeenCalledTimes(1);
