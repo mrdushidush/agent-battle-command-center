@@ -3,7 +3,7 @@ packages:
 
 overrides:
   esbuild: '>=0.28.1'
-  minimatch: '>=10.2.3'
+  minimatch: '>=10.2.6'
   handlebars: '>=4.7.9'
   lodash: '^4.18.0'
   path-to-regexp: '^0.1.13'
