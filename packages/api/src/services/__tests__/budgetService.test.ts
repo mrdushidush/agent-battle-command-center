@@ -106,16 +106,27 @@ describe('BudgetService', () => {
       expect(status.dailyLimitCents).toBe(500);
     });
 
-    it('should show warning at threshold', () => {
+    it('should warn between the threshold and the limit', () => {
       budgetService.setConfig({ dailyLimitCents: 100, warningThreshold: 0.5, enabled: true });
-      // Record 60% of budget
+      // Haiku: (200_000/1M)*100 = 20c input + (100_000/1M)*500 = 50c output = 70c of a 100c limit
+      budgetService.recordUsage(200000, 100000, 'claude-haiku-4-5');
+
+      const status = budgetService.getStatus();
+      expect(status.dailySpentCents).toBe(70);
+      expect(status.percentUsed).toBeCloseTo(0.7);
+      expect(status.isWarning).toBe(true);
+      expect(status.isOverBudget).toBe(false);
+    });
+
+    it('should stop warning once the limit is exceeded', () => {
+      budgetService.setConfig({ dailyLimitCents: 100, warningThreshold: 0.5, enabled: true });
+      // 700c against a 100c limit - past the limit, not merely past the threshold
       budgetService.recordUsage(2000000, 1000000, 'claude-haiku-4-5');
 
       const status = budgetService.getStatus();
-      // Cost should be material enough to trigger warning at 50% threshold
-      if (status.percentUsed >= 0.5 && status.percentUsed < 1) {
-        expect(status.isWarning).toBe(true);
-      }
+      expect(status.percentUsed).toBeCloseTo(7);
+      expect(status.isOverBudget).toBe(true);
+      expect(status.isWarning).toBe(false);
     });
   });
 
