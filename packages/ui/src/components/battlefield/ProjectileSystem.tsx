@@ -138,10 +138,9 @@ export function ProjectileSystem({ squads, buildings }: ProjectileSystemProps) {
     }
   }, [colorArray, trailColorArray]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     if (!meshRef.current) return;
     const t = clock.elapsedTime;
-    const dt = clock.getDelta();
 
     const firingSquads = squads.filter((s) => s.firing);
 
@@ -361,9 +360,8 @@ function ImpactParticles({
     }
   }, [impactColorArray, flashColorArray]);
 
-  useFrame(({ clock }) => {
+  useFrame((_state, dt) => {
     if (!meshRef.current) return;
-    const dt = clock.getDelta();
 
     // Age and move particles
     particlesRef.current = particlesRef.current.filter((p) => {

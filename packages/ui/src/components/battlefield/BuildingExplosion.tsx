@@ -54,9 +54,8 @@ export function BuildingExplosion({ task, position, success, onComplete }: Build
     };
   }, [geometries]);
 
-  useFrame(({ clock }) => {
+  useFrame((_state, dt) => {
     if (done || !groupRef.current) return;
-    const dt = clock.getDelta();
 
     progressRef.current += dt / duration;
     const p = Math.min(progressRef.current, 1);
