@@ -152,10 +152,9 @@ export function TaskBuilding({ building }: TaskBuildingProps) {
   };
 
   // Animation loop
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     if (!groupRef.current) return;
 
-    const dt = clock.getDelta();
     const t = clock.elapsedTime;
 
     // Entry animation: rise from ground

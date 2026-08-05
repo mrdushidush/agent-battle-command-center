@@ -27,10 +27,8 @@ export function AgentSquad({ squad }: AgentSquadProps) {
     [],
   );
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     if (!groupRef.current) return;
-
-    const dt = clock.getDelta();
 
     // Lerp movement toward target (2s travel time)
     if (moveProgress.current < 1) {
