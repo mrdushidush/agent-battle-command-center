@@ -241,16 +241,35 @@ export class TaskExecutor {
     }
 
     if (task.currentIteration < task.maxIterations) {
-      // Retry: return to assigned state for retry
+      // Retry: release everything this attempt held, then return the task to the
+      // pending queue. Nothing polls 'assigned' - autoAssignNextTask selects on
+      // status 'pending' - so leaving the task assigned held the agent, the
+      // resource-pool slot and the file locks until a human hit reset, and the
+      // retry never actually happened. currentIteration is deliberately kept so
+      // the next attempt still counts towards maxIterations.
+      await this.taskAssigner.releaseFileLocks(taskId);
+
+      const resourcePool = ResourcePoolService.getInstance();
+      const retryResourceType = resourcePool.getTaskResource(taskId);
+      resourcePool.release(taskId);
+
       const updatedTask = await this.prisma.task.update({
         where: { id: taskId },
         data: {
-          status: 'assigned',
+          status: 'pending',
+          assignedAgentId: null,
+          assignedAt: null,
           error,
         },
       });
 
       this.emitTaskUpdate(updatedTask as unknown as Task);
+
+      // Frees the agent and triggers auto-assign, which picks the task back up.
+      // Must run after the task is pending or auto-assign cannot see it.
+      if (task.assignedAgentId) {
+        await this.updateAgentOnFailure(task.assignedAgentId, task.complexity || 5, retryResourceType || undefined);
+      }
     } else {
       // Max iterations reached: mark as failed
       await this.abortTask(taskId, error);
