@@ -1,5 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { TaskQueueService } from '../taskQueue.js';
+import { ResourcePoolService } from '../resourcePool.js';
 import { prismaMock } from '../../__mocks__/prisma.js';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { Task, Agent, AgentType as PrismaAgentType, FileLock } from '@prisma/client';
@@ -334,29 +335,79 @@ describe('TaskQueueService', () => {
   });
 
   describe('handleTaskFailure', () => {
-    it('should retry if under max iterations', async () => {
+    it('should return the task to the pending queue if under max iterations', async () => {
       const task = createTask({
         status: 'in_progress',
         assignedAgentId: 'agent-1',
         currentIteration: 1,
         maxIterations: 3,
       });
-      const updatedTask = { ...task, status: 'assigned', error: 'Test error' };
+      const agent = createAgent({ id: 'agent-1', status: 'busy', currentTaskId: 'task-1' });
+      const updatedTask = { ...task, status: 'pending', assignedAgentId: null, error: 'Test error' };
 
       prismaMock.task.findUnique.mockResolvedValue(task);
       prismaMock.taskExecution.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.fileLock.deleteMany.mockResolvedValue({ count: 0 });
       prismaMock.task.update.mockResolvedValue(updatedTask);
+      prismaMock.task.findMany.mockResolvedValue([]);
+      prismaMock.agent.findUnique.mockResolvedValue(agent);
+      prismaMock.agent.update.mockResolvedValue({ ...agent, status: 'idle', currentTaskId: null });
 
       await service.handleTaskFailure('task-1', 'Test error');
 
+      // 'pending', not 'assigned': autoAssignNextTask selects on status 'pending',
+      // so an 'assigned' task is picked up by nothing and never actually retried.
       expect(prismaMock.task.update).toHaveBeenCalledWith({
         where: { id: 'task-1' },
         data: {
-          status: 'assigned',
+          status: 'pending',
+          assignedAgentId: null,
+          assignedAt: null,
           error: 'Test error',
         },
       });
-    });
+      // 15s timeout: releasing the agent applies the Ollama rest delay, which is
+      // 3s and 8s on every 5th call, counted in a module-level map shared by the
+      // whole file. The generous timeout keeps this deterministic either way.
+    }, 15000);
+
+    it('should release the file locks, the resource slot and the agent when retrying', async () => {
+      const task = createTask({
+        status: 'in_progress',
+        assignedAgentId: 'agent-1',
+        currentIteration: 1,
+        maxIterations: 3,
+      });
+      const agent = createAgent({ id: 'agent-1', status: 'busy', currentTaskId: 'task-1' });
+
+      prismaMock.task.findUnique.mockResolvedValue(task);
+      prismaMock.taskExecution.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.fileLock.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.task.update.mockResolvedValue({ ...task, status: 'pending' });
+      prismaMock.task.findMany.mockResolvedValue([]);
+      prismaMock.agent.findUnique.mockResolvedValue(agent);
+      prismaMock.agent.update.mockResolvedValue({ ...agent, status: 'idle', currentTaskId: null });
+
+      const resourcePool = ResourcePoolService.getInstance();
+      resourcePool.acquire('ollama', 'task-1');
+      expect(resourcePool.getTaskResource('task-1')).toBe('ollama');
+
+      await service.handleTaskFailure('task-1', 'Test error');
+
+      // Each of these was held by the failed attempt and leaked before the fix:
+      // the Ollama slot stayed occupied and coder-01 stayed busy until a human
+      // hit the reset button, because only forceRecoverAll() covers 'assigned'.
+      expect(resourcePool.getTaskResource('task-1')).toBeNull();
+      expect(prismaMock.fileLock.deleteMany).toHaveBeenCalledWith({
+        where: { lockedByTask: 'task-1' },
+      });
+      expect(prismaMock.agent.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'agent-1' },
+          data: expect.objectContaining({ status: 'idle', currentTaskId: null }),
+        })
+      );
+    }, 15000);
 
     it('should abort if max iterations reached', async () => {
       const task = createTask({
