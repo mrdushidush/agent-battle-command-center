@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@abcc/shared": "workspace:*",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.6.1",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "clsx": "^2.1.0",
     "lucide-react": "^0.577.0",
