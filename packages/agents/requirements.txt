@@ -1,11 +1,11 @@
-fastapi==0.136.3
-uvicorn[standard]==0.48.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
 crewai==0.203.2
 langchain>=0.3.30,<0.4.0
 langchain-anthropic>=0.3.22
 langchain-community>=0.3.1,<0.4.0
 anthropic>=0.102.0
 pydantic>=2.13.4
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 httpx>=0.28.1
 aiofiles==23.2.1
