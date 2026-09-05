@@ -478,7 +478,7 @@ exampleRouter.get('/', asyncHandler(async (req, res) => {
 ### Adding Agent Tools
 ```python
 # packages/agents/src/tools/example.py
-from crewai_tools import tool
+from crewai.tools import tool
 
 @tool("Tool Name")
 def my_tool(param: str) -> str:
