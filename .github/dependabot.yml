@@ -61,75 +61,10 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # packages/api
-  - package-ecosystem: "npm"
-    directory: "/packages/api"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      api-dev-dependencies:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-      api-prod-dependencies:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "chore(deps-api)"
-
-  # packages/ui
-  - package-ecosystem: "npm"
-    directory: "/packages/ui"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      ui-dev-dependencies:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-      ui-prod-dependencies:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "chore(deps-ui)"
-
-  # packages/shared
-  - package-ecosystem: "npm"
-    directory: "/packages/shared"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/New_York"
-    open-pull-requests-limit: 5
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      shared-dev-dependencies:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-    commit-message:
-      prefix: "chore(deps-shared)"
+  # No per-package npm entries. This is a pnpm workspace: every package
+  # resolves through the single root pnpm-lock.yaml. A Dependabot entry
+  # scoped to /packages/<name> edits only that package.json and never the
+  # root lockfile, so every PR it opened failed CI on
+  # ERR_PNPM_OUTDATED_LOCKFILE (see #234, #239, #242, #247). The root "/"
+  # entry above already walks the whole workspace - its PRs update several
+  # packages/*/package.json plus the lockfile in one commit (see #241, #249).
