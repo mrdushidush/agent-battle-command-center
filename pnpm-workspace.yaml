@@ -10,7 +10,7 @@ overrides:
   undici: '^7.29.0'
   brace-expansion: '^5.0.9'
   postcss: '^8.5.23'
-  qs: '^6.15.2'
+  qs: '^6.16.0'
   shell-quote: '^1.9.0'
   # Major-scoped selectors. These three packages have live majors whose APIs
   # are mutually incompatible (js-yaml 3 safeLoad vs 4+ load; body-parser 1
@@ -30,6 +30,20 @@ overrides:
   # subsequent command - including in CI. 8.21.1 is past the cooldown and is
   # still >= 8.21.0, the patched floor. Safe to float once 8.21.2 ages out.
   ws: '8.21.1'
+  # Transitives with no reachable direct-dependency bump. Dependabot reported
+  # each of these as security_update_not_possible: the only packages that pull
+  # them in already sit at their latest release, so the floor can only be
+  # raised here.
+  # nanoid 3.3.17 <- postcss 8.5.25 (GHSA, patched in 3.3.18)
+  nanoid: '^3.3.18'
+  # browserslist 4.28.1 <- @babel/helper-compilation-targets, update-browserslist-db
+  browserslist: '^4.28.7'
+  # fflate is major-scoped for the same reason as js-yaml/body-parser above:
+  # three-stdlib 2.36.1 needs the 0.6 line, while @types/three and @vitest/ui
+  # are on 0.8. A bare caret would drag three-stdlib across two minors of a
+  # 0.x package, where minors are the breaking boundary.
+  fflate@0.6: '^0.6.11'
+  fflate@0.8: '^0.8.3'
 
 allowBuilds:
   '@prisma/client': true
