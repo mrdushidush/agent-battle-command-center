@@ -4,6 +4,35 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [CI green sweep] - 2026-09-05
+
+Returns CI to green on `main` and clears the Dependabot backlog. The Security Scan job was the only genuinely red job - Lint, Build and Unit Tests all passed - and four of the eleven open Dependabot PRs were failing for a structural reason no re-run could fix.
+
+### Security
+
+Five transitive advisories that Dependabot reported as `security_update_not_possible`. In each case the package that pulls them in already sits at its latest release, so no direct-dependency bump reaches them and the floor can only be forced from `overrides` in `pnpm-workspace.yaml`.
+
+- **nanoid** *added* `^3.3.18` — high, pulled in by postcss 8.5.25.
+- **browserslist** *added* `^4.28.7` (resolves 4.28.8) — high, pulled in by `@babel/helper-compilation-targets` and update-browserslist-db.
+- **qs** `^6.15.2` → `^6.16.0` — medium; the existing override had fallen below the current patched floor.
+- **fflate@0.6** *added* `^0.6.11` and **fflate@0.8** *added* `^0.8.3` — medium each. Two lines are live at once: three-stdlib 2.36.1 is on 0.6, `@types/three` and `@vitest/ui` are on 0.8. Scoped with pnpm's major-scoped selector for the same reason as `js-yaml@3` and `body-parser@1` above — for a 0.x package the minor is the breaking boundary, and a bare caret would drag three-stdlib across two of them.
+
+**crewai-tools** `0.76.0` was **removed** rather than bumped. It carried GHSA-mr4r-hcgx-8p4h (high, SSRF redirect bypass) — the pip finding that failed the Trivy gate — but nothing in the repo imports it. Every tool in `packages/agents/src/tools/` imports from `crewai.tools`, which ships in the `crewai` distribution. crewai 0.203.2 declares crewai-tools only under its optional `tools` extra, which `requirements.txt` does not request, so the line was the sole reason the package was installed. Dependabot's fix (#250) was not applicable: crewai-tools 1.15.1 hard-pins `crewai==1.15.1` against our `crewai==0.203.2`, making it a framework migration rather than a patch.
+
+`pnpm audit --prod --audit-level=high` now reports no known vulnerabilities, down from 4 moderate.
+
+### CI
+
+- **aquasecurity/trivy-action** pinned from `@master` to `v0.36.0`. A mutable ref was being executed in the one job that holds `security-events: write`.
+- **docker/build-push-action** `v5` → `v7` (6 call sites), **docker/setup-buildx-action** `v3` → `v4` (2), **docker/login-action** `v3` → `v4` (1). `dependabot.yml` ignores `version-update:semver-major` for github-actions, so these only move by hand. No input used at any call site was renamed or removed across those majors.
+- The three per-package Dependabot npm entries (`/packages/api`, `/packages/ui`, `/packages/shared`) were **removed**. This is a pnpm workspace with a single root lockfile; an entry scoped to a subdirectory edits only that `package.json` and never `pnpm-lock.yaml`, so every PR it opened failed on `ERR_PNPM_OUTDATED_LOCKFILE` within 30 seconds (#234, #239, #242, #247). The root `/` entry already walks the whole workspace and commits the lockfile alongside (#241, #249), so no coverage is lost.
+
+### Dependencies
+
+Merged the Dependabot PRs that were already green, and closed the four made moot by the config fix plus #250, superseded by the crewai-tools removal.
+
+---
+
 ## [v0.13.x security sweep] - 2026-08-05
 
 Closes every open Dependabot alert (25 → 0) and resolves every open Dependabot PR (10 → 0). Dependency resolution only; no source changes.
