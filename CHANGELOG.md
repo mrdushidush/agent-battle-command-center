@@ -4,6 +4,23 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [Dependabot alert sweep] - 2026-10-04
+
+### Security
+
+Clears 16 of the 17 open Dependabot alerts. Every one is a transitive devDependency (jest, vitest, jsdom tooling); `pnpm why --prod` finds none of these packages in the production tree, and `pnpm audit --prod --audit-level=high` was already clean.
+
+- **undici** override `^7.29.0` → `^7.29.1` (resolves 7.30.0) — 10 alerts, 2 high.
+- **brace-expansion** override `^5.0.9` → `^5.0.12` — 3 alerts, 2 high (GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr).
+- **js-yaml@3** override `^3.15.0` → `^3.15.2` — high (GHSA-2883-xcg3-v3hh).
+- **vitest** and **@vitest/ui** `^4.1.10` → `^4.1.11` in `packages/ui`; `@vitest/mocker` follows — medium (GHSA-82fw-gwwq-j7x9). Supersedes Dependabot #252.
+
+**braces** 3.0.3 (GHSA-vfj7-8cjw-p6xm, high, stack-exhaustion DoS) has no patched release: 3.0.3 is the latest version and the advisory lists no fix. It is reached only through jest 29 → micromatch 4.0.8 (also latest), a devDependency of `@abcc/api`, and it only ever sees glob patterns from the repo's own jest config.
+
+The regenerated lockfile also drops four orphaned entries (`@types/node@20.19.40`, `@types/react@19.2.14`, `zustand@5.0.13`, one stale `jest-config` peer variant) that nothing resolved to any more.
+
+---
+
 ## [README status refresh] - 2026-10-04
 
 - **Status banner, badge and `SECURITY.md`** (status line and supported-versions table) now say stable at **v0.13.0 (May 2026)**. They still said v0.11.0 (March 2026), two releases behind `package.json` and the v0.12.0 / v0.13.0 releases.
