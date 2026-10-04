@@ -2,3 +2,7 @@
 *.sh text eol=lf
 *.py text eol=lf
 Dockerfile text eol=lf
+
+# Benchmark and stress-test scripts: keep them out of GitHub's language stats,
+# so the repo reads as the TypeScript project it is
+scripts/*.js linguist-detectable=false
