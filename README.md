@@ -1,12 +1,12 @@
 # 🎮 Agent Battle Command Center
 
-> **Status: stable at v0.11.0 (March 2026).** ABCC is the godfather of a family of AI coding-agent experiments I've been building since January 2026. Active development has since moved to newer projects — most notably **[claudette](https://github.com/mrdushidush/claudette)**, a local-first personal-assistant descendant of the same lineage (messaging-app access + voice + persistent scheduler, also on [crates.io](https://crates.io/crates/claudette)). This repo remains online as a reference implementation of the architecture (Campbell complexity routing, tiered Ollama → Claude fallback, RTS-style TUI, Bark military voice lines). Issues and PRs still welcome; don't expect rapid feature work here — that's happening in the successor projects.
+> **Status: stable at v0.13.0 (May 2026).** ABCC is the godfather of a family of AI coding-agent experiments I've been building since January 2026. Active development has since moved to newer projects — most notably **[claudette](https://github.com/mrdushidush/claudette)**, an air-gapped coding agent in one Rust binary that also ships Q56, a hidden-test benchmark for local coding models (on [crates.io](https://crates.io/crates/claudette)). This repo remains online as a reference implementation of the architecture (Campbell complexity routing, tiered Ollama → Claude fallback, RTS-style web UI, Bark military voice lines). Issues and PRs still welcome; don't expect rapid feature work here — that's happening in the successor projects.
 
 > **Run 88-98% of C1-C9 coding tasks for FREE on a $300 GPU — including LRU caches and RPN calculators — with Claude handling C10 decomposition at ~$0.002/task average.** Both figures are single-pass runs of the 40-task C1-C9 benchmark: 88% (35/40) on 2026-02-05, 98% (39/40) on 2026-02-20 after context-routing changes. The auto-retry pipeline's contribution is unmeasured.
 
 An RTS-inspired control center for orchestrating AI coding agents with intelligent tiered routing. Watch your AI agents work in real-time with a retro strategy game-style interface.
 
-[![Stable](https://img.shields.io/badge/status-stable%20v0.11.0-brightgreen)](./CHANGELOG.md)
+[![Stable](https://img.shields.io/badge/status-stable%20v0.13.0-brightgreen)](./CHANGELOG.md)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-dushidush-blue?logo=docker)](https://hub.docker.com/u/dushidush)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)

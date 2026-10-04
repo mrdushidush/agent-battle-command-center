@@ -4,6 +4,15 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [README status refresh] - 2026-10-04
+
+- **Status banner, badge and `SECURITY.md`** (status line and supported-versions table) now say stable at **v0.13.0 (May 2026)**. They still said v0.11.0 (March 2026), two releases behind `package.json` and the v0.12.0 / v0.13.0 releases.
+- **claudette is described as it is today**: an air-gapped coding agent that ships the Q56 benchmark. The banner still called it a personal assistant, which is no longer how claudette presents itself.
+- **"RTS-style TUI" is now "RTS-style web UI".** The UI is React + react-three-fiber served in the browser; there is no terminal UI in this repo.
+- **`.gitattributes`**: `scripts/*.js` is marked `linguist-detectable=false`. Those 65 benchmark and stress-test scripts were all 1.17 MB of the repo's JavaScript, enough for GitHub to label a TypeScript project "JavaScript".
+
+---
+
 ## [CI green sweep] - 2026-09-05
 
 Returns CI to green on `main` and clears the Dependabot backlog. The Security Scan job was the only genuinely red job - Lint, Build and Unit Tests all passed - and four of the eleven open Dependabot PRs were failing for a structural reason no re-run could fix.
