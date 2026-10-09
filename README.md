@@ -1,6 +1,8 @@
 # 🎮 Agent Battle Command Center
 
 > **Status: stable at v0.13.0 (May 2026).** ABCC is the godfather of a family of AI coding-agent experiments I've been building since January 2026. Active development has since moved to newer projects — most notably **[claudette](https://github.com/mrdushidush/claudette)**, an air-gapped coding agent in one Rust binary that also ships Q56, a hidden-test benchmark for local coding models (on [crates.io](https://crates.io/crates/claudette)). This repo remains online as a reference implementation of the architecture (Campbell complexity routing, tiered Ollama → Claude fallback, RTS-style web UI, Bark military voice lines). Issues and PRs still welcome; don't expect rapid feature work here — that's happening in the successor projects.
+>
+> **The family:** [claudette](https://github.com/mrdushidush/claudette) (use it today) → [abcc](https://github.com/mrdushidush/abcc) (ABCC 2.0, what's next — pre-alpha) → [abcc-research](https://github.com/mrdushidush/abcc-research) (the evidence behind both).
 
 > **Run 88-98% of C1-C9 coding tasks for FREE on a $300 GPU — including LRU caches and RPN calculators — with Claude handling C10 decomposition at ~$0.002/task average.** Both figures are single-pass runs of the 40-task C1-C9 benchmark: 88% (35/40) on 2026-02-05, 98% (39/40) on 2026-02-20 after context-routing changes. The auto-retry pipeline's contribution is unmeasured.
 
@@ -33,7 +35,7 @@ An RTS-inspired control center for orchestrating AI coding agents with intellige
 **🎯 Academic Complexity Routing + Per-Agent Model Override**
 - Based on Campbell's Task Complexity Theory
 - Dual assessment: rule-based + Haiku AI semantic analysis
-- Automatic escalation: Ollama (1-8) → Sonnet (9-10) — Haiku eliminated from routing
+- Automatic escalation: Ollama (1-9) → Sonnet (10) — Haiku eliminated from routing
 - **NEW: Per-agent model dropdown** — override Auto routing with Ollama/Grok/Haiku/Sonnet/Opus per agent
 
 **🎵 Bark TTS Military Radio Voice Lines**
@@ -717,7 +719,7 @@ Canonical benchmark report: [`scripts/QWEN25_CODER_7B_ULTIMATE_REPORT.md`](./scr
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.x)
+### Shipped (through v0.13.0)
 - ✅ **Per-agent model selection** — dropdown to override Auto routing per agent (v0.7.0)
 - ✅ **Grok (xAI) support** — new model option for all agents (v0.7.0)
 - ✅ **CTO agents in sidebar** — full visibility for all 3 agent types (v0.7.0)
@@ -734,13 +736,17 @@ Canonical benchmark report: [`scripts/QWEN25_CODER_7B_ULTIMATE_REPORT.md`](./scr
 - ✅ Docker Hub image publishing
 - ✅ Multi-language workspace (Python, JavaScript, TypeScript, Go, PHP)
 
-### Next (v0.8.x)
+### Planned, not scheduled
+
+v1 is in maintenance, so nothing below has a date; new work happens in
+[claudette](https://github.com/mrdushidush/claudette) and
+[abcc](https://github.com/mrdushidush/abcc). A PR for any of these is still
+welcome — open an issue first.
+
 - [ ] E2E test suite (Playwright)
 - [ ] Onboarding flow / first-run wizard
 - [ ] Agent workspace viewer (live code editing view)
 - [ ] Plugin system for custom agent tools
-
-### Community Release (v1.0.x) - Target: 2-3 months
 - [ ] Multi-user authentication (OAuth2/OIDC)
 - [ ] Workspace isolation per user
 - [ ] Cloud deployment guides (Railway, Render, AWS)
@@ -763,6 +769,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **CrewAI** - Agent orchestration framework
 - **[Bark TTS](https://github.com/suno-ai/bark)** - GPU-generated military radio voice lines
 - **Classic RTS games** - Inspiration for the UI/UX
+
+**Contributors** — thank you:
+
+- **[goncaloalves](https://github.com/goncaloalves)** — keyboard shortcuts, skeleton loading states, ARIA accessibility, the StarCraft and Age of Empires voice packs, and test fixes (#47, #50, #51, #52, #64)
+- **[imayuss](https://github.com/imayuss)** — TaskQueue count badges, and its priority, archive and date fixes (#121, #122)
+- **[Karel-cz](https://github.com/Karel-cz)** — the copy-to-clipboard and keyboard-shortcut help buttons (#72, #73)
+- **[mohithingorani](https://github.com/mohithingorani)** — reset-all unified with stuck-task recovery (#71)
+- **[seanrw93](https://github.com/seanrw93)** — the execution-log download/export button (#117, which landed as #118)
 
 ---
 
