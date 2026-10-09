@@ -52,7 +52,7 @@ Not sure where to start? Here's a concrete 5-minute walkthrough:
 3. **Pick a `good first issue`** from [Issues](https://github.com/mrdushidush/agent-battle-command-center/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
 4. **Make your change** on a new branch: `git checkout -b fix/my-fix`
 5. **Test locally**: `docker compose up` and verify in browser at `http://localhost:5173`
-6. **Open a PR** — we'll review within 1-3 days
+6. **Open a PR** — outside PRs are reviewed on Fridays, up to three a week, oldest first
 
 **Even smaller contributions help:**
 - Fix a typo in docs
@@ -241,8 +241,10 @@ Before submitting, ensure:
 
 ### 7. Review Process
 
-- Maintainers will review your PR within 1-3 days
+- v1 is in maintenance with one maintainer: outside PRs are reviewed on Fridays, up to three a week, oldest first
+- Over 200 changed lines, or outside the linked issue's scope: closed with a note rather than reviewed — split it, or open an issue first
 - Address any requested changes
+- **You keep the merge:** if your PR needs a fix, the maintainer asks you for it or pushes it to your branch, and never re-opens your change as their own PR
 - Once approved, maintainers will merge your PR
 - Your contribution will be credited in release notes
 
