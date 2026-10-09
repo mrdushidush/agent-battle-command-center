@@ -22,18 +22,18 @@
   },
   "dependencies": {
     "@abcc/shared": "workspace:*",
-    "@anthropic-ai/sdk": "^0.106.0",
+    "@anthropic-ai/sdk": "^0.131.0",
     "@prisma/client": "^5.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
-    "express": "^4.22.2",
+    "express": "^4.22.3",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.2.0",
-    "jszip": "^3.10.1",
+    "jszip": "^3.10.2",
     "redis": "^4.6.0",
-    "socket.io": "^4.7.4",
+    "socket.io": "^4.8.4",
     "stripe": "^15.0.0",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.15",
     "zod": "^3.22.4"
   },
   "devDependencies": {
