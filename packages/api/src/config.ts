@@ -46,3 +46,14 @@ export const config = {
   env: parsed.data.NODE_ENV,
   humanTimeoutMinutes: parsed.data.HUMAN_TIMEOUT_MINUTES,
 };
+
+/**
+ * Headers for every call to the agents service. It requires the same X-API-Key
+ * this API does, because it runs code and this API is its only caller.
+ */
+export function agentsHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'X-API-Key': config.auth.apiKey ?? '',
+  };
+}

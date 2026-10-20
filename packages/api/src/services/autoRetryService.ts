@@ -13,7 +13,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { Server as SocketIOServer } from 'socket.io';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { config } from '../config.js';
+import { config, agentsHeaders } from '../config.js';
 import { createLogger } from '../logger.js';
 import { ExecutorService } from './executor.js';
 import { isRemoteOllamaEnabled, getRemoteModelForComplexity } from './resourcePool.js';
@@ -291,7 +291,7 @@ export class AutoRetryService {
     try {
       const response = await fetch(`${this.agentsUrl}/run-validation`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentsHeaders(),
         body: JSON.stringify({
           command,
           language,

@@ -1,4 +1,4 @@
-import { config } from '../config.js';
+import { config, agentsHeaders } from '../config.js';
 import type { ExecuteTaskRequest, ExecuteTaskResponse, TaskMetrics } from '../types/index.js';
 import { createLogger } from '../logger.js';
 
@@ -28,9 +28,7 @@ export class ExecutorService {
     try {
       const response = await fetchWithTimeout(`${this.baseUrl}/execute`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: agentsHeaders(),
         body: JSON.stringify({
           task_id: request.taskId,
           agent_id: request.agentId,
@@ -88,9 +86,7 @@ export class ExecutorService {
     try {
       const response = await fetchWithTimeout(`${this.baseUrl}/execute/abort`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: agentsHeaders(),
         body: JSON.stringify({
           task_id: taskId,
         }),

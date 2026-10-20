@@ -21,7 +21,7 @@ import { CodeReviewService } from './codeReviewService.js';
 import { calculateTotalCost } from './costCalculator.js';
 import { calculateSavings } from './costSavingsCalculator.js';
 import { getRemoteModelForComplexity } from './resourcePool.js';
-import { config } from '../config.js';
+import { config, agentsHeaders } from '../config.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('Orchestrator');
@@ -803,7 +803,7 @@ export class OrchestratorService {
     try {
       const response = await fetch(`${AGENTS_URL}/orchestrate/decompose`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentsHeaders(),
         body: JSON.stringify({ prompt, language }),
         signal: controller.signal,
       });
@@ -837,7 +837,7 @@ export class OrchestratorService {
     try {
       const response = await fetch(`${AGENTS_URL}/orchestrate/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentsHeaders(),
         body: JSON.stringify({ prompt, subtasks: subtaskResults }),
         signal: controller.signal,
       });

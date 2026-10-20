@@ -1,4 +1,4 @@
-import { config } from '../config.js';
+import { config, agentsHeaders } from '../config.js';
 import { prisma } from '../db/client.js';
 import { createLogger } from '../logger.js';
 
@@ -302,7 +302,7 @@ export class ChatService {
           try {
             const clarifyResponse = await fetch(`${this.baseUrl}/orchestrate/clarify`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: agentsHeaders(),
               body: JSON.stringify({ prompt: content }),
             });
 
@@ -527,9 +527,7 @@ export class ChatService {
 
     const response = await fetch(`${this.baseUrl}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: agentsHeaders(),
       body: JSON.stringify({
         agent_type: agentType,
         messages,
