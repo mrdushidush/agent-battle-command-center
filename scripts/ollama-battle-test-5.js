@@ -7,7 +7,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const REST_DELAY_MS = 3000;
 
 async function sleep(ms) {
@@ -114,7 +114,7 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
 async function executeTask(taskId, description) {
   return fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({ task_id: taskId, agent_id: 'coder-01', task_description: description, use_claude: false, model: null })
   });
 }

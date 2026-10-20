@@ -12,7 +12,7 @@
  */
 
 const API_BASE = 'http://localhost:3001/api';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 
 // Simple Ollama task template
 function makeOllamaTask(funcName, code, testCode, fileName) {
@@ -183,7 +183,7 @@ async function executeTask(taskId, agentId, description, expectedOutput, tier) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34'
+      'X-API-Key': process.env.API_KEY || ''
     },
     body: JSON.stringify({
       taskId: taskId,

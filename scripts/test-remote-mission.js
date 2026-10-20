@@ -15,7 +15,7 @@
  */
 
 const API_BASE = 'http://localhost:3001/api';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const REMOTE_OLLAMA_URL = process.env.REMOTE_OLLAMA_URL || '';
 
 async function sleep(ms) {

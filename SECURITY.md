@@ -55,7 +55,8 @@ Please provide:
 
 #### ✅ Implemented
 
-- **API Key Authentication** - All endpoints require `X-API-Key` header (except `/health`)
+- **API Key Authentication** - Every API route, the WebSocket and the internal agents service require `X-API-Key` (except `/health`). With no `API_KEY` configured, all three refuse every request
+- **Internal Services on Localhost** - The agents service (8000), MCP gateway (8001), Ollama (11434), Postgres (5432) and Redis (6379) publish their ports on `127.0.0.1` only. So do the API (3001) and UI (5173), unless `ABCC_BIND_ADDRESS` widens them or `docker-compose.mac.yml` serves them to the LAN
 - **CORS Restrictions** - Configurable allowed origins (defaults to localhost only)
 - **Rate Limiting** - 100 requests/minute per IP (configurable)
 - **SQL Injection Prevention** - Prisma ORM with parameterized queries
@@ -74,6 +75,7 @@ Please provide:
 #### ❌ Known Limitations
 
 - **Single API Key** - Shared key for all users (no per-user auth)
+- **The API Key Is in the UI Bundle, and It Runs Code** - `VITE_API_KEY` is compiled into the browser JavaScript, so anyone who can load the UI can read it. A task's `validationCommand` runs as code in the agents container, so the key is equivalent to a shell. That is why Docker publishes the API and UI on localhost by default. Do not widen them beyond a network you trust
 - **No Session Management** - Stateless API (no logout/invalidation)
 - **Shell Command Execution** - `shell_run` tool executes arbitrary commands in Docker container (mitigated by sandboxing)
 - **No Audit Logging** - User actions not logged for forensics

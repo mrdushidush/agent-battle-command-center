@@ -535,9 +535,9 @@ pnpm prisma studio
 
 ```bash
 # Run stress tests (requires running system)
-node scripts/ollama-stress-test.js       # 20 tasks, 100% pass
-node scripts/ollama-stress-test-40.js    # 40 tasks, 88% pass
-node scripts/test-parallel.js            # Parallel execution
+node --env-file=.env scripts/ollama-stress-test.js       # 20 tasks, 100% pass
+node --env-file=.env scripts/ollama-stress-test-40.js    # 40 tasks, 88% pass
+node --env-file=.env scripts/test-parallel.js            # Parallel execution
 
 # Security scanning
 pnpm run security:scan      # Quick terminal check

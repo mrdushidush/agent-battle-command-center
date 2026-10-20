@@ -5,13 +5,13 @@ import io
 import os
 from typing import Literal
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from crewai import Crew, Task
 import litellm
 
 from src.config import settings
+from src.auth import require_api_key
 
 # Configure litellm for rate limit handling with exponential backoff
 # These settings apply to all litellm calls made by CrewAI
@@ -61,13 +61,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Every route but /health needs the API key. There is deliberately no CORS
+# middleware: the API server is the only caller, and no browser should reach
+# this service directly.
+app.middleware("http")(require_api_key)
 
 
 

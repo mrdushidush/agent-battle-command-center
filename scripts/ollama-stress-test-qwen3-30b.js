@@ -17,7 +17,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const TASK_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes per task
 const REST_DELAY_MS = 3000; // 3 seconds rest between tasks
 const RESET_EVERY_N_TASKS = 5; // Reset agent memory every N tasks
@@ -247,7 +247,7 @@ DO NOT just output the code - you MUST call file_write(path="tasks/${fileName}.p
 async function executeTask(taskId, description) {
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: taskId,
       agent_id: 'coder-01',

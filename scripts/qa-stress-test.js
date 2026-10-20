@@ -17,7 +17,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const TASK_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes per task
 const REST_DELAY_MS = 3000;
 
@@ -234,7 +234,7 @@ async function writeTestFile(fileName, code) {
 
   const response = await fetch(`${AGENTS_BASE}/run-validation`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({ command: cmd }),
   });
 
@@ -330,7 +330,7 @@ async function runQATest(testCase, index, total) {
   try {
     const valResponse = await fetch(`${AGENTS_BASE}/run-validation`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
       body: JSON.stringify({ command: `cd /app/workspace && python3 -c "${testCase.validation}"` }),
     });
 

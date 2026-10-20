@@ -42,7 +42,7 @@ services:
     image: ollama/ollama
     container_name: abcc-ollama
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
       - ./scripts/ollama-entrypoint.sh:/entrypoint.sh
@@ -70,7 +70,9 @@ services:
       dockerfile: packages/api/Dockerfile
     container_name: abcc-api
     ports:
-      - "3001:3001"
+      # Localhost only by default: the UI bundle carries API_KEY, and the key
+      # can run code. Set ABCC_BIND_ADDRESS=0.0.0.0 to serve a network you trust.
+      - "${ABCC_BIND_ADDRESS:-127.0.0.1}:3001:3001"
     deploy:
       resources:
         limits:
@@ -115,7 +117,7 @@ services:
       dockerfile: Dockerfile
     container_name: abcc-agents
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     deploy:
       resources:
         limits:
@@ -150,7 +152,7 @@ services:
       dockerfile: Dockerfile
     container_name: abcc-mcp-gateway
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -185,7 +187,7 @@ services:
         VITE_API_KEY: ${API_KEY}
     container_name: abcc-ui
     ports:
-      - "5173:5173"
+      - "${ABCC_BIND_ADDRESS:-127.0.0.1}:5173:5173"  # see the api service
     environment:
       VITE_API_URL: http://localhost:3001
       VITE_WS_URL: ws://localhost:3001

@@ -21,7 +21,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const TASK_TIMEOUT_MS = 5 * 60 * 1000;
 const REST_DELAY_MS = 3000;
 
@@ -193,7 +193,7 @@ async function executeTask(taskId, task) {
 
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify(body)
   });
 

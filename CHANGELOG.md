@@ -4,6 +4,25 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [Agents service requires the API key] - 2026-10-20
+
+### Security
+
+Fixes F1 of the 2026-08-04 roast (`roast-2026-08-04/agent-2-security.md`), which was still open: **unauthenticated remote code execution on the agents service.** `POST /run-validation` runs the command it is sent, and `/execute` runs agents that have shell tools. No route checked a key, CORS allowed every origin with credentials, and both compose files published port 8000 on every interface. Anyone who could reach the machine could run code in the agents container, and that container holds `ANTHROPIC_API_KEY` and `API_KEY`.
+
+- **The agents service requires `X-API-Key`** on every route except `/health` (`packages/agents/src/auth.py`), with the same semantics as the API: 401 without a key, 403 with a wrong one, and every request refused if `API_KEY` is unset. The wildcard CORS middleware is gone, because the API server is the only caller.
+- **The API sends the key** on all eight of its calls to the agents service, through one helper, `agentsHeaders()` in `packages/api/src/config.ts`.
+- **Ports bind to `127.0.0.1`.** In `docker-compose.yml` that covers agents (8000), the MCP gateway (8001) and Ollama (11434). In `docker-compose.hub.yml` it covers agents, Ollama, Postgres and Redis, matching `docker-compose.yml` (roast F5, F6).
+- **The API (3001) and UI (5173) bind to localhost by default too** (roast F3). The UI bundle carries `API_KEY`, and the key can run code, so serving the UI to a LAN handed a shell to everyone on it. `ABCC_BIND_ADDRESS=0.0.0.0` restores LAN access. `docker-compose.mac.yml` keeps serving both to the LAN, because LAN access is the purpose of that file. This narrows F3 but does not fix it: the key is still in the bundle.
+- **`docker-compose.mac.yml` loads again.** Its `agents.depends_on` merged with the base file's instead of replacing it, so it kept the dependency on the disabled `ollama` service, and current Compose rejects that project. It is now `!override`, which needs Compose 2.24.4 or later.
+- **The WebSocket refuses connections when `API_KEY` is unset**, as HTTP already did (roast F7). It used to admit every socket and stream every task event to it.
+- **The 36 direct calls to the agents service in 28 `scripts/`** now send `X-API-Key` from `API_KEY`.
+- **No script carries a key any more.** 25 scripts fell back to a hard-coded key, the maintainer's own, which has been rotated. They now read `API_KEY` from the environment only, and the documented commands run them with `node --env-file=.env`.
+
+**Upgrading:** anything else that calls port 8000 must now send `X-API-Key`. To reach ABCC from another machine, set `ABCC_BIND_ADDRESS=0.0.0.0`. Docker Hub installs get the fix from the next published `dushidush/agents` image and the updated `docker-compose.hub.yml`.
+
+---
+
 ## [Dependabot alert sweep] - 2026-10-04
 
 ### Security

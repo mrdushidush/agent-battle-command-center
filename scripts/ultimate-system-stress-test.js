@@ -13,7 +13,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const TASK_TIMEOUT_MS = 5 * 60 * 1000;
 const REST_DELAY_MS = 3000;
 const RESET_EVERY_N_TASKS = 3;
@@ -619,7 +619,7 @@ async function phase1_ollamaGauntlet() {
 
       const execResponse = await fetch(`${AGENTS_BASE}/execute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
         body: JSON.stringify({
           task_id: created.id,
           agent_id: 'coder-01',
@@ -776,7 +776,7 @@ async function phase2_decompGauntlet() {
 
     const execResp = await fetch(`${AGENTS_BASE}/execute`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
       body: JSON.stringify({
         task_id: parentTask.id,
         agent_id: 'cto-01',
@@ -853,7 +853,7 @@ async function phase2_decompGauntlet() {
 
         const stExecResp = await fetch(`${AGENTS_BASE}/execute`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
           body: JSON.stringify({
             task_id: subtask.id,
             agent_id: 'coder-01',

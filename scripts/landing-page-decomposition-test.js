@@ -15,7 +15,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 
 const REST_DELAY_MS = 3000;
 const RESET_EVERY_N = 3;
@@ -339,7 +339,7 @@ async function phase1_decompose() {
 
   const execResp = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: parentTask.id,
       agent_id: 'cto-01',
@@ -471,7 +471,7 @@ Report your findings as a structured list. If any files are missing, say MISSING
 
   const execResp = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: validateTask.id,
       agent_id: 'qa-01',
@@ -595,7 +595,7 @@ async function phase3_execute(subtasks) {
       // Execute with Ollama
       const execResp = await fetch(`${AGENTS_BASE}/execute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
         body: JSON.stringify({
           task_id: subtask.id,
           agent_id: 'coder-01',
@@ -708,7 +708,7 @@ Report what files are missing or broken. List specific fixes needed.`;
 
   const execResp = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: reviewTask.id,
       agent_id: 'qa-01',
@@ -847,7 +847,7 @@ ${issue.file === 'index.html'
     const fixStart = Date.now();
     const execResp = await fetch(`${AGENTS_BASE}/execute`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
       body: JSON.stringify({
         task_id: fixTask.id,
         agent_id: 'qa-01',

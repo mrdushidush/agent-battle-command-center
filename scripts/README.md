@@ -27,7 +27,7 @@ This directory contains the **Agent Diagnostic Suite** - a comprehensive testing
 
 ```bash
 # Verify system is ready
-node scripts/verify-system.js
+node --env-file=.env scripts/verify-system.js
 
 # Run complete diagnostic suite
 node scripts/quick-run.js
@@ -119,7 +119,7 @@ Before running:
 
 Verify with:
 ```bash
-node scripts/verify-system.js
+node --env-file=.env scripts/verify-system.js
 ```
 
 ## 🔧 Common Commands
@@ -132,7 +132,7 @@ node scripts/quick-run.js
 node scripts/quick-run.js --yes
 
 # Manual phase-by-phase
-node scripts/verify-system.js
+node --env-file=.env scripts/verify-system.js
 node scripts/create-test-tasks.js
 node scripts/analyze-routing.js
 node scripts/execute-tasks.js
