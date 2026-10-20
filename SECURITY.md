@@ -2,7 +2,7 @@
 
 ## Project Status
 
-ABCC is **stable at v0.13.0** (May 2026). Active development has moved to successor projects — most notably [claudette](https://github.com/mrdushidush/claudette). This repo remains online as a reference implementation and receives security fixes to the latest release, but no new feature work.
+ABCC is **stable at v0.13.1** (October 2026). Active development has moved to successor projects — most notably [claudette](https://github.com/mrdushidush/claudette). This repo remains online as a reference implementation and receives security fixes to the latest release, but no new feature work.
 
 ## Supported Versions
 

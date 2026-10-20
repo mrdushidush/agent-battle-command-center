@@ -4,6 +4,22 @@ All notable changes to Agent Battle Command Center.
 
 ---
 
+## [v0.13.1] - 2026-10-20 (security release)
+
+This release rolls up everything since v0.13.0: the dated entries below, from **v0.13.x security sweep** up to **Agents service requires the API key**. The headline is the last of these, which closes unauthenticated remote code execution on the agents service (roast 2026-08-04, F1). It also includes fixes recorded only in git:
+- the failed-task retry branch now retries and releases what it held (#229);
+- import failures are classified as `import_error`;
+- `strictRateLimiter` and an app-wide `trust proxy` are wired in;
+- the UI animates from the R3F frame delta;
+- nine auth-middleware tests that never ran now run.
+
+**Upgrading:**
+- The agents service requires `X-API-Key`.
+- Docker publishes every port on localhost by default. Set `ABCC_BIND_ADDRESS=0.0.0.0` to reach ABCC from another machine.
+- Docker Hub installs need the new `docker-compose.hub.yml` as well as the new images.
+
+---
+
 ## [Agents service requires the API key] - 2026-10-20
 
 ### Security
