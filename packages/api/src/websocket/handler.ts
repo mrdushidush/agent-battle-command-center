@@ -21,9 +21,9 @@ export function setupWebSocket(io: SocketIOServer): void {
   io.use((socket, next) => {
     const expectedKey = config.auth.apiKey;
 
-    // If no API key configured, allow (backward compat — same as HTTP auth)
+    // If no API key configured, reject — same as HTTP auth (middleware/auth.ts)
     if (!expectedKey) {
-      return next();
+      return next(new Error('Server misconfiguration: API_KEY is not configured'));
     }
 
     const rawToken = socket.handshake.auth.token || socket.handshake.headers['x-api-key'];
