@@ -28,7 +28,9 @@ services:
     environment:
       OLLAMA_URL: http://host.docker.internal:11434
       OLLAMA_API_BASE: http://host.docker.internal:11434
-    depends_on:
+    # !override replaces the base file's list; a plain key merges into it and
+    # keeps the ollama dependency, which Compose rejects
+    depends_on: !override
       postgres:
         condition: service_healthy
       redis:
