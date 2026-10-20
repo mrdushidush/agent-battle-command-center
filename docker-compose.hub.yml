@@ -19,7 +19,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-abcc}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +32,7 @@ services:
     image: redis:7-alpine
     container_name: abcc-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
@@ -46,7 +46,7 @@ services:
     image: ollama/ollama
     container_name: abcc-ollama
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
       - ./scripts/ollama-entrypoint.sh:/entrypoint.sh
@@ -72,7 +72,9 @@ services:
     image: dushidush/api:latest
     container_name: abcc-api
     ports:
-      - "3001:3001"
+      # Localhost only by default: the UI bundle carries API_KEY, and the key
+      # can run code. Set ABCC_BIND_ADDRESS=0.0.0.0 to serve a network you trust.
+      - "${ABCC_BIND_ADDRESS:-127.0.0.1}:3001:3001"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abcc}?schema=public
       AGENTS_URL: http://agents:8000
@@ -96,7 +98,7 @@ services:
     image: dushidush/agents:latest
     container_name: abcc-agents
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     # Create workspace subdirectories on first run (named volume starts empty)
     command: >
       sh -c "mkdir -p /app/workspace/tasks /app/workspace/tests /app/workspace/tasks_archive /app/workspace/tests_archive &&
@@ -120,7 +122,7 @@ services:
     image: dushidush/ui:latest
     container_name: abcc-ui
     ports:
-      - "5173:5173"
+      - "${ABCC_BIND_ADDRESS:-127.0.0.1}:5173:5173"  # see the api service
     # Inject API key into nginx config at startup (pre-built image has no key baked in)
     command: >
       sh -c "sed 's/ABCC_API_KEY_PLACEHOLDER/'\"$$API_KEY\"'/' /etc/nginx/templates/hub.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"

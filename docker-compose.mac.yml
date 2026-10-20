@@ -37,17 +37,21 @@ services:
         condition: service_healthy
       # No ollama dependency — runs natively outside Docker
 
-  # API: point at native Ollama on the host
+  # API: point at native Ollama on the host, and serve the LAN so Windows can
+  # reach it (the base file binds localhost only)
   api:
     environment:
       OLLAMA_URL: http://host.docker.internal:11434
+    ports: !override
+      - "0.0.0.0:3001:3001"
 
   # UI: build with LAN-accessible URLs so Windows can reach the Mac
   # Replace 10.0.0.2 with your Mac's actual IP if different
+  # The UI bundle carries API_KEY, so everyone on this LAN can read the key
   ui:
     build:
       args:
         VITE_API_URL: http://${MAC_IP:-10.0.0.2}:3001
         VITE_WS_URL: ws://${MAC_IP:-10.0.0.2}:3001
-    ports:
+    ports: !override
       - "0.0.0.0:5173:5173"
