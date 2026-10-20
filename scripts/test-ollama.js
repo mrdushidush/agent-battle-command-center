@@ -8,6 +8,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
+const API_KEY = process.env.API_KEY || '';
 const POLL_INTERVAL_MS = 3000;
 const TASK_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes per task
 
@@ -165,7 +166,7 @@ async function createTask(task, index) {
 async function executeTask(taskId, agentId, description, expectedOutput) {
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: taskId,
       agent_id: agentId,

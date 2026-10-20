@@ -7,6 +7,8 @@
  * into atomic subtasks (one function per task) with validation commands.
  */
 
+const API_KEY = process.env.API_KEY || '';
+
 async function testAtomicDecomposition() {
   console.log('🎯 Testing Atomic Task Decomposition\n');
   console.log('=' .repeat(50));
@@ -56,7 +58,7 @@ Each function should be simple and testable.`,
 
   const execResponse = await fetch('http://localhost:8000/execute', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify(decomposeResult.decompositionRequest)
   });
 

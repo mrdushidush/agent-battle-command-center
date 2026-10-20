@@ -415,22 +415,22 @@ curl http://localhost:3001/api/agents/ollama-status \
 
 **20-task graduated complexity (C1-C8, 100% pass rate):**
 ```bash
-node scripts/ollama-stress-test.js
+node --env-file=.env scripts/ollama-stress-test.js
 ```
 
 **40-task ultimate test (C1-C9, 88% then 98% single-pass, dynamic context routing):**
 ```bash
-node scripts/ollama-stress-test-40.js
+node --env-file=.env scripts/ollama-stress-test-40.js
 ```
 
 **Full tier test (Ollama + Haiku + Sonnet + Opus, ~$1.50 cost):**
 ```bash
-node scripts/run-full-tier-test.js
+node --env-file=.env scripts/run-full-tier-test.js
 ```
 
 **Parallel execution test:**
 ```bash
-node scripts/test-parallel.js
+node --env-file=.env scripts/test-parallel.js
 ```
 
 ### Unit Tests

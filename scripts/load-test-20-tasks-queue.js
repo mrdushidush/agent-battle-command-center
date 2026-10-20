@@ -25,6 +25,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
+const API_KEY = process.env.API_KEY || '';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -290,7 +291,7 @@ async function executeTask(taskId, agentId, description, expectedOutput, tier) {
 
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: taskId,
       agent_id: agentId,

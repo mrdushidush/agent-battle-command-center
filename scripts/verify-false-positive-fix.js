@@ -13,7 +13,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -129,7 +129,7 @@ async function createTask(test, index) {
 async function executeTask(taskId, description) {
   const response = await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: taskId,
       agent_id: 'coder-01',

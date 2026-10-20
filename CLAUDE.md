@@ -429,7 +429,7 @@ POST   /api/missions/:id/kill     — Kill stuck mission
 ```
 
 **Cost:** ~$0.02-0.04/mission (Sonnet decompose + review, Ollama coding is FREE).
-97% cheaper than all-Sonnet approach. Test: `node scripts/test-mission.js`
+97% cheaper than all-Sonnet approach. Test: `node --env-file=.env scripts/test-mission.js`
 
 ### Phase 5b: Small Apps & Landing Pages
 
@@ -493,12 +493,12 @@ def my_tool(param: str) -> str:
 docker compose up
 
 # Stress tests (all in scripts/)
-node scripts/ollama-stress-test.js       # 20 tasks C1-C8 (baseline)
-node scripts/ollama-stress-test-40.js    # 40 tasks C1-C9 (ultimate)
-node scripts/ollama-stress-test-apps.js  # 20 multi-file apps C6-C8
-node scripts/ollama-stress-test-{js,go,php}.js  # Language-specific
-node scripts/run-full-tier-test.js       # 10-task full tier (~$1.50)
-node scripts/test-mission.js             # Mission pipeline test
+node --env-file=.env scripts/ollama-stress-test.js       # 20 tasks C1-C8 (baseline)
+node --env-file=.env scripts/ollama-stress-test-40.js    # 40 tasks C1-C9 (ultimate)
+node --env-file=.env scripts/ollama-stress-test-apps.js  # 20 multi-file apps C6-C8
+node --env-file=.env scripts/ollama-stress-test-{js,go,php}.js  # Language-specific
+node --env-file=.env scripts/run-full-tier-test.js       # 10-task full tier (~$1.50)
+node --env-file=.env scripts/test-mission.js             # Mission pipeline test
 
 # System management
 curl -X POST http://localhost:3001/api/agents/reset-all    # Reset stuck agents

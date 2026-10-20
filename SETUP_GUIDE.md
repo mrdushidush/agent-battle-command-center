@@ -314,7 +314,7 @@ docker compose restart api
 
 Once everything is working:
 
-1. **Test stress test:** `node scripts/ollama-stress-test.js`
+1. **Test stress test:** `node --env-file=.env scripts/ollama-stress-test.js`
 2. **Run tests:** `cd packages/api && pnpm test`
 3. **Take screenshots:** Update README with actual UI screenshots
 4. **Deploy:** Follow cloud deployment guide (coming soon)

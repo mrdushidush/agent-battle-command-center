@@ -18,7 +18,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
-const API_KEY = process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34';
+const API_KEY = process.env.API_KEY || '';
 const REST_DELAY_MS = 3000;
 const RESET_EVERY_N = 3;
 
@@ -254,7 +254,7 @@ async function runBenchmark(numCtx) {
       // Execute — pass model name to use this specific context size
       const execResp = await fetch(`${AGENTS_BASE}/execute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
         body: JSON.stringify({
           task_id: created.id,
           agent_id: 'coder-01',

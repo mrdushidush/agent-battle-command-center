@@ -38,7 +38,7 @@ const path = require('path');
 
 const CONFIG = {
   API_BASE: process.env.API_BASE || 'http://localhost:3001/api',
-  API_KEY: process.env.API_KEY || 'ceb3e905f7b1b5e899645c6ec467ca34',
+  API_KEY: process.env.API_KEY || '',
   COOLDOWN_MS: 15_000,           // 15s between missions (GPU rest)
   EXTENDED_COOLDOWN_MS: 60_000,  // 60s extended cooldown every 5th mission (VRAM clearing)
   EXTENDED_COOLDOWN_EVERY_N: 5,  // Trigger extended cooldown interval

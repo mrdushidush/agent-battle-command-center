@@ -11,6 +11,7 @@
 
 const API_BASE = 'http://localhost:3001/api';
 const AGENTS_BASE = 'http://localhost:8000';
+const API_KEY = process.env.API_KEY || '';
 
 // Simple task template (Ollama tier)
 function makeSimpleTask(funcName, code, testCode, fileName) {
@@ -229,7 +230,7 @@ async function executeTask(taskId, agentId, description, expectedOutput, tier) {
 
   return await fetch(`${AGENTS_BASE}/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify({
       task_id: taskId,
       agent_id: agentId,

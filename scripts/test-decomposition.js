@@ -9,6 +9,8 @@
  * 4. Check subtasks created
  */
 
+const API_KEY = process.env.API_KEY || '';
+
 async function testDecomposition() {
   console.log('🎯 Testing Task Decomposition Flow\n');
   console.log('=' .repeat(50));
@@ -62,7 +64,7 @@ The implementation should follow security best practices.`,
 
   const executeResponse = await fetch('http://localhost:8000/execute', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     body: JSON.stringify(decomposeResult.decompositionRequest)
   });
 
