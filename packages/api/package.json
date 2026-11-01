@@ -34,7 +34,7 @@
     "socket.io": "^4.8.4",
     "stripe": "^15.0.0",
     "tsx": "^4.23.15",
-    "zod": "^3.22.4"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
