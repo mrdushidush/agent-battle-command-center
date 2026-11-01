@@ -16,18 +16,18 @@
   "dependencies": {
     "@abcc/shared": "workspace:*",
     "@react-three/drei": "^10.7.9",
-    "@react-three/fiber": "^9.8.1",
+    "@react-three/fiber": "^9.8.2",
     "@types/react-syntax-highlighter": "^15.5.13",
     "clsx": "^2.1.0",
     "lucide-react": "^0.577.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
-    "react-syntax-highlighter": "^16.1.1",
+    "react-syntax-highlighter": "^16.1.2",
     "remark-gfm": "^4.0.1",
     "socket.io-client": "^4.8.4",
     "three": "^0.186.1",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
